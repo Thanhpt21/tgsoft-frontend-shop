@@ -84,23 +84,29 @@ const ShoppingCart = () => {
   };
 
   const columns = [
-    {
-      title: 'Hình ảnh',
-      key: 'thumb',
-      render: (_: any, record: CartItem) => {
-        const thumbUrl = getImageUrl(record.variant?.thumb || null);
-        return (
-          <Image
-            src={thumbUrl || '/placeholder.png'}
-            alt={record.variant?.product?.name || 'Sản phẩm'}
-            width={64}
-            height={64}
-            style={{ objectFit: 'cover' }}
-            preview={false}
-          />
+  {
+    title: 'Hình ảnh',
+    key: 'thumb',
+    render: (_: any, record: CartItem) => {
+      const thumbUrl = getImageUrl(
+          record.variant?.thumb || 
+          record.variant?.product?.thumb || 
+          null
         );
-      },
+      
+      return (
+        <Image
+          src={thumbUrl || '/placeholder.png'}
+          alt={record.variant?.product?.name || 'Sản phẩm'}
+          width={64}
+          height={64}
+          style={{ objectFit: 'cover' }}
+          preview={false}
+          fallback="/placeholder.png"
+        />
+      );
     },
+  },
     {
       title: 'Sản phẩm',
       key: 'name',

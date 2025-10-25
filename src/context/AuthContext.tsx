@@ -8,6 +8,7 @@ interface AuthContextType {
   currentUser: CurrentUser | null | undefined; // Thêm null vào đây
   isLoading: boolean;
   isError: boolean;
+  isAuthenticated: boolean;
   refetchCurrentUser: () => void;
 }
 
@@ -29,6 +30,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       currentUser: data,
       isLoading,
       isError,
+      isAuthenticated: !!data,
       refetchCurrentUser: refetch,
     };
   }, [data, isLoading, isError, refetch]);

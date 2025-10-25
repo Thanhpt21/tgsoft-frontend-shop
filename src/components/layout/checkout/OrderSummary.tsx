@@ -57,35 +57,42 @@ const OrderSummary: React.FC = () => {
 
   return (
     <div>
-      {cart.items.map((item: any) => (
-        <div key={item.id} className="flex items-start py-3 border-b">
-          {/* Hình ảnh */}
-          <div className="w-16 h-16 mr-4 flex-shrink-0">
-            <img
-              src={getImageUrl(item.variant?.thumb) || '/no-image.png'}
-              alt={item.variant?.product?.name || 'Sản phẩm'}
-              className="w-full h-full object-cover rounded-md"
-            />
-          </div>
+     {cart.items.map((item: any) => {
+        const thumbUrl = getImageUrl(
+          item.variant?.thumb || 
+          item.variant?.product?.thumb || 
+          null
+        );
 
-          {/* Thông tin sản phẩm */}
-          <div className="flex-1">
-            <Text strong>{item.variant?.product?.name}</Text>
-            <div className="text-xs text-gray-500 mt-1">
-              SKU: {item.variant?.sku || 'N/A'}
+        return (
+          <div key={item.id} className="flex items-start py-3 border-b">
+            {/* Hình ảnh */}
+            <div className="w-16 h-16 mr-4 flex-shrink-0">
+              <img
+                src={thumbUrl || '/no-image.png'}
+                alt={item.variant?.product?.name || 'Sản phẩm'}
+                className="w-full h-full object-cover rounded-md"
+
+              />
             </div>
-            <div className="text-xs text-gray-500 mt-1">
-              {item.variant?.attrValues ? renderAttributes(item.variant.attrValues) : 'Không có thuộc tính'}
-            </div>
-            <div className="flex items-center text-sm mt-2">
-              <Text>{formatVND(item.priceAtAdd)}</Text>
-              <Text className="ml-2">x {item.quantity}</Text>
-            
+
+            {/* Thông tin sản phẩm */}
+            <div className="flex-1">
+              <Text strong>{item.variant?.product?.name}</Text>
+              <div className="text-xs text-gray-500 mt-1">
+                SKU: {item.variant?.sku || 'N/A'}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {item.variant?.attrValues ? renderAttributes(item.variant.attrValues) : 'Không có thuộc tính'}
+              </div>
+              <div className="flex items-center text-sm mt-2">
+                <Text>{formatVND(item.priceAtAdd)}</Text>
+                <Text className="ml-2">x {item.quantity}</Text>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
-
+        );
+      })}
       {/* Tổng tiền */}
       <div className="py-4">
         <div className="flex justify-between py-1">
