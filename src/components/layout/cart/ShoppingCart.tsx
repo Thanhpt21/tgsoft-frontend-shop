@@ -105,8 +105,20 @@ const ShoppingCart = () => {
             fallback="/placeholder.png" // ✅ Thêm fallback nếu ảnh lỗi
           />
         );
-      },
+      
+      return (
+        <Image
+          src={thumbUrl || '/placeholder.png'}
+          alt={record.variant?.product?.name || 'Sản phẩm'}
+          width={64}
+          height={64}
+          style={{ objectFit: 'cover' }}
+          preview={false}
+          fallback="/placeholder.png"
+        />
+      );
     },
+  },
     {
       title: 'Sản phẩm',
       key: 'name',
