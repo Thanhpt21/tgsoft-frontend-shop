@@ -57,7 +57,7 @@ const OrderSummary: React.FC = () => {
 
   return (
     <div>
-     {cart.items.map((item: any) => {
+      {cart.items.map((item: any) => {
         const thumbUrl = getImageUrl(
           item.variant?.thumb || 
           item.variant?.product?.thumb || 
@@ -72,7 +72,7 @@ const OrderSummary: React.FC = () => {
                 src={thumbUrl || '/no-image.png'}
                 alt={item.variant?.product?.name || 'Sản phẩm'}
                 className="w-full h-full object-cover rounded-md"
-
+               
               />
             </div>
 
@@ -93,14 +93,13 @@ const OrderSummary: React.FC = () => {
           </div>
         );
       })}
+
       {/* Tổng tiền */}
       <div className="py-4">
         <div className="flex justify-between py-1">
           <Text strong>Tạm tính:</Text>
           <Text>{formatVND(temporaryTotal)}</Text>
         </div>
-
-        
       </div>
     </div>
   )
