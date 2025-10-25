@@ -1,0 +1,10 @@
+{
+  "title": "Danh sách yêu thích",
+  "empty_wishlist_description": "Danh sách yêu thích của bạn đang trống. Hãy thêm sản phẩm bạn thích nhé!",
+  "browse_products": "Xem danh sách sản phẩm",
+  "your_wishlist": "Danh sách sản phẩm yêu thích của bạn",
+  "remove_from_wishlist_page": "Đã xóa \"{{productTitle}}\" khỏi danh sách yêu thích của bạn.",
+  "remove_from_wishlist": "Xóa khỏi danh sách yêu thích",
+  "add_to_wishlist": "Thêm vào danh sách yêu thích",
+  "removed_from_wishlist_page": "Đã xóa khỏi trang danh sách yêu thích"
+}

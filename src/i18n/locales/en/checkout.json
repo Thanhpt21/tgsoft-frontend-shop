@@ -1,0 +1,17 @@
+{
+  "checkout": "Thanh toán",
+  "order_summary": "Tóm tắt đơn hàng",
+  "total": "Tổng cộng",
+  "shipping_information": "Thông tin giao hàng",
+  "name": "Họ và tên",
+  "your_name": "Tên của bạn",
+  "phone_number": "Số điện thoại",
+  "your_phone_number": "Số điện thoại của bạn",
+  "shipping_address": "Địa chỉ giao hàng",
+  "your_shipping_address": "Địa chỉ giao hàng của bạn",
+  "place_order": "Đặt hàng",
+  "your_cart_is_empty": "Giỏ hàng của bạn đang trống",
+  "go_to_cart": "Đi đến giỏ hàng",
+  "please_fill_all_fields": "Vui lòng điền đầy đủ thông tin",
+  "order_placed_successfully": "Đơn hàng đã được đặt thành công"
+}

@@ -1,0 +1,22 @@
+
+{
+  "loading": "Loading",
+  "error_loading_blogs": "Error loading blogs",
+  "generic_error_message": "An unexpected error occurred. Please try again later.",
+  "back_to_blog_homepage": "Back to Blog Homepage",
+  "home": "Home",
+  "all_blogs_title": "All Blogs",
+  "blog_category_title_fallback": "Blog Category",
+  "filters": "Filters",
+  "reset": "Reset",
+  "search_blogs_placeholder": "Search blogs...",
+  "blog_categories": "Blog Categories",
+  "showing_blogs_total": "Showing {{count}} of {{total}} blogs",
+  "sort_by": "Sort by",
+  "sort_by_newest": "Newest",
+  "sort_by_oldest": "Oldest",
+  "sort_by_updated_desc": "Recently Updated",
+  "no_blogs_in_category": "No blogs found in this category.",
+  "posted_by": "Posted by",
+  "read_more": "Read more"
+}

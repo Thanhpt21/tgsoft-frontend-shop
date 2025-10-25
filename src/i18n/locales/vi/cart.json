@@ -1,0 +1,20 @@
+{
+  "your_cart": "Giỏ hàng của bạn",
+  "cart_is_empty": "Giỏ hàng của bạn đang trống.",
+  "image": "Hình ảnh",
+  "product": "Sản phẩm",
+  "color": "Màu sắc",
+  "size": "Size",
+  "quantity": "Số lượng",
+  "total_price": "Tổng giá",
+  "action": "Hành động",
+  "delete": "Xóa",
+  "overall_total": "Tổng tiền",
+  "checkout": "Đặt hàng",
+  "home": "Trang chủ",
+  "loading_cart": "Đang tải giỏ hàng",
+  "login_required_title": "Yêu cầu đăng nhập",
+  "login_required_message": "Bạn cần đăng nhập để tiếp tục đặt hàng. Bạn có muốn đăng nhập ngay không?",
+  "login_now": "Đăng nhập ngay",
+  "cancel": "Hủy"
+}

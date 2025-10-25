@@ -1,0 +1,13 @@
+{
+  "account_info": "Thông tin tài khoản",
+  "account_menu": "Menu tài khoản",
+  "personal_info": "Thông tin cá nhân",
+  "shipping_address": "Địa chỉ giao hàng",
+  "purchase_history": "Lịch sử mua hàng",
+  "name": "Tên",
+  "email": "Email",
+  "edit": "Chỉnh sửa",
+  "default_address": "Địa chỉ mặc định",
+  "manage_addresses": "Quản lý địa chỉ",
+  "no_orders_yet": "Chưa có đơn hàng nào."
+}

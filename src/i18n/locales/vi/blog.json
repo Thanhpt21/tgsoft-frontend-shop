@@ -1,0 +1,22 @@
+{
+  "loading": "Đang tải",
+  "error_loading_blogs": "Lỗi khi tải bài viết",
+  "generic_error_message": "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại sau.",
+  "back_to_blog_homepage": "Quay lại trang chủ Blog",
+  "home": "Trang chủ",
+  "all_blogs_title": "Tất cả bài viết",
+  "blog_category_title_fallback": "Danh mục Blog",
+  "filters": "Bộ lọc",
+  "reset": "Đặt lại",
+  "search_blogs_placeholder": "Tìm kiếm bài viết...",
+  "blog_categories": "Danh mục bài viết",
+  "showing_blogs_total": "Hiển thị {{count}} trên tổng số {{total}} bài viết",
+  "sort_by": "Sắp xếp theo",
+  "sort_by_newest": "Mới nhất",
+  "sort_by_oldest": "Cũ nhất",
+  "sort_by_updated_desc": "Cập nhật gần nhất",
+  "no_blogs_in_category": "Không có bài viết nào trong danh mục này.",
+  "posted_by": "Đăng bởi",
+  "read_more": "Đọc thêm"
+}
+
