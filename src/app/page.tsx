@@ -5,7 +5,7 @@
 export default function Page() {
   return (
     <div>
-      <h1>Trang chủ</h1>
+      <h1>Trang chủ nnnn</h1>
     </div>
   )
 }
