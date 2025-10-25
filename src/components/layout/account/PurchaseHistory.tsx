@@ -28,7 +28,6 @@ const PurchaseHistory: React.FC = () => {
     setSelectedOrder(null);
   };
 
-  // ✅ Helper function để render trạng thái
   const getStatusText = (status: string) => {
     switch (status) {
       case 'DRAFT': return 'Đang soạn đơn';
@@ -40,7 +39,6 @@ const PurchaseHistory: React.FC = () => {
     }
   };
 
-  // ✅ Helper function để format shipping info
   const formatShippingInfo = (shippingInfo?: any) => {
     if (!shippingInfo) return 'Chưa có thông tin giao hàng';
     
@@ -82,9 +80,14 @@ const PurchaseHistory: React.FC = () => {
                 title={<div className="font-semibold">ID Đơn hàng: {order.id}</div>}
                 description={`Ngày đặt hàng ${formatDate(order.createdAt)} - ${getStatusText(order.status)} - ${order.totalAmount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}`}
               />
-              {/* ✅ Sử dụng getImageUrl cho ảnh sản phẩm trong List */}
               {order.items?.slice(0, 3).map((item) => {
-                const imageUrl = getImageUrl(item.productVariant?.thumb || null);
+                // ✅ Ưu tiên variant.thumb → product.thumb → placeholder
+                const imageUrl = getImageUrl(
+                  item.productVariant?.thumb || 
+                  item.productVariant?.product?.thumb || 
+                  null
+                );
+                
                 return (
                   <div key={item.id} className="flex items-center mt-2">
                     <div className="w-12 h-12 rounded-md overflow-hidden shadow-sm flex-shrink-0">
@@ -110,7 +113,7 @@ const PurchaseHistory: React.FC = () => {
       )}
 
       <Modal
-        open={isModalOpen} // ✅ Sử dụng prop mới của Antd v5
+        open={isModalOpen}
         title="Chi tiết đơn hàng"
         onCancel={handleCloseModal}
         footer={[
@@ -159,7 +162,13 @@ const PurchaseHistory: React.FC = () => {
                   key: 'image',
                   width: 80,
                   render: (variant: any) => {
-                    const imageUrl = getImageUrl(variant?.thumb); // ✅ Sử dụng getImageUrl
+                    // ✅ Ưu tiên variant.thumb → product.thumb → placeholder
+                    const imageUrl = getImageUrl(
+                      variant?.thumb || 
+                      variant?.product?.thumb || 
+                      null
+                    );
+                    
                     return (
                       <Image 
                         src={imageUrl || '/images/no-image.png'} 

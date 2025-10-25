@@ -30,12 +30,21 @@ export const ProductUpdateModal = ({ open, onClose, product, refetch }: ProductU
   const { data: categories } = useAllCategories()
   const { data: attributes } = useAllAttributes()
 
-  const getImageUrl = (url: string | null) => {
-    if (!url) return undefined
-    if (url.startsWith('http')) return url
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:4000'
-    return `${baseUrl}${url}`
-  }
+  const getImageUrl = (thumb: string | null): string | undefined => { 
+    if (!thumb) return undefined;
+
+    // Nếu đã là URL đầy đủ, trả về luôn
+    if (thumb.startsWith('http://') || thumb.startsWith('https://')) {
+      return thumb;
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+
+    const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+    const cleanThumb = thumb.replace(/^\//, '');
+    
+    return `${cleanBaseUrl}/${cleanThumb}`;
+  };
 
   useEffect(() => {
     if (product && open) {

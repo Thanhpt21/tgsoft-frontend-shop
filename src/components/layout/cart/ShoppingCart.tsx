@@ -88,7 +88,12 @@ const ShoppingCart = () => {
       title: 'Hình ảnh',
       key: 'thumb',
       render: (_: any, record: CartItem) => {
-        const thumbUrl = getImageUrl(record.variant?.thumb || null);
+        const thumbUrl = getImageUrl(
+          record.variant?.thumb || 
+          record.variant?.product?.thumb || 
+          null
+        );
+        
         return (
           <Image
             src={thumbUrl || '/placeholder.png'}
@@ -97,6 +102,7 @@ const ShoppingCart = () => {
             height={64}
             style={{ objectFit: 'cover' }}
             preview={false}
+            fallback="/placeholder.png" // ✅ Thêm fallback nếu ảnh lỗi
           />
         );
       },
