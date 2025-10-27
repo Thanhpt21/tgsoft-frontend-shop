@@ -1,7 +1,7 @@
 'use client';
 
-import { Button, Menu, Dropdown, Badge, Spin, Avatar } from 'antd';
-import { ShoppingCartOutlined, UserOutlined, LoadingOutlined } from '@ant-design/icons';
+import { Button, Menu, Dropdown, Badge, Spin, Avatar, Drawer } from 'antd';
+import { ShoppingCartOutlined, UserOutlined, LoadingOutlined, MenuOutlined, CloseOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Config } from '@/types/config.type';
@@ -9,7 +9,7 @@ import { useWishlist } from '@/stores/useWishlistStore';
 import { useLogout } from '@/hooks/auth/useLogout';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { getImageUrl } from '@/utils/getImageUrl'; // Đảm bảo import hàm này
+import { getImageUrl } from '@/utils/getImageUrl';
 import { useMyCart } from '@/hooks/cart/useMyCart';
 
 interface HeaderProps {
@@ -20,11 +20,9 @@ const Header = ({ config }: HeaderProps) => {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Wishlist
   const { items: wishlistItems } = useWishlist();
   const wishlistItemCount = wishlistItems.length;
 
-  // User Auth
   const { currentUser, isLoading: isAuthLoading } = useAuth();
   const { logoutUser, isPending: isLogoutPending } = useLogout();
   const isLoggedInUI = !!currentUser;
@@ -32,10 +30,7 @@ const Header = ({ config }: HeaderProps) => {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Use the custom hook to get the cart data
   const { data: cartData, isLoading: isCartLoading } = useMyCart();
-
-  // Get the number of items in the cart
   const cartItemCount = cartData?.items?.length || 0;
 
   const handleLogout = () => logoutUser();
@@ -78,15 +73,10 @@ const Header = ({ config }: HeaderProps) => {
       ]
   ];
 
-  // Lọc bỏ các giá trị falsy như false hoặc undefined từ mảng
   const filteredUserDropdownMenuItems = userDropdownMenuItems.flat().filter((item) => item !== false);
 
-  const userDropdownMenu = (
-    <Menu items={filteredUserDropdownMenuItems} />
-  );
+  const userDropdownMenu = <Menu items={filteredUserDropdownMenuItems} />;
 
-
-  // Menu chính
   const mainMenuItems = [
     { label: 'Trang chủ', href: '/' },
     { label: 'Về chúng tôi', href: '/gioi-thieu' },
@@ -98,118 +88,201 @@ const Header = ({ config }: HeaderProps) => {
   const selectedKeys = [pathname];
 
   return (
-    <header className="sticky top-0 z-50 bg-white shadow-sm">
-      <div className="flex items-center justify-between h-16 lg:px-12 md:px-8 p-4 container mx-auto">
-        {/* Logo */}
-        <Link href="/" className="flex items-center">
-          <span className="font-bold text-xl text-black">
-            {config.name || 'Tên trang web'}
-          </span>
-        </Link>
-
-        {/* Menu Desktop */}
-        <div className="hidden md:flex flex-grow justify-center">
-          <Menu mode="horizontal" selectedKeys={selectedKeys} className="border-none">
-            {mainMenuItems.map((item) => (
-              <Menu.Item key={item.href}>
-                <Link href={item.href}>{item.label}</Link>
-              </Menu.Item>
-            ))}
-          </Menu>
-        </div>
-
-        {/* Right Section: Cart, Wishlist, User */}
-        <div className="flex items-center space-x-4">
-
-          {/* Cart */}
-          <Link href="/gio-hang">
-            <Badge count={cartItemCount} offset={[-5, 5]} showZero={false}>
-              <Button
-                type="text"
-                icon={<ShoppingCartOutlined />}
-                className="!text-gray-700 hover:!text-blue-600"
-              />
-            </Badge>
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo Section */}
+          <Link href="/" className="flex items-center group">
+            <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent transition-all duration-300 group-hover:from-purple-600 group-hover:to-blue-600">
+              {config.name || 'Tên trang web'}
+            </span>
           </Link>
 
-          {/* User */}
-          {isLoggedInUI ? (
-            <Dropdown overlay={userDropdownMenu} trigger={['click']} placement="bottomRight">
-              <Button
-                type="text"
-                icon={currentUser?.avatar ? (
-                  <Avatar src={getImageUrl(currentUser.avatar)} size="small" />
-                ) : (
-                  <UserOutlined />
-                )}
-                className="!text-gray-700 hover:!text-blue-600"
-                onClick={() => {}}
-                disabled={isAuthLoading || isLogoutPending}
-                loading={isLogoutPending}
-              />
-            </Dropdown>
-          ) : (
-            <Button
-              type="text"
-              icon={<UserOutlined />}
-              className="!text-gray-700 hover:!text-blue-600"
-              onClick={() => router.push('/login')}
-              disabled={isAuthLoading || isLogoutPending}
-              loading={isLogoutPending}
-            />
-          )}
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-1 flex-1 justify-center">
+            {mainMenuItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  pathname === item.href
+                    ? 'text-blue-600 bg-blue-50'
+                    : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
 
-          {/* Mobile Menu */}
-          {/* <div className="md:hidden">
-            <Button
-              type="text"
-              icon={<MenuOutlined />}
-              className="!text-gray-700 hover:!text-blue-600"
+          {/* Right Section: Actions */}
+          <div className="flex items-center space-x-2">
+            {/* Cart Button */}
+            <Link href="/gio-hang">
+              <button className="relative p-2.5 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 group">
+                <ShoppingCartOutlined className="text-xl" />
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[20px] h-5 flex items-center justify-center bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full px-1.5 shadow-lg group-hover:scale-110 transition-transform">
+                    {cartItemCount}
+                  </span>
+                )}
+              </button>
+            </Link>
+
+            {/* User Menu - Desktop */}
+            <div className="hidden md:block">
+              {isLoggedInUI ? (
+                <Dropdown overlay={userDropdownMenu} trigger={['click']} placement="bottomRight">
+                  <button
+                    className="p-2 rounded-lg hover:bg-gray-50 transition-all duration-200 disabled:opacity-50"
+                    disabled={isAuthLoading || isLogoutPending}
+                  >
+                    {isLogoutPending ? (
+                      <Spin indicator={<LoadingOutlined style={{ fontSize: 20 }} spin />} />
+                    ) : currentUser?.avatar ? (
+                      <Avatar 
+                        src={getImageUrl(currentUser.avatar)} 
+                        size={32}
+                        className="ring-2 ring-blue-100 hover:ring-blue-200 transition-all"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white">
+                        <UserOutlined />
+                      </div>
+                    )}
+                  </button>
+                </Dropdown>
+              ) : (
+                <button
+                  onClick={() => router.push('/login')}
+                  disabled={isAuthLoading || isLogoutPending}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50"
+                >
+                  Đăng nhập
+                </button>
+              )}
+            </div>
+
+            {/* Mobile Menu Button */}
+            <button
               onClick={() => setIsMobileMenuOpen(true)}
-            />
-          </div> */}
+              className="md:hidden p-2.5 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
+            >
+              <MenuOutlined className="text-xl" />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Mobile Drawer */}
-      {/* <Drawer
-        title="Menu"
+      <Drawer
+        title={
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Menu
+            </span>
+          </div>
+        }
         placement="right"
-        closable
         onClose={() => setIsMobileMenuOpen(false)}
         open={isMobileMenuOpen}
         width={280}
-        bodyStyle={{ padding: 0 }}
+        closeIcon={<CloseOutlined className="text-gray-600" />}
+        styles={{
+          body: { padding: 0 },
+          header: { borderBottom: '1px solid #f0f0f0' }
+        }}
       >
-        <div className="flex flex-col space-y-2 p-4">
-          {mainMenuItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block py-2 text-gray-700 hover:text-blue-600 font-medium"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {item.label}
-            </Link>
-          ))}
-
-          <div className="pt-4 border-t space-y-2">
-            <Link href="/gio-hang" className="block text-gray-700 hover:text-blue-600">
-              Giỏ hàng ({cartItemCount})
-            </Link>
-
-            {isLoggedInUI ? (
-              <Button type="text" onClick={handleLogout} className="text-left w-full">
-                Đăng xuất
-              </Button>
-            ) : (
-              <Link href="/login" className="block text-gray-700 hover:text-blue-600">
-                Đăng nhập
+        <div className="flex flex-col h-full">
+          {/* Navigation Links */}
+          <nav className="flex-1 p-4 space-y-1">
+            {mainMenuItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`block px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  pathname === item.href
+                    ? 'text-blue-600 bg-blue-50'
+                    : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                }`}
+              >
+                {item.label}
               </Link>
+            ))}
+          </nav>
+
+          {/* User Section */}
+          <div className="p-4 border-t border-gray-100 bg-gray-50">
+            {isLoggedInUI ? (
+              <div className="space-y-2">
+                {/* User Info */}
+                <div className="flex items-center space-x-3 p-3 bg-white rounded-lg">
+                  {currentUser?.avatar ? (
+                    <Avatar src={getImageUrl(currentUser.avatar)} size={40} />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white">
+                      <UserOutlined />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {currentUser?.name || 'Người dùng'}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {currentUser?.email}
+                    </p>
+                  </div>
+                </div>
+
+                {/* User Actions */}
+                <Link
+                  href="/tai-khoan"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-white rounded-lg transition-all"
+                >
+                  Tài khoản
+                </Link>
+                
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-white rounded-lg transition-all"
+                  >
+                    Quản trị
+                  </Link>
+                )}
+
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  disabled={isLogoutPending}
+                  className="w-full px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-white rounded-lg transition-all text-left disabled:opacity-50"
+                >
+                  {isLogoutPending ? (
+                    <Spin indicator={<LoadingOutlined style={{ fontSize: 14 }} spin />} />
+                  ) : (
+                    'Đăng xuất'
+                  )}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  router.push('/login');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full px-4 py-3 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-sm"
+              >
+                Đăng nhập
+              </button>
             )}
           </div>
         </div>
-      </Drawer> */}
+      </Drawer>
     </header>
   );
 };
