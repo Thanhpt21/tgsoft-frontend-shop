@@ -11,6 +11,6 @@ export const getImageUrl = (thumb: string | null): string | null => {
   // Xóa dấu / ở cuối baseUrl và đầu thumb, rồi nối với 1 dấu /
   const cleanBaseUrl = baseUrl.replace(/\/$/, ''); // Xóa / cuối
   const cleanThumb = thumb.replace(/^\//, ''); // Xóa / đầu
-
+  
   return `${cleanBaseUrl}/${cleanThumb}`;
 };

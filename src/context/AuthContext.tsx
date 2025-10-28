@@ -5,10 +5,10 @@ import { useCurrent, CurrentUser } from '@/hooks/auth/useCurrent';
 
 // Định nghĩa kiểu dữ liệu cho context value
 interface AuthContextType {
-  currentUser: CurrentUser | null | undefined; // Thêm null vào đây
+  currentUser: CurrentUser | null | undefined;
   isLoading: boolean;
   isError: boolean;
-  isAuthenticated: boolean;
+  isAuthenticated: boolean; // ✅ Thêm property này
   refetchCurrentUser: () => void;
 }
 
@@ -30,7 +30,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       currentUser: data,
       isLoading,
       isError,
-      isAuthenticated: !!data,
+      isAuthenticated: !!data, // ✅ True nếu có user, false nếu null/undefined
       refetchCurrentUser: refetch,
     };
   }, [data, isLoading, isError, refetch]);
