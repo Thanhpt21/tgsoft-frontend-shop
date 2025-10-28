@@ -2,9 +2,7 @@
 'use client'
 
 import { useLogin } from '@/hooks/auth/useLogin'
-
-import { Form, Input, Button, Card, message, Divider } from 'antd'
-import { GoogleOutlined } from '@ant-design/icons'
+import { Form, Input, Button, Card } from 'antd'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -15,7 +13,7 @@ interface LoginFormValues {
 }
 
 export default function LoginPage() {
-  const loginMutation = useLogin();
+  const loginMutation = useLogin(); // 🔥 Đã tích hợp handleUserLogin trong useLogin hook
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -27,30 +25,16 @@ export default function LoginPage() {
   const onSubmit = (values: LoginFormValues) => {
     loginMutation.mutate(values, {
       onSuccess: (data) => {
-        // ✅ Chuyển hướng về trang trước đó hoặc trang chủ
-        if (redirectUrl) {
-          router.push(decodeURIComponent(redirectUrl));
-        } else {
-          router.push('/');
-        }
+        setTimeout(() => {
+          if (redirectUrl) {
+            router.push(decodeURIComponent(redirectUrl));
+          } else {
+            router.push('/');
+          }
+        }, 300); // Delay nhỏ để socket emit hoàn tất
       },
     });
   };
-
-  // const handleGoogleLogin = () => {
-  //   const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-  //   if (backendBaseUrl) {
-  //     const returnUrl = searchParams.get('returnUrl');
-  //     const googleAuthUrl = `${backendBaseUrl}/auth/google`;
-  //     if (returnUrl) {
-  //       window.location.href = `${googleAuthUrl}?returnUrl=${encodeURIComponent(returnUrl)}`;
-  //     } else {
-  //       window.location.href = googleAuthUrl;
-  //     }
-  //   } else {
-  //     message.error('Cấu hình URL backend không tìm thấy.');
-  //   }
-  // };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted px-4 py-8">
@@ -121,11 +105,8 @@ export default function LoginPage() {
               </Button>
             </Form.Item>
           </Form>
+          
           <div className="text-sm text-center text-muted-foreground mt-4">
-            {/* <Link href="/forgot-password" className="underline hover:text-blue-600 text-blue-500 mr-2">
-              Quên mật khẩu?
-            </Link>
-            / */}
             {/* ✅ Truyền redirect URL sang trang đăng ký */}
             <Link 
               href={`/register${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ''}`}
@@ -135,7 +116,6 @@ export default function LoginPage() {
             </Link>
           </div>
         </Card>
-
       </motion.div>
     </div>
   );

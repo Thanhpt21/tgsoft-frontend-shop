@@ -182,8 +182,8 @@ const handleWarehouseChange = (e: any) => {
         })
 
         // ✅ Nếu thanh toán qua VNPay
-        if (paymentMethod.code === 'VNPAY') {
-          const paymentUrl = `http://localhost:4000/api/payments/vnpay?orderId=${orderId}&amount=${totalAmount}&returnUrl=http://localhost:4000/api/payments/vnpay/callback`;
+      if (paymentMethod.code === 'VNPAY') {
+          const paymentUrl = `https://api.aiban.vn/payments/vnpay?orderId=${orderId}&amount=${totalAmount}&returnUrl=https://api.aiban.vn/payments/vnpay/callback`;
 
           try {
             const paymentResponse = await axios.get(paymentUrl, {
@@ -193,7 +193,7 @@ const handleWarehouseChange = (e: any) => {
             });
 
             if (paymentResponse?.data?.url) {
-              window.open(paymentResponse.data.url, '_blank');
+              window.location.href = paymentResponse.data.url; // chuyển trực tiếp
             } else {
               message.error('Không nhận được đường dẫn thanh toán từ VNPay!');
             }
@@ -201,9 +201,8 @@ const handleWarehouseChange = (e: any) => {
             message.error('Không thể tạo link thanh toán VNPay!');
           }
         } else {
-          // ✅ Nếu không phải VNPay (COD, chuyển khoản,...) -> Hiển thị thành công
-          setCompletedOrderId(orderId)
-          setOrderCompleted(true)
+          setCompletedOrderId(orderId);
+          setOrderCompleted(true);
         }
       },
       onError: (error) => {

@@ -1,13 +1,14 @@
 'use client'
 
-import { Table, Tag, Image, Space, Tooltip, Input, Button, Modal, message } from 'antd'
+import { Table, Tag, Image, Space, Tooltip, Input, Button, Modal, message, Badge } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { EditOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons'
+import { EditOutlined, DeleteOutlined, PictureOutlined, MessageOutlined } from '@ant-design/icons'
 import { useUsers } from '@/hooks/user/useUsers'
 import { useDeleteUser } from '@/hooks/user/useDeleteUser'
 import { useState } from 'react'
 import { UserCreateModal } from './UserCreateModal'
 import { UserUpdateModal } from './UserUpdateModal'
+import { UserChatModal } from './UserChatModal' // 🔥 NEW
 
 import type { User } from '@/types/user.type'
 import { getImageUrl } from '@/utils/getImageUrl'
@@ -18,11 +19,11 @@ export default function UserTable() {
   const [inputValue, setInputValue] = useState('')
   const [openCreate, setOpenCreate] = useState(false)
   const [openUpdate, setOpenUpdate] = useState(false)
+  const [openChat, setOpenChat] = useState(false) // 🔥 NEW
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
   const { data, isLoading, refetch } = useUsers({ page, limit: 10, search })
   const { mutateAsync: deleteUser, isPending: isDeleting } = useDeleteUser()
-
 
   const columns: ColumnsType<User> = [
     {
@@ -31,7 +32,7 @@ export default function UserTable() {
       width: 60,
       render: (_text, _record, index) => (page - 1) * 10 + index + 1,
     },
-       {
+    {
       title: 'Hình ảnh',
       dataIndex: 'avatar',
       key: 'avatar',
@@ -51,7 +52,7 @@ export default function UserTable() {
         return (
           <Image
             src={imageUrl}
-            alt="Brand"
+            alt="User Avatar"
             width={40}
             height={40}
             className="object-cover rounded"
@@ -71,38 +72,6 @@ export default function UserTable() {
       dataIndex: 'email',
       key: 'email',
     },
-  //   {
-  //   title: 'Role',
-  //   key: 'roles',
-  //   render: (_, record) => {
-  //     const tenantRoles = record.userTenantRoles || [];
-
-  //     // Nếu không có role
-  //     if (tenantRoles.length === 0) {
-  //       return <Tag color="default">Khách hàng</Tag>;
-  //     }
-
-  //     // Nếu có nhiều role
-  //     return (
-  //       <Space size={[4, 4]} wrap>
-  //         {tenantRoles.map((r) => (
-  //           <Tag
-  //             key={r.role.id}
-  //             color={
-  //               r.role.name === 'admin'
-  //                 ? 'volcano'
-  //                 : r.role.name === 'manager'
-  //                 ? 'blue'
-  //                 : 'green'
-  //             }
-  //           >
-  //             {r.role.name}
-  //           </Tag>
-  //         ))}
-  //       </Space>
-  //     );
-  //   },
-  // },
     {
       title: 'Trạng thái',
       dataIndex: 'isActive',
@@ -111,6 +80,33 @@ export default function UserTable() {
         <Tag color={active ? 'success' : 'error'}>
           {active ? 'Kích hoạt' : 'Bị khóa'}
         </Tag>
+      ),
+    },
+    // 🔥 NEW: Chat Column
+  {
+      title: 'Tin nhắn',
+      key: 'chat',
+      width: 100,
+      align: 'center',
+      render: (_, record) => (
+        <Tooltip title="Xem tin nhắn">
+          <Badge dot={false}> {/* Có thể thêm dot nếu có unread messages */} 
+            <MessageOutlined
+              style={{ 
+                color: '#1890ff', 
+                cursor: 'pointer' 
+              }}
+              onClick={() => {
+                if (record?.conversationId) {
+                  setSelectedUser(record)
+                  setOpenChat(true)
+                } else {
+                  message.error('Người dùng này chưa có cuộc trò chuyện!')
+                }
+              }}
+            />
+          </Badge>
+        </Tooltip>
       ),
     },
     {
@@ -199,10 +195,11 @@ export default function UserTable() {
         }}
       />
 
+      {/* Modals */}
       <UserCreateModal
         open={openCreate}
         onClose={() => setOpenCreate(false)}
-        refetch={refetch} // từ useUsers
+        refetch={refetch}
       />
 
       <UserUpdateModal
@@ -210,6 +207,17 @@ export default function UserTable() {
         onClose={() => setOpenUpdate(false)}
         user={selectedUser}
         refetch={refetch}
+      />
+
+      {/* 🔥 NEW: Chat Modal */}
+      <UserChatModal
+        open={openChat}
+        onClose={() => {
+          setOpenChat(false)
+          setSelectedUser(null)
+        }}
+        user={selectedUser}
+         conversationId={selectedUser?.conversationId ?? null}
       />
     </div>
   )

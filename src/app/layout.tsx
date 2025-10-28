@@ -4,9 +4,10 @@
 import { ReactNode } from 'react';
 import '@/styles/globals.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import AppContent from '@/components/layout/AppContent'; // Import component mới
+import AppContent from '@/components/layout/AppContent';
+import ChatBox from '@/components/layout/ChatBox';
+import { ChatProvider } from '@/context/ChatContext'; // import ChatProvider
 
-// Khởi tạo QueryClient một lần duy nhất bên ngoài component để tránh khởi tạo lại không cần thiết
 const queryClient = new QueryClient();
 
 export default function RootLayout({
@@ -18,9 +19,13 @@ export default function RootLayout({
     <html lang="vi">
       <body>
         <QueryClientProvider client={queryClient}>
-          <AppContent>
-            {children}
-          </AppContent>
+          <ChatProvider> {/* <- wrap app bằng ChatProvider */}
+            <AppContent>
+              {children}
+              {/* <ContactButtons /> */}
+              <ChatBox />
+            </AppContent>
+          </ChatProvider>
         </QueryClientProvider>
       </body>
     </html>
