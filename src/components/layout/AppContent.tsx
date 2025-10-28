@@ -17,7 +17,7 @@ interface AppContentProps {
 export const mockConfigData = {
   id: 1,
   tenantId: 2,
-  name: 'Công ty ABC',
+  name: 'TGSOFT',
   email: 'contact@abc.com',
   mobile: '0901234567',
   address: '123 Đường ABC, Thành phố XYZ',
