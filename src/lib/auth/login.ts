@@ -23,8 +23,13 @@ export const login = async (body: LoginBody): Promise<LoginResponse> => {
     const data = res.data
 
     if (typeof window !== 'undefined' && data.access_token) {
-      localStorage.setItem('access_token', data.access_token)
-      setCookie('access_token', data.access_token)
+       if (data.access_token) {
+        localStorage.setItem('access_token', data.access_token)
+        setCookie('access_token', data.access_token)
+      }
+      if (data.user && data.user.id) {
+        localStorage.setItem('userId', data.user.id.toString())
+      }
     }
 
     return data
