@@ -23,7 +23,7 @@ export default function ProductList() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch("https://api.aiban.vn/products/all/list/2");
+        const res = await fetch("https://api.aiban.vn/products/all/list");
         const json = await res.json();
         const data: Product[] = Array.isArray(json.data)
           ? json.data

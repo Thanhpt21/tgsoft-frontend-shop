@@ -9,6 +9,8 @@ import {
   useCallback,
 } from 'react';
 import { getSocket, type SocketType } from '@/lib/socket';
+import { useQueryClient } from '@tanstack/react-query';
+import { useUserConversationIds } from '@/hooks/chat/useUserConversationIds';
 
 // Interface khớp với backend response
 export interface ChatMessage {
@@ -31,9 +33,9 @@ interface ChatContextType {
   isTyping: { [userId: number]: boolean };
   joinConversation: (id: number) => void;
   leaveConversation: (id: number) => void;
-  handleUserLogin: (userId: number, tenantId?: number) => void;
+  handleUserLogin: (userId: number, tenantId?: number) => Promise<void>;
   loadMessages: () => Promise<void>;
-  errorMessage: string | null; // 🔥 NEW: Error message state
+  errorMessage: string | null;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -43,6 +45,8 @@ interface ChatProviderProps {
 }
 
 export const ChatProvider = ({ children }: ChatProviderProps) => {
+  const queryClient = useQueryClient();
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [conversationId, setConversationId] = useState<number | null>(null);
@@ -50,165 +54,161 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   const [isTyping, setIsTyping] = useState<{ [userId: number]: boolean }>({});
   const [socket, setSocket] = useState<SocketType | null>(null);
   const [messagesLoaded, setMessagesLoaded] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null); // 🔥 NEW: Error state
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Lấy tenantId từ env
+  const tenantId = Number(process.env.NEXT_PUBLIC_TENANT_ID || '1');
+
+  // Lấy userId từ localStorage (ban đầu)
+  const localUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+  const userIdNumber = localUserId ? Number(localUserId) : null;
+
+  // Lấy sessionId từ localStorage (cho guest)
+  const localSessionId = typeof window !== 'undefined' ? localStorage.getItem('sessionId') : null;
+
+  // DÙNG HOOK MỚI: LẤY CONVERSATION IDS TỪ DB (cache)
+  const {
+    data: dbConversationIds = [],
+    isLoading: loadingConversationIds,
+  } = useUserConversationIds({
+    userId: userIdNumber!,
+    tenantId,
+    enabled: !!userIdNumber,
+  });
+
+  // LẤY CONVERSATION ID MỚI NHẤT TỪ CACHE
+  const latestConversationId = dbConversationIds[0] ?? null;
+
+  // CẬP NHẬT TỪ CACHE (nếu có thay đổi)
   useEffect(() => {
-    const storedSessionId = localStorage.getItem('sessionId');
-    if (storedSessionId) {
-      setSessionId(storedSessionId);
+    if (latestConversationId && latestConversationId !== conversationId) {
+      console.log('Conversation ID updated from cache:', latestConversationId);
+      setConversationId(latestConversationId);
+      setTimeout(() => loadMessages(), 300);
     }
-  }, []);
+  }, [latestConversationId, conversationId]);
 
-  // 🔥 NEW: Load messages từ backend
+  // CẬP NHẬT SESSION ID CHO GUEST
+  useEffect(() => {
+    if (localSessionId && !sessionId) {
+      console.log('Session ID from localStorage:', localSessionId);
+      setSessionId(localSessionId);
+    }
+  }, [localSessionId, sessionId]);
+
+  // Load messages từ backend
   const loadMessages = useCallback(async () => {
     try {
-      const userId = localStorage.getItem('userId');
-      const storedSessionId = sessionId || localStorage.getItem('sessionId');
+      const currentSessionId = sessionId || localSessionId;
 
-      if (!userId && !storedSessionId) {
-        console.log('⚠️ No userId or sessionId, skip loading messages');
+      if (!userIdNumber && !currentSessionId && !conversationId) {
+        console.log('No identifiers, skip loading messages');
         return;
       }
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
       let url = '';
+
       if (conversationId) {
         url = `${apiUrl}/chat/messages?conversationId=${conversationId}`;
-      } else if (userId) {
-        url = `${apiUrl}/chat/messages?userId=${userId}`;
-      } else if (storedSessionId) {
-        url = `${apiUrl}/chat/messages?sessionId=${storedSessionId}`;
       }
 
-      console.log('📥 Loading messages from:', url);
+      if (!url) return;
+
+      console.log('Loading messages from:', url);
       const response = await fetch(url, {
-        headers: { 'x-tenant-id': process.env.NEXT_PUBLIC_TENANT_ID || '1' },
+        headers: { 'x-tenant-id': tenantId.toString() },
       });
 
       if (!response.ok) {
-        setErrorMessage('❌ Không thể tải tin nhắn. Vui lòng thử lại sau.');
+        setErrorMessage('Không thể tải tin nhắn. Vui lòng thử lại sau.');
         return;
       }
 
       const data = await response.json();
-      console.log('📦 Loaded data:', data);
+      console.log('Loaded data:', data);
 
       let loadedMessages: ChatMessage[] = [];
       if (data.messages && Array.isArray(data.messages)) {
         loadedMessages = data.messages;
       } else if (data.conversations && Array.isArray(data.conversations)) {
         const conv = data.conversations[0];
-        if (conv && conv.messages) {
+        if (conv?.messages) {
           loadedMessages = conv.messages;
-          if (conv.id && conv.id !== -1) {
+          if (conv.id && conv.id !== -1 && !conversationId) {
             setConversationId(conv.id);
           }
         }
       }
 
       if (loadedMessages.length > 0) {
-        console.log('✅ Loaded messages:', loadedMessages.length);
+        console.log('Loaded messages:', loadedMessages.length);
         setMessages(loadedMessages);
         setMessagesLoaded(true);
-      } else {
-        console.log('⚠️ No new messages loaded, keeping existing messages');
       }
     } catch (error) {
-      setErrorMessage('❌ Lỗi khi tải tin nhắn. Vui lòng thử lại sau.');
-      console.error('❌ Error loading messages:', error);
+      setErrorMessage('Lỗi khi tải tin nhắn.');
+      console.error('Error loading messages:', error);
     }
-  }, [conversationId, sessionId]);
+  }, [conversationId, sessionId, localSessionId, userIdNumber, tenantId]);
 
+  // Socket connection
   useEffect(() => {
     const socketInstance = getSocket({
       reconnectionAttempts: 5,
       reconnectionDelay: 2000,
     });
-    
+
     if (!socketInstance) return;
 
     setSocket(socketInstance);
 
-    // Connection events
     socketInstance.on('connect', () => {
-      console.log('✅ Socket connected:', socketInstance.id);
+      console.log('Socket connected:', socketInstance.id);
       setIsConnected(true);
-      
-      if (!messagesLoaded) {
-        loadMessages();
-      }
+      if (!messagesLoaded) loadMessages();
     });
 
     socketInstance.on('disconnect', () => {
-      console.log('❌ Chat disconnected');
+      console.log('Chat disconnected');
       setIsConnected(false);
     });
 
-    // Nhận sessionId từ server
     socketInstance.on('session-initialized', (data: { sessionId: string }) => {
-      console.log('📝 Session initialized:', data.sessionId);
+      console.log('Session initialized:', data.sessionId);
       setSessionId(data.sessionId);
-      
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('sessionId', data.sessionId);
-      }
-      
-      if (!messagesLoaded) {
-        setTimeout(() => loadMessages(), 500);
+      localStorage.setItem('sessionId', data.sessionId);
+      if (!messagesLoaded) setTimeout(() => loadMessages(), 500);
+    });
+
+    socketInstance.on('conversation-updated', (data: any) => {
+      console.log('Conversation updated:', data);
+      const convId = data.conversationId || data.id;
+      if (convId && convId !== conversationId) {
+        setConversationId(convId);
+        socketInstance.emit('join:conversation', convId);
+        if (messages.length === 0) setTimeout(() => loadMessages(), 500);
       }
     });
 
-    // Nhận conversationId sau khi migrate hoặc tạo mới
-    socketInstance.on('conversation-updated', (data: any) => {
-        console.log('✅ Conversation updated:', data);
-        const convId = data.conversationId || data.id;
-        if (convId) {
-          setConversationId(convId);
-          console.log('💬 ConversationId set to:', convId);
-          socketInstance.emit('join:conversation', convId); // Join phòng ngay lập tức
-          if (messages.length === 0) {
-            setTimeout(() => loadMessages(), 500);
-          }
-        }
-      });
-
-    // Message event - thêm message mới vào list
     socketInstance.on('message', (msg: ChatMessage) => {
-      console.log('📨 Received message:', msg);
+      console.log('Received message:', msg);
       setMessages((prev) => {
         const exists = prev.some(m => m.id.toString() === msg.id.toString());
-        if (exists) {
-          console.log('⚠️ Message already exists, skipping');
-          return prev;
-        }
-        
-        console.log('✅ Adding new message to list');
-        return [...prev, msg];
+        return exists ? prev : [...prev, msg];
       });
     });
 
-    // Typing event
     socketInstance.on('typing', ({ userId, isTyping: typing }: { userId: number; isTyping: boolean }) => {
-      console.log('⌨️ Typing event:', { userId, typing });
-      setIsTyping((prevState) => ({
-        ...prevState,
-        [userId]: typing,
-      }));
-
+      setIsTyping((prev) => ({ ...prev, [userId]: typing }));
       if (typing) {
-        setTimeout(() => {
-          setIsTyping((prevState) => ({
-            ...prevState,
-            [userId]: false,
-          }));
-        }, 3000);
+        setTimeout(() => setIsTyping((prev) => ({ ...prev, [userId]: false })), 3000);
       }
     });
 
-    // Error event
     socketInstance.on('error', (error: { message: string }) => {
-      console.error('🔴 Chat error:', error);
-      setErrorMessage('❌ Có lỗi xảy ra, vui lòng thử lại sau.');
+      console.error('Chat error:', error);
+      setErrorMessage('Có lỗi xảy ra, vui lòng thử lại sau.');
     });
 
     return () => {
@@ -222,36 +222,67 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     };
   }, [messagesLoaded, loadMessages]);
 
-  // Hàm xử lý khi user login
+  // XỬ LÝ USER LOGIN – GỌI useUserConversationIds NGAY
   const handleUserLogin = useCallback(
-    (userId: number, tenantId: number = 1) => {
+    async (userId: number, tenantId: number = 1) => {
       if (!socket || !socket.connected) {
-        setErrorMessage('❌ Kết nối socket không khả dụng, không thể đăng nhập.');
+        setErrorMessage('Kết nối socket không khả dụng.');
         return;
       }
 
-      console.log('🔐 Emitting user-login event:', { userId, tenantId });
+      console.log('Emitting user-login:', { userId });
       socket.emit('user-login', { userId });
 
+      // Lưu userId
       localStorage.setItem('userId', userId.toString());
-      
+
+      // GỌI NGAY useUserConversationIds QUA fetchQuery
+      try {
+        const conversationIds = await queryClient.fetchQuery<number[]>({
+          queryKey: ['chat', 'conversation-ids', userId, tenantId],
+          queryFn: async () => {
+            const params = new URLSearchParams();
+            params.append('userId', userId.toString());
+            if (tenantId) params.append('tenantId', tenantId.toString());
+
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+            const res = await fetch(`${apiUrl}/chat/conversation-ids?${params.toString()}`, {
+              headers: { 'x-tenant-id': tenantId.toString() },
+            });
+
+            if (!res.ok) throw new Error('Failed to fetch conversation IDs');
+            const data = await res.json();
+            return data.conversationIds || [];
+          },
+        });
+
+        const latestConversationId = conversationIds[0] ?? null;
+        if (latestConversationId && latestConversationId !== conversationId) {
+          console.log('Conversation ID fetched immediately:', latestConversationId);
+          setConversationId(latestConversationId);
+          setTimeout(() => loadMessages(), 300);
+        }
+      } catch (error) {
+        console.error('Error fetching conversation IDs on login:', error);
+      }
+
+      // Invalidate để các hook khác tự refetch
+      queryClient.invalidateQueries({
+        queryKey: ['chat', 'conversation-ids', userId],
+      });
+
+      // Đảm bảo load tin nhắn
       setTimeout(() => loadMessages(), 1000);
     },
-    [socket, loadMessages]
+    [socket, conversationId, loadMessages, queryClient]
   );
 
   const sendMessage = useCallback(
     (message: string, metadata?: any) => {
       if (!socket || !message.trim()) {
-        setErrorMessage('❌ Tin nhắn không hợp lệ!');
+        setErrorMessage('Tin nhắn không hợp lệ!');
         return;
       }
-
-      console.log('📤 Sending message:', { 
-        conversationId, 
-        message,
-        sessionId,
-      });
 
       socket.emit('send:message', {
         conversationId,
@@ -266,7 +297,6 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   const joinConversation = useCallback(
     (id: number) => {
       if (!socket) return;
-      console.log('🚪 Joining conversation:', id);
       socket.emit('join:conversation', id);
       setConversationId(id);
     },
@@ -276,7 +306,6 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   const leaveConversation = useCallback(
     (id: number) => {
       if (!socket) return;
-      console.log('🚪 Leaving conversation:', id);
       socket.emit('leave:conversation', id);
       setConversationId(null);
     },
@@ -296,7 +325,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
         leaveConversation,
         handleUserLogin,
         loadMessages,
-        errorMessage, // 🔥 NEW: Pass errorMessage to context
+        errorMessage,
       }}
     >
       {children}

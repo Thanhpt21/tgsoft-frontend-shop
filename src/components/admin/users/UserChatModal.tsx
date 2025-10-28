@@ -46,14 +46,14 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
   // Connect socket khi mở modal
   useEffect(() => {
     if (open) {
-      const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8080/chat';
+      const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8080';
       const socketInstance = ioClient(WS_URL, {
         auth: {
           userId: adminId,
           isAdmin: true,
           tenantId: parseInt(process.env.NEXT_PUBLIC_TENANT_ID || '1', 10),
         },
-        transports: ['websocket', 'polling'],
+        transports: ['websocket'],
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,

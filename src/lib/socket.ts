@@ -27,13 +27,20 @@ export const getSocket = (options: SocketOptions = {}): SocketType | null => {
       ? parseInt(userIdStr, 10)
       : null;
 
-    socket = ioClient(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8080/chat', {
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+    if (!wsUrl) {
+      console.error('WebSocket URL is not defined in environment variables.');
+      return null;
+    }
+
+
+    socket = ioClient(wsUrl, {
       auth: {
         userId,
         sessionId,
         tenantId: parseInt(process.env.NEXT_PUBLIC_TENANT_ID || '1', 10),
       },
-      transports: ['websocket', 'polling'],
+      transports: ['websocket'],
       reconnection: true,
       reconnectionDelay: options.reconnectionDelay || 1000,
       reconnectionAttempts: options.reconnectionAttempts || 5,
