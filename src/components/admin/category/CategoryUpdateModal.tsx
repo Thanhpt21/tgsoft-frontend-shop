@@ -23,7 +23,7 @@ export const CategoryUpdateModal = ({ open, onClose, category, refetch }: Catego
   const getImageUrl = (thumb: string | null) => {
     if (!thumb) return undefined
     if (thumb.startsWith('http')) return thumb
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:4000'
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || ''
     return `${baseUrl}${thumb}`
   }
 

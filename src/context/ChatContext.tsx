@@ -106,11 +106,10 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
         return;
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
       let url = '';
 
       if (conversationId) {
-        url = `${apiUrl}/chat/messages?conversationId=${conversationId}`;
+        url = `${process.env.NEXT_PUBLIC_API_URL}/chat/messages?conversationId=${conversationId}`;
       }
 
       if (!url) return;
@@ -245,7 +244,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
             params.append('userId', userId.toString());
             if (tenantId) params.append('tenantId', tenantId.toString());
 
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
             const res = await fetch(`${apiUrl}/chat/conversation-ids?${params.toString()}`, {
               headers: { 'x-tenant-id': tenantId.toString() },
             });

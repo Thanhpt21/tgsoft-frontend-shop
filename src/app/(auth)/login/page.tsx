@@ -47,15 +47,12 @@ export default function LoginPage() {
         <Card className="shadow-xl border rounded-2xl p-6 md:p-8">
           <div className="text-center mb-6">
             <h1 className="text-3xl font-bold">Đăng nhập vào cửa hàng</h1>
-            <p className="text-muted-foreground text-base mt-2">
-              Vui lòng nhập thông tin để tiếp tục
-            </p>
           </div>
 
           {/* ✅ Hiển thị thông báo nếu có redirect URL */}
           {redirectUrl && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 text-center">
-              💡 Đăng nhập để tiếp tục mua hàng
+              💡 Đăng nhập để tiếp tục
             </div>
           )}
 

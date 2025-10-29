@@ -18,6 +18,7 @@ import { useAttributeValues } from '@/hooks/attribute-value/useAttributeValues';
 import { Attribute } from '@/types/attribute.type';
 import { useAllCategories } from '@/hooks/category/useAllCategories';
 import { useAllBrands } from '@/hooks/brand/useAllBrands';
+import RatingComponent from '@/components/layout/rating/RatingComponent';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -287,7 +288,6 @@ export default function ProductDetailPage() {
               type="primary" 
               size="large" 
               onClick={handleAddToCart}
-              loading={addCartItemMutation.isPending}
               disabled={!selectedVariant}
             >
               Thêm vào giỏ hàng
@@ -296,7 +296,6 @@ export default function ProductDetailPage() {
               type="default" 
               size="large" 
               onClick={handleBuyNow}
-              loading={addCartItemMutation.isPending}
               disabled={!selectedVariant}
             >
               Mua ngay
@@ -339,6 +338,9 @@ export default function ProductDetailPage() {
             <Paragraph>Sản phẩm được bảo hành chính hãng, chi tiết liên hệ CSKH.</Paragraph>
           </Tabs.TabPane>
         </Tabs>
+      </div>
+      <div className='mt-10'>
+         {productId && <RatingComponent productId={productId} />}
       </div>
     </div>
   );
