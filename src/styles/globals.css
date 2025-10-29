@@ -1,5 +1,6 @@
-@import "tailwindcss"; 
-@config "../../tailwind.config.js";
+/* src/app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @import 'antd/dist/antd.css';
-
-

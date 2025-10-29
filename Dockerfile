@@ -1,40 +1,40 @@
-# Dockerfile
-
-# -----------------
-# Build stage
-# -----------------
-FROM node:20.19 AS build
+# Stage 1: Build
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package.json & package-lock.json
 COPY package*.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm install --verbose
+# Cài Tailwind v3
+RUN npm install -D tailwindcss@3.4.14 postcss@latest autoprefixer@latest
 
-# Copy source code
-COPY . .
+# Copy config
+COPY tailwind.config.js ./
+COPY postcss.config.js ./
+COPY next.config.js ./
 
-# Copy env.prod thành .env để Next.js sử dụng
-COPY .env.prod .env
+# Copy source
+COPY src ./src
+COPY public ./public
 
-# Build Next.js app
 RUN npm run build
 
-# -----------------
-# Runtime stage
-# -----------------
-FROM node:20.19-alpine AS runtime
+# Stage 2: Run
+FROM node:20-alpine AS runner
 WORKDIR /app
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+RUN chown -R nextjs:nodejs /app
+USER nextjs
 
 ENV NODE_ENV=production
 ENV PORT=3000
-
-# Copy standalone build output
-COPY --from=build /app/.next/standalone ./
-COPY --from=build /app/.next/static ./.next/static
-COPY --from=build /app/public ./public
-
 EXPOSE 3000
 
 CMD ["node", "server.js"]

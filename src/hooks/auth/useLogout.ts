@@ -1,3 +1,5 @@
+'use client';
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { logout as apiLogout } from '@/lib/auth/logout';
 import { useRouter } from 'next/navigation';

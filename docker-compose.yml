@@ -2,7 +2,7 @@
 services:
   frontend:
     build: .
-    container_name: tgsoft-frontend-prod
+    container_name: tgsoft-shop-frontend-prod
     ports:
       - "3000:3000"
     env_file:
