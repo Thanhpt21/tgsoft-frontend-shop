@@ -84,7 +84,10 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     if (latestConversationId && latestConversationId !== conversationId) {
       console.log('Conversation ID updated from cache:', latestConversationId);
       setConversationId(latestConversationId);
-      setTimeout(() => loadMessages(), 300);
+      setTimeout(() => {
+        joinConversation(latestConversationId); // <-- ĐÃ FIX!
+        loadMessages();
+    }, 300);
     }
   }, [latestConversationId, conversationId]);
 
@@ -99,7 +102,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   // Load messages từ backend
   const loadMessages = useCallback(async () => {
     try {
-      const currentSessionId = sessionId || localSessionId;
+      const currentSessionId = sessionId || localStorage.getItem('sessionId');
 
       if (!userIdNumber && !currentSessionId && !conversationId) {
         console.log('No identifiers, skip loading messages');
@@ -185,6 +188,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
       const convId = data.conversationId || data.id;
       if (convId && convId !== conversationId) {
         setConversationId(convId);
+        joinConversation(convId);
         socketInstance.emit('join:conversation', convId);
         if (messages.length === 0) setTimeout(() => loadMessages(), 500);
       }
