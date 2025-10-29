@@ -9,6 +9,7 @@ RUN npm ci
 RUN npm install -D tailwindcss@3.4.14 postcss@latest autoprefixer@latest
 
 # Copy config
+COPY tsconfig.json ./
 COPY tailwind.config.js ./
 COPY postcss.config.js ./
 COPY next.config.js ./

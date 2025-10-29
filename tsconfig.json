@@ -9,14 +9,14 @@
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node", // SỬA TỪ "bundler" → "node"
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "baseUrl": ".",                           // ✅ Thêm dòng này
-   "paths": {
-      "@/*": ["./src/*"] // 👈 nếu bạn để styles trong src/
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"] // ĐÚNG RỒI
     },
     "plugins": [
       {
