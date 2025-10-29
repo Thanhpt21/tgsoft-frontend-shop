@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  assetPrefix: '/',
   
   // ✅ Ignore socket.io warnings
   webpack: (config, { isServer }) => {
