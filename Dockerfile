@@ -3,7 +3,12 @@
 FROM node:20.19 AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+
+# ✅ Tăng timeout và retry
+RUN npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm install --verbose
+
 COPY . .
 RUN npm run build
 

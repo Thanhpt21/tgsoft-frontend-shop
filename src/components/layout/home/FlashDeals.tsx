@@ -95,7 +95,7 @@ export default function FlashDeals() {
 
                     {/* Product Image */}
                     <div className="w-full h-full p-8">
-                      <Image
+                      {/* <Image
                         src={getImageUrl(p.thumb) || "/images/no-image.png"}
                         alt={p.name || "Sản phẩm"}
                         preview={false}
@@ -105,7 +105,7 @@ export default function FlashDeals() {
                           height: "100%",
                           objectFit: "contain",
                         }}
-                      />
+                      /> */}
                     </div>
                   </div>
 

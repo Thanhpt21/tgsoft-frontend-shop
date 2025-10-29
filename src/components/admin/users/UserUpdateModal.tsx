@@ -58,17 +58,29 @@ export const UserUpdateModal = ({
 
   const onFinish = async (values: any) => {
     try {
+      const formData = new FormData()
+      
+      // Append các field từ form
+      formData.append('name', values.name)
+      if (values.phoneNumber) formData.append('phoneNumber', values.phoneNumber)
+      if (values.gender) formData.append('gender', values.gender)
+      if (values.role) formData.append('role', values.role)
+      
+      // Append file nếu có (file mới được chọn)
       const file = fileList?.[0]?.originFileObj
+      if (file) {
+        formData.append('file', file)
+      }
 
       await mutateAsync({
         id: user.id,
-        data: { ...values },
-        file,
+        data: formData, // ✅ Đúng type rồi
       })
 
       message.success('Cập nhật user thành công')
       onClose()
       form.resetFields()
+      setFileList([]) // ✅ Clear file list
       refetch?.()
     } catch (error: any) {
       message.error(error?.response?.data?.message || 'Lỗi cập nhật user')

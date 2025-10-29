@@ -188,10 +188,6 @@ const Header = ({ config }: HeaderProps) => {
         open={isMobileMenuOpen}
         width={280}
         closeIcon={<CloseOutlined className="text-gray-600" />}
-        styles={{
-          body: { padding: 0 },
-          header: { borderBottom: '1px solid #f0f0f0' }
-        }}
       >
         <div className="flex flex-col h-full">
           {/* Navigation Links */}
