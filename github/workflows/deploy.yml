@@ -1,0 +1,59 @@
+# .github/workflows/deploy.yml
+name: Frontend CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Job 1: Build và Test
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint code
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build application
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_WS_URL: ${{ secrets.NEXT_PUBLIC_WS_URL }}
+          NEXT_PUBLIC_TENANT_ID: ${{ secrets.NEXT_PUBLIC_TENANT_ID }}
+          NEXT_PUBLIC_PAGE_SIZE: ${{ secrets.NEXT_PUBLIC_PAGE_SIZE }}
+        
+      - name: ✅ Build successful
+        run: echo "Frontend build completed successfully!"
+
+  # Job 2: Build Docker (Local only - không push)
+  build-docker-local:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image (no push)
+        run: docker build -t tgsoft-frontend:latest .
+        
+      - name: ✅ Docker build successful
+        run: echo "Docker image built successfully!"
+
+
