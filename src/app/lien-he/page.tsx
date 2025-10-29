@@ -3,7 +3,6 @@
 
 import React from 'react';
 import { Form, Input, Button, message, Spin, Typography, Card, Space, Tooltip } from 'antd';
-import Image from 'next/image';
 import { useCreateContact } from '@/hooks/contact/useCreateContact';
 import { useConfigOne } from '@/hooks/config/useConfigOne'; // make sure this is imported
 import { CreateContactPayload } from '@/types/contact.type';
@@ -16,6 +15,7 @@ import {
 } from '@ant-design/icons';
 
 import ContactBanner from '@/assets/banner/ContactBanner.jpg';
+import Image from 'next/image';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -54,7 +54,7 @@ export default function ContactPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center mb-12">
         <div className="relative h-64 md:h-96 w-full rounded-lg overflow-hidden shadow-lg">
           <Image
-            src={ContactBanner}
+            src={"/image/ContactBanner.jpg"}
             alt="Liên hệ với chúng tôi"
             fill
             style={{ objectFit: 'cover' }}

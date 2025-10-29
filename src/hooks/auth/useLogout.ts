@@ -17,7 +17,6 @@ export const useLogout = () => {
       document.cookie = 'userId=; Max-Age=0; path=/;'
       document.cookie = 'tenantId=; Max-Age=0; path=/;'
       localStorage.clear()
-      
       // Chuyển hướng về trang login
       router.push('/login');
     },

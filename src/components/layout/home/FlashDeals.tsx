@@ -23,7 +23,7 @@ export default function FlashDeals() {
     
     const fetchProducts = async () => {
       try {
-        const res = await fetch("https://api.aiban.vn/products/all/list/2")
+        const res = await fetch("https://api.aiban.vn/products/all/list")
         if (!res.ok) throw new Error("Lỗi kết nối API")
 
         const json = await res.json()

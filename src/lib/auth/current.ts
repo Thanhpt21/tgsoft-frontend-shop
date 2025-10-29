@@ -1,4 +1,4 @@
-import { fetchWithAuth } from "./fetch-with-auth";
+import { fetchWithAuth } from './fetch-with-auth';
 
 export interface CurrentUser {
   id: number;
@@ -19,16 +19,22 @@ export const getCurrentUser = async (): Promise<CurrentUser | null> => {
       { cache: 'no-store' }
     );
 
+    console.log('🔍 getCurrentUser response.status:', response.status);
+
     if (response.status === 401) return null;
+
     if (!response.ok) {
       const error = await response.json();
+      console.error('❌ getCurrentUser API error:', error);
       throw new Error(error.message || 'Không thể lấy thông tin người dùng');
     }
 
     const { success, data } = await response.json();
+    console.log('🔍 getCurrentUser data:', data);
+
     return success && data ? data : null;
   } catch (error: any) {
     console.error('Lỗi getCurrentUser:', error.message);
-    throw error;
+    return null; // tránh throw error nếu muốn App chạy tiếp
   }
 };

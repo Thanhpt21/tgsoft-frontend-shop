@@ -2,17 +2,13 @@ import axios from 'axios'
 import { getCookie, setCookie, deleteCookie } from 'cookies-next'
 import { message } from 'antd'
 
-/** ✅ Lấy tenantId (ưu tiên từ .env) */
-function getTenantId(): string {
+/** ✅ Lấy tenantId (chỉ dùng từ .env) */
+export function getTenantId(): string {
   const envTenant = process.env.NEXT_PUBLIC_TENANT_ID
   if (envTenant) return envTenant
 
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname
-    const subdomain = hostname.split('.')[0]
-    return subdomain
-  }
-
+  // fallback nếu env không tồn tại
+  console.warn('NEXT_PUBLIC_TENANT_ID chưa được cấu hình, dùng default')
   return 'default'
 }
 

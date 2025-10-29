@@ -212,34 +212,6 @@ const handleWarehouseChange = (e: any) => {
   }
 
 
-
-  // // Lắng nghe query parameters từ VNPay callback
-  // useEffect(() => {
-  //   const queryParams = new URLSearchParams(window.location.search)
-    
-  //   const vnp_ResponseCode = queryParams.get('vnp_ResponseCode')
-  //   const vnp_Amount = queryParams.get('vnp_Amount')
-  //   const vnp_TxnRef = queryParams.get('vnp_TxnRef')
-    
-  //   if (vnp_ResponseCode) {
-  //     const isValid = vnp_ResponseCode === '00'
-
-  //     handlePaymentCallback({
-  //       success: isValid,
-  //       message: isValid ? 'Thanh toán thành công' : 'Thanh toán thất bại',
-  //       data: {
-  //         isValid,
-  //         orderId: vnp_TxnRef,
-  //         amount: parseInt(vnp_Amount || '0', 10),
-  //         responseCode: vnp_ResponseCode,
-  //         transactionNo: vnp_TxnRef,
-  //         bankCode: queryParams.get('vnp_BankCode'),
-  //         payDate: queryParams.get('vnp_PayDate'),
-  //       },
-  //     })
-  //   }
-  // }, [])
-
   const handleModalClose = () => {
     setIsModalVisible(false)
   }

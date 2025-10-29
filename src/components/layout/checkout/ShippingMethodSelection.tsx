@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react'
 import { Button, Typography, Spin } from 'antd'
 import useShippingMethod from '@/stores/shippingMethodStore'
 import Image from 'next/image'
-import GHTKLogo from '@/assets/images/delivery/ghtk.png'
 import { useCalculateGHTKFee } from '@/hooks/ghtk/useCalculateGHTKFee'
 import { CalculateFeeDto, GHTKRawFeeResponse } from '@/types/ghtk.type'
 
@@ -53,6 +52,8 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
     error: ghtkError,
   } = useCalculateGHTKFee()
 
+  console.log('shipping fee', actualCalculatedFee)
+
   // Khởi tạo method mặc định
   useEffect(() => {
     if (selectedShippingMethod !== 'standard') {
@@ -66,11 +67,17 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
     const isValidForCalculation =
       deliveryProvince &&
       deliveryDistrict &&
+      deliveryWard &&
       pickProvince &&
       pickDistrict &&
+      pickWard &&
       totalWeight > 0
 
     if (!isValidForCalculation) {
+      console.log('Thiếu dữ liệu để tính phí:', {
+      deliveryProvince, deliveryDistrict, deliveryWard,
+      pickProvince, pickDistrict, pickWard, totalWeight
+    })
       setActualCalculatedFee(null)
       setShippingFee(null)
       onMethodSelected(null, null)
@@ -106,6 +113,7 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
 
     calculateFee(currentPayload, {
       onSuccess: (response: GHTKRawFeeResponse) => {
+        console.log('GHTK API Response:', response)
         if (response.success && response.fee?.success && typeof response.fee?.fee?.fee === 'number') {
           const feeValue = response.fee.fee.fee
           setActualCalculatedFee(feeValue)
@@ -204,14 +212,14 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
           <br />
           <Typography.Text type="secondary" className="text-sm">
             {localSelectedMethod === 'xteam' 
-              ? 'Thời gian giao hàng nhanh: 1-2 ngày làm việc.' 
+              ? 'Thời gian giao hàng nhanh: Trong ngày.' 
               : 'Thời gian giao hàng tiết kiệm: 3-7 ngày làm việc.'}
           </Typography.Text>
 
           <div className="mt-4 flex flex-wrap gap-3 items-center">
             <Typography.Text strong>Được hỗ trợ bởi:</Typography.Text>
             <Image
-              src={GHTKLogo}
+              src={"/image/ghtk.png"}
               alt="Giao Hàng Tiết Kiệm"
               width={60}
               height={20}

@@ -1,25 +1,11 @@
-'use client';
-
 import { useQuery } from '@tanstack/react-query';
-import { getCurrentUser } from '@/lib/auth/current';
-
-export interface CurrentUser {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  phone: string | null;
-  gender: string | null;
-  type_account: string;
-  avatar: string | null;
-  isActive: boolean;
-}
+import { getCurrentUser, CurrentUser } from '@/lib/auth/current';
 
 export const useCurrent = () => {
   const query = useQuery<CurrentUser | null, Error>({
     queryKey: ['current-user'],
-    queryFn: getCurrentUser,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    queryFn: () => getCurrentUser(),
+    staleTime: 5 * 60 * 1000,
     retry: false,
     enabled: true,
   });
