@@ -20,6 +20,14 @@ const AccountSidebar: React.FC<AccountSidebarProps> = ({ onMenuClick, selected }
         </li>
         <li>
           <button
+            onClick={() => onMenuClick('address')}
+            className={`w-full text-left py-2 px-3 rounded-md hover:bg-gray-200 ${selected === 'address' ? 'bg-gray-200 font-semibold' : ''}`}
+          >
+            Địa chỉ giao hàng
+          </button>
+        </li>
+        <li>
+          <button
             onClick={() => onMenuClick('history')}
             className={`w-full text-left py-2 px-3 rounded-md hover:bg-gray-200 ${selected === 'history' ? 'bg-gray-200 font-semibold' : ''}`}
           >

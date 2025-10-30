@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Button, Typography, Spin } from 'antd'
+import { Button, Typography, Spin, Row, Col } from 'antd'
 import useShippingMethod from '@/stores/shippingMethodStore'
 import Image from 'next/image'
 import { useCalculateGHTKFee } from '@/hooks/ghtk/useCalculateGHTKFee'
@@ -51,8 +51,7 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
     data: ghtkFeeResponse,
     error: ghtkError,
   } = useCalculateGHTKFee()
-
-  console.log('shipping fee', actualCalculatedFee)
+  console.log('🚚 GHTK Fee Response:', totalWeight, totalValue)
 
   // Khởi tạo method mặc định
   useEffect(() => {
@@ -74,10 +73,6 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
       totalWeight > 0
 
     if (!isValidForCalculation) {
-      console.log('Thiếu dữ liệu để tính phí:', {
-      deliveryProvince, deliveryDistrict, deliveryWard,
-      pickProvince, pickDistrict, pickWard, totalWeight
-    })
       setActualCalculatedFee(null)
       setShippingFee(null)
       onMethodSelected(null, null)
@@ -113,7 +108,6 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
 
     calculateFee(currentPayload, {
       onSuccess: (response: GHTKRawFeeResponse) => {
-        console.log('GHTK API Response:', response)
         if (response.success && response.fee?.success && typeof response.fee?.fee?.fee === 'number') {
           const feeValue = response.fee.fee.fee
           setActualCalculatedFee(feeValue)
@@ -158,25 +152,33 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
       <Title level={4}>Phương thức giao hàng</Title>
 
       {/* Chọn Giao hàng tiết kiệm */}
+    
       <div className="mb-4">
-        <Button
-          type={localSelectedMethod === 'standard' ? 'primary' : 'default'}
-          onClick={() => handleSelectMethod('standard')}
-          disabled={isCalculatingFee}
-        >
-          Giao hàng tiết kiệm
-        </Button>
-      </div>
+        <Row gutter={16} justify="start">
+          {/* Giao hàng tiết kiệm */}
+          <Col >
+            <Button
+              type={localSelectedMethod === 'standard' ? 'primary' : 'default'}
+              onClick={() => handleSelectMethod('standard')}
+              disabled={isCalculatingFee}
+              block
+            >
+              Giao hàng tiết kiệm
+            </Button>
+          </Col>
 
-      {/* Chọn Giao hàng nhanh (xteam) */}
-      <div className="mb-4">
-        <Button
-          type={localSelectedMethod === 'xteam' ? 'primary' : 'default'}
-          onClick={() => handleSelectMethod('xteam')}
-          disabled={isCalculatingFee}
-        >
-          Giao hàng nhanh (Xteam)
-        </Button>
+          {/* Giao hàng nhanh (Xteam) */}
+          <Col>
+            <Button
+              type={localSelectedMethod === 'xteam' ? 'primary' : 'default'}
+              onClick={() => handleSelectMethod('xteam')}
+              disabled={isCalculatingFee}
+              block
+            >
+              Giao hàng nhanh (Xteam)
+            </Button>
+          </Col>
+        </Row>
       </div>
 
       {/* Hiển thị phí giao hàng */}
@@ -196,8 +198,8 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
             </Typography.Text>
           ) : (
             <div>
-              <Typography.Text type="danger" className="ml-2 block">
-                Không thể tính phí (vui lòng nhập địa chỉ nhận hàng)
+              <Typography.Text type="danger" className="block">
+                Không thể tính phí (vui lòng chọn sản phẩm cần mua)
               </Typography.Text>
               {/* ✅ Hiển thị lý do lỗi cho giao hàng nhanh */}
               {localSelectedMethod === 'xteam' && (totalValue < 1 || totalValue > 20000000) && (

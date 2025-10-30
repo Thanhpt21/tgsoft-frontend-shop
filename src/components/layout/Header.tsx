@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getImageUrl } from '@/utils/getImageUrl';
 import { useMyCart } from '@/hooks/cart/useMyCart';
+import { useCartStore } from '@/stores/cartStore';
 
 interface HeaderProps {
   config: Config;
@@ -23,15 +24,16 @@ const Header = ({ config }: HeaderProps) => {
   const { items: wishlistItems } = useWishlist();
   const wishlistItemCount = wishlistItems.length;
 
+    // Lấy số lượng sản phẩm trong giỏ hàng từ Zustand store
+  const cartItems = useCartStore((state) => state.items);
+  const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0); // Tổng số lượng
+
   const { currentUser, isLoading: isAuthLoading } = useAuth();
   const { logoutUser, isPending: isLogoutPending } = useLogout();
   const isLoggedInUI = !!currentUser;
   const isAdmin = currentUser?.role === 'admin';
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const { data: cartData, isLoading: isCartLoading } = useMyCart();
-  const cartItemCount = cartData?.items?.length || 0;
 
   const handleLogout = () => logoutUser();
 

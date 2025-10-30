@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Typography, Button, Spin, message, Breadcrumb, Modal, Result, Radio } from 'antd'
+import React, { useEffect, useState } from 'react'
+import { Typography, Button, Spin, message, Breadcrumb, Modal, Result, Radio, Space } from 'antd'
 import { CheckCircleOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { useMyCart } from '@/hooks/cart/useMyCart'
@@ -18,11 +18,13 @@ import axios from 'axios'
 import { useRemoveCartItem } from '@/hooks/cart/useRemoveCartItem'
 import { useAllWarehouses } from '@/hooks/warehouse/useAllWarehouses'
 import { Warehouse } from '@/types/warehouse.type'
+import { useAuth } from '@/context/AuthContext'
+import { useShippingAddressesByUserId } from '@/hooks/shipping-address/useShippingAddressesByUserId'
+import ShippingAddressSelection from './ShippingAddressSelection'
 
 const { Title } = Typography
 
-
-const OrderForm = () => {
+const OrderForm: React.FC = () => {
   const router = useRouter()
   const [orderCompleted, setOrderCompleted] = useState(false)
   const [completedOrderId, setCompletedOrderId] = useState<number | null>(null)
@@ -32,61 +34,95 @@ const OrderForm = () => {
   const [warehouseId, setWarehouseId] = useState(0)
   const [pickInfo, setPickInfo] = useState({
     address: "",
-    district_id: null,   // Đặt null cho các trường ID
+    district_id: null,
     district_name: "",
     name: "",
     note: "",
     phone: "",
-    province_id: null,   // Đặt null cho các trường ID
+    province_id: null,
     province_name: "",
-    ward_id: null,       // Đặt null cho các trường ID
+    ward_id: null,
     ward_name: "",
   })
 
   const { data: warehouses, isLoading: isWarehousesLoading } = useAllWarehouses()
-
   const [selectedWarehouse, setSelectedWarehouse] = useState<string | undefined>(undefined)
-const handleWarehouseChange = (e: any) => {
-  const selected = e.target.value;
-  setSelectedWarehouse(selected);
-  setWarehouseId(selected.id);
-  // Lưu thông tin kho vào pickInfo
-  if (selected && selected.location) {
-    const location = selected.location;
-    setPickInfo({
-      address: location.address || '',
-      district_id: location.district_id || null,
-      district_name: location.district_name || '',
-      name: selected.name || '',
-      phone: selected.phone || '',
-      province_id: location.province_id || null,
-      province_name: location.province_name || '',
-      ward_id: location.ward_id || null,
-      ward_name: location.ward_name || '',
-      note: ''
-    });
+  const { currentUser } = useAuth()
+  const userId = currentUser?.id
+  const { data: shippingAddresses, isLoading: isLoadingShippingAddresses } = useShippingAddressesByUserId(userId || 0)
 
-  }
-}
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const handleSelectedItemsChange = (newSelectedItems: Set<number>) => {
+    setSelectedItems(newSelectedItems);
+  };
 
+  // Tính tổng trọng lượng của các sản phẩm được chọn
+  const totalWeight = cart?.items.reduce((sum, item) => {
+    if (selectedItems.has(item.id)) {
+      return sum + item.variant.product.weight * item.quantity;
+    }
+    return sum;
+  }, 0) || 0;
 
+  // Tính tổng giá trị của các sản phẩm được chọn
+  const totalValue = cart?.items.filter(item => selectedItems.has(item.id))
+    .reduce((sum, item) => sum + item.priceAtAdd * item.quantity, 0) || 0;
 
+    // ✅ Tự động chọn địa chỉ mặc định khi trang được render
+  useEffect(() => {
+    if (shippingAddresses && shippingAddresses.length > 0) {
+      const defaultAddress = shippingAddresses.find((address: ShippingAddress) => address.is_default)
+      if (defaultAddress) {
+        setShippingInfo(defaultAddress)
+      }
+    }
+  }, [shippingAddresses])
   
-  // ✅ Thông tin giao hàng
+  const handleWarehouseChange = (e: any) => {
+    const selected = e.target.value;
+    setSelectedWarehouse(selected);
+    setWarehouseId(selected.id);
+    
+    if (selected && selected.location) {
+      const location = selected.location;
+      setPickInfo({
+        address: location.address || '',
+        district_id: location.district_id || null,
+        district_name: location.district_name || '',
+        name: selected.name || '',
+        phone: selected.phone || '',
+        province_id: location.province_id || null,
+        province_name: location.province_name || '',
+        ward_id: location.ward_id || null,
+        ward_name: location.ward_name || '',
+        note: ''
+      });
+    }
+  }
+
   const [shippingInfo, setShippingInfo] = useState<ShippingAddress>({
+    id: 0,              
+    tenantId: 1,       
+    userId: null,       
     name: '',
     phone: '',
     address: '',
     ward_id: undefined,
     district_id: undefined,
     province_id: undefined,
-    city_id: undefined,
     ward_name: '',
     district_name: '',
     province_name: '',
-    city_name: '',
+    city_name: '',      
+    province: '',      
+    district: '',       
+    ward: '',           
+    is_default: false,  
+    createdAt: '',     
+    updatedAt: '',    
     note: '',
-  })
+  });
+
 
   // ✅ Lưu phương thức thanh toán
   const [paymentMethod, setPaymentMethod] = useState<any>(null)
@@ -98,14 +134,9 @@ const handleWarehouseChange = (e: any) => {
   // ✅ Modal để hiển thị trang thanh toán VNPay
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [paymentUrl, setPaymentUrl] = useState('')
-  
 
-  if (isLoading) return <Spin tip="Đang tải giỏ hàng..." />
+  if (isLoading) return <Spin tip="Đang tải giỏ hàng..." className="flex justify-center items-center min-h-screen" />
 
-  const cartTotal =
-    cart?.items.reduce((sum, item) => sum + item.priceAtAdd * item.quantity, 0) || 0
-
-  const totalAmount = cartTotal + (shippingFee || 0)
 
   // ✅ Callback nhận fee và method từ ShippingMethodSelection
   const handleSelectShippingMethod = (methodId: number | null, fee: number | null) => {
@@ -113,8 +144,8 @@ const handleWarehouseChange = (e: any) => {
     setDeliveryMethod(methodId === 1 ? DeliveryMethod.XTEAM : DeliveryMethod.STANDARD)
   }
 
-  const handleShippingInfoUpdate = (updatedShippingInfo: ShippingAddress) => {
-    setShippingInfo(updatedShippingInfo)
+  const handleSelectShippingAddress = (selectedAddress: ShippingAddress) => {
+    setShippingInfo(selectedAddress); // Cập nhật thông tin giao hàng khi chọn địa chỉ
   }
 
   const handlePlaceOrder = () => {
@@ -128,12 +159,16 @@ const handleWarehouseChange = (e: any) => {
     }
 
     if (shippingFee === null || shippingFee === undefined) {
-      return message.warning('Vui lòng nhập thông tin giao hàng.')
+      return message.warning('Vui lòng chọn phương thức vận chuyển.')
     }
 
     // ✅ Validation thông tin giao hàng
     if (!shippingInfo.name || !shippingInfo.phone || !shippingInfo.address) {
-      return message.warning('Vui lòng nhập đầy đủ thông tin giao hàng.')
+      return message.warning('Vui lòng chọn địa chỉ giao hàng.')
+    }
+
+    if (!warehouseId) {
+      return message.warning('Vui lòng chọn kho để giao hàng.')
     }
 
     // Chuẩn hóa shippingInfo
@@ -144,21 +179,24 @@ const handleWarehouseChange = (e: any) => {
       ward_id: shippingInfo.ward_id,
       district_id: shippingInfo.district_id,
       province_id: shippingInfo.province_id,
-      city_id: shippingInfo.city_id,
       ward_name: shippingInfo.ward_name,
       district_name: shippingInfo.district_name,
       province_name: shippingInfo.province_name,
-      city_name: shippingInfo.city_name,
       note: shippingInfo.note,
     }
 
-    const orderItems: OrderItemDto[] = cart.items.map(item => ({
-      sku: item.variant.sku,
-      productVariantId: item.variant.id,
-      quantity: item.quantity,
-      unitPrice: item.priceAtAdd,
-      warehouseId: Number(warehouseId)
-    }))
+     const orderItems: OrderItemDto[] = cart.items
+      .filter(item => selectedItems.has(item.id)) // Filter selected items
+      .map(item => ({
+        sku: item.variant.sku,
+        productVariantId: item.variant.id,
+        quantity: item.quantity,
+        unitPrice: item.priceAtAdd,
+        warehouseId: Number(warehouseId)
+      }));
+    const totalAmount = orderItems.reduce((sum, item) => {
+    return sum + item.unitPrice * item.quantity + shippingFee!;
+    }, 0);
 
     const payload: CreateOrderDto = {
       shippingInfo: shippingPayload,
@@ -171,6 +209,8 @@ const handleWarehouseChange = (e: any) => {
       deliveryMethod: deliveryMethod,
     }
 
+    console.log('Order Payload:', payload);
+
     createOrder(payload, {
       onSuccess: async (response) => {
         const orderId = response.id;
@@ -182,7 +222,7 @@ const handleWarehouseChange = (e: any) => {
         })
 
         // ✅ Nếu thanh toán qua VNPay
-      if (paymentMethod.code === 'VNPAY') {
+        if (paymentMethod.code === 'VNPAY') {
           const paymentUrl = `https://api.aiban.vn/payments/vnpay?orderId=${orderId}&amount=${totalAmount}&returnUrl=https://api.aiban.vn/payments/vnpay/callback`;
 
           try {
@@ -193,7 +233,7 @@ const handleWarehouseChange = (e: any) => {
             });
 
             if (paymentResponse?.data?.url) {
-              window.location.href = paymentResponse.data.url; // chuyển trực tiếp
+              window.location.href = paymentResponse.data.url;
             } else {
               message.error('Không nhận được đường dẫn thanh toán từ VNPay!');
             }
@@ -210,7 +250,6 @@ const handleWarehouseChange = (e: any) => {
       },
     })
   }
-
 
   const handleModalClose = () => {
     setIsModalVisible(false)
@@ -239,7 +278,7 @@ const handleWarehouseChange = (e: any) => {
   }
 
   return (
-    <div>
+    <div className="container mx-auto py-6">
       <div className="mb-4">
         <Breadcrumb className="mb-2">
           <Breadcrumb.Item>
@@ -249,84 +288,80 @@ const handleWarehouseChange = (e: any) => {
         </Breadcrumb>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* ✅ Cột trái */}
-        <div className="md:col-span-8 space-y-4 bg-white p-6 rounded-xl shadow-sm">
-          <ShippingInformation
-            shippingInfo={shippingInfo}
-            setShippingInfo={setShippingInfo}
-            onShippingInfoUpdate={handleShippingInfoUpdate}
+        <div className="lg:col-span-8 space-y-6">
+          {/* ✅ Component hiển thị danh sách địa chỉ đã lưu */}
+          <ShippingAddressSelection
+            shippingAddresses={shippingAddresses || []}
+            onSelectAddress={handleSelectShippingAddress} // Cập nhật địa chỉ khi chọn
           />
-            {/* Warehouse Selection */}
-          <div className="mb-4">
-            <Title level={5}>Chọn kho để giao hàng</Title>
+
+          {/* Warehouse Selection */}
+          <div className="bg-white p-6 rounded-xl shadow-sm">
+            <Title level={5} className="mb-4">Chọn kho để giao hàng</Title>
             {isWarehousesLoading ? (
               <Spin tip="Đang tải kho..." />
             ) : (
-              <Radio.Group onChange={handleWarehouseChange} value={selectedWarehouse}>
-                {warehouses?.map((warehouse: Warehouse) => (
-                  <Radio key={warehouse.id} value={warehouse}>
-                    {warehouse.name}
-                  </Radio>
-                ))}
+              <Radio.Group onChange={handleWarehouseChange} value={selectedWarehouse} className="w-full">
+                <Space direction="vertical" className="w-full" size="middle">
+                  {warehouses?.map((warehouse: Warehouse) => (
+                    <Radio key={warehouse.id} value={warehouse} className="w-full">
+                      <div className="flex flex-col py-2">
+                        <div className="font-semibold text-base">{warehouse.name}</div>
+                        {warehouse.location && (
+                          <div className="text-sm text-gray-500 mt-1">
+                            {warehouse.location.address}
+                            {warehouse.location.ward_name && `, ${warehouse.location.ward_name}`}
+                            {warehouse.location.district_name && `, ${warehouse.location.district_name}`}
+                            {warehouse.location.province_name && `, ${warehouse.location.province_name}`}
+                          </div>
+                        )}
+                      </div>
+                    </Radio>
+                  ))}
+                </Space>
               </Radio.Group>
             )}
           </div>
 
+          {/* Shipping Method */}
           <ShippingMethodSelection
             onMethodSelected={handleSelectShippingMethod}
-            deliveryProvince={shippingInfo.province_name || ''}
-            deliveryDistrict={shippingInfo.district_name || ''}
-            deliveryWard={shippingInfo.ward_name || null}
+            deliveryProvince={shippingInfo.province || ''}
+            deliveryDistrict={shippingInfo.district || ''}
+            deliveryWard={shippingInfo.ward || null}
             deliveryAddress={shippingInfo.address || null}
-            totalWeight={cart?.items.reduce((sum, item) => sum + item.variant.product.weight * item.quantity, 0) || 0}
-            totalValue={cartTotal}
+            totalWeight={totalWeight}
+            totalValue={totalValue} 
             pickProvince={pickInfo.province_name || ''}
             pickDistrict={pickInfo.district_name || ''}
             pickWard={pickInfo.ward_name || null}
             pickAddress={pickInfo.address || ''}
           />
 
+          {/* Payment Method */}
           <PaymentMethodSelection onMethodSelected={setPaymentMethod} />
 
+          {/* Place Order Button */}
           <Button
             type="primary"
             size="large"
             onClick={handlePlaceOrder}
             loading={isCreatingOrder}
             className="w-full"
+            disabled={!shippingInfo.name || !paymentMethod || !warehouseId || shippingFee === null}
           >
             Đặt hàng
           </Button>
         </div>
 
-        {/* ✅ Cột phải */}
-        <div className="md:col-span-4 bg-white p-6 rounded-xl shadow-sm">
-          <Title level={4} className="mb-4">Tóm tắt đơn hàng</Title>
-          <OrderSummary />
-
-          {shippingFee !== null && (
-            <div className="mt-4 pt-4 border-t">
-              <div className="flex justify-between items-center mb-2">
-                <Typography.Text>Phí vận chuyển:</Typography.Text>
-                <Typography.Text strong>
-                  {shippingFee.toLocaleString('vi-VN')} VNĐ
-                </Typography.Text>
-              </div>
-              <div className="flex justify-between items-center mb-2">
-                <Typography.Text>Phương thức:</Typography.Text>
-                <Typography.Text strong>
-                  {deliveryMethod === DeliveryMethod.XTEAM ? 'Giao hàng nhanh' : 'Giao hàng tiết kiệm'}
-                </Typography.Text>
-              </div>
-              <div className="flex justify-between items-center">
-                <Typography.Text strong>Tổng cộng:</Typography.Text>
-                <Typography.Text strong className="text-lg text-red-500">
-                  {totalAmount.toLocaleString('vi-VN')} VNĐ
-                </Typography.Text>
-              </div>
-            </div>
-          )}
+        {/* ✅ Cột phải - Order Summary */}
+        <div className="lg:col-span-4">
+          <div className="bg-white p-6 rounded-xl shadow-sm sticky top-6">
+            <Title level={4} className="mb-4">Tóm tắt đơn hàng</Title>
+            <OrderSummary onSelectedItemsChange={handleSelectedItemsChange} />
+          </div>
         </div>
       </div>
 
