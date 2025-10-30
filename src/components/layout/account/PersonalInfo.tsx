@@ -1,6 +1,6 @@
 'use client';
 
-import { useCurrent, CurrentUser } from '@/hooks/auth/useCurrent';
+import { useCurrent } from '@/hooks/auth/useCurrent';
 import { useUpdateUser } from '@/hooks/user/useUpdateUser';
 import { Form, Input, Button, message, Avatar, Upload, Radio, Card } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';

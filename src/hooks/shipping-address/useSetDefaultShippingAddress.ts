@@ -1,16 +1,10 @@
-// hooks/shipping-address/useSetDefaultShippingAddress.ts
 import { useMutation } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 
-interface SetDefaultShippingAddressPayload {
-  id: number;
-  isDefault: boolean;
-}
-
 export const useSetDefaultShippingAddress = () => {
   return useMutation({
-    mutationFn: async ({ id, isDefault }: SetDefaultShippingAddressPayload) => {
-      const res = await api.put(`/shipping-address/${id}`, { isDefault });
+    mutationFn: async ({ userId, addressId }: { userId: number; addressId: number }) => {
+      const res = await api.put(`/shipping-addresses/set-default/${userId}/${addressId}`);
       return res.data;
     },
   });

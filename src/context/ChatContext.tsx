@@ -84,7 +84,10 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     if (latestConversationId && latestConversationId !== conversationId) {
       console.log('Conversation ID updated from cache:', latestConversationId);
       setConversationId(latestConversationId);
-      setTimeout(() => loadMessages(), 300);
+      setTimeout(() => {
+        joinConversation(latestConversationId); // <-- ĐÃ FIX!
+        loadMessages();
+    }, 300);
     }
   }, [latestConversationId, conversationId]);
 
@@ -99,18 +102,17 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   // Load messages từ backend
   const loadMessages = useCallback(async () => {
     try {
-      const currentSessionId = sessionId || localSessionId;
+      const currentSessionId = sessionId || localStorage.getItem('sessionId');
 
       if (!userIdNumber && !currentSessionId && !conversationId) {
         console.log('No identifiers, skip loading messages');
         return;
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
       let url = '';
 
       if (conversationId) {
-        url = `${apiUrl}/chat/messages?conversationId=${conversationId}`;
+        url = `${process.env.NEXT_PUBLIC_API_URL}/chat/messages?conversationId=${conversationId}`;
       }
 
       if (!url) return;
@@ -186,6 +188,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
       const convId = data.conversationId || data.id;
       if (convId && convId !== conversationId) {
         setConversationId(convId);
+        joinConversation(convId);
         socketInstance.emit('join:conversation', convId);
         if (messages.length === 0) setTimeout(() => loadMessages(), 500);
       }
@@ -245,7 +248,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
             params.append('userId', userId.toString());
             if (tenantId) params.append('tenantId', tenantId.toString());
 
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
             const res = await fetch(`${apiUrl}/chat/conversation-ids?${params.toString()}`, {
               headers: { 'x-tenant-id': tenantId.toString() },
             });

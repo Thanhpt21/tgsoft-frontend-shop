@@ -46,8 +46,8 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
   // Connect socket khi mở modal
   useEffect(() => {
     if (open) {
-      const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8080';
-      const socketInstance = ioClient(WS_URL, {
+      const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
+      const socketInstance = ioClient(WS_URL!, {
         auth: {
           userId: adminId,
           isAdmin: true,
@@ -136,7 +136,7 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
     try {
       setLoading(true);
       const userId = parseInt(user.id.toString(), 10);
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
       const params = { conversationId };
 
       const response = await axios.get(`${API_URL}/chat/messages`, {

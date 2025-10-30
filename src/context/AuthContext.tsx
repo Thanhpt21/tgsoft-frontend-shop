@@ -1,51 +1,37 @@
+// @/context/AuthContext.tsx
 'use client';
 
-import React, { createContext, useContext, ReactNode, useMemo } from 'react';
-import { useCurrent, CurrentUser } from '@/hooks/auth/useCurrent';
+import { createContext, ReactNode, useContext, useState, useEffect } from 'react';
+import { CurrentUser } from '@/lib/auth/current';
+import { useCurrent } from '@/hooks/auth/useCurrent';
 
-// Định nghĩa kiểu dữ liệu cho context value
 interface AuthContextType {
   currentUser: CurrentUser | null | undefined;
   isLoading: boolean;
   isError: boolean;
-  isAuthenticated: boolean; // ✅ Thêm property này
-  refetchCurrentUser: () => void;
+  refetch: () => void;
+  isAuthenticated: boolean;  // Thêm thuộc tính isAuthenticated
 }
 
-// Tạo AuthContext với giá trị mặc định
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Props cho AuthProvider
-interface AuthProviderProps {
-  children: ReactNode;
-}
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const { data, isLoading, isError, refetch } = useCurrent(); // Dùng hook useCurrent để lấy thông tin người dùng
 
-// Component AuthProvider
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const { data, isLoading, isError, refetch } = useCurrent();
-
-  // Sử dụng useMemo để tránh việc tạo lại object context value không cần thiết
-  const contextValue = useMemo(() => {
-    return {
-      currentUser: data,
-      isLoading,
-      isError,
-      isAuthenticated: !!data, // ✅ True nếu có user, false nếu null/undefined
-      refetchCurrentUser: refetch,
-    };
-  }, [data, isLoading, isError, refetch]);
+  // Kiểm tra xem có người dùng không, nếu có thì là đã đăng nhập
+  const isAuthenticated = data !== undefined && data !== null;
 
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider value={{ currentUser: data, isLoading, isError, refetch, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Custom hook để sử dụng AuthContext một cách thuận tiện
+// Hook để sử dụng context này
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

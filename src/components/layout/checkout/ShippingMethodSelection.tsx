@@ -1,10 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Button, Typography, Spin } from 'antd'
+import { Button, Typography, Spin, Row, Col } from 'antd'
 import useShippingMethod from '@/stores/shippingMethodStore'
 import Image from 'next/image'
-import GHTKLogo from '@/assets/images/delivery/ghtk.png'
 import { useCalculateGHTKFee } from '@/hooks/ghtk/useCalculateGHTKFee'
 import { CalculateFeeDto, GHTKRawFeeResponse } from '@/types/ghtk.type'
 
@@ -52,6 +51,7 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
     data: ghtkFeeResponse,
     error: ghtkError,
   } = useCalculateGHTKFee()
+  console.log('🚚 GHTK Fee Response:', totalWeight, totalValue)
 
   // Khởi tạo method mặc định
   useEffect(() => {
@@ -66,8 +66,10 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
     const isValidForCalculation =
       deliveryProvince &&
       deliveryDistrict &&
+      deliveryWard &&
       pickProvince &&
       pickDistrict &&
+      pickWard &&
       totalWeight > 0
 
     if (!isValidForCalculation) {
@@ -150,25 +152,33 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
       <Title level={4}>Phương thức giao hàng</Title>
 
       {/* Chọn Giao hàng tiết kiệm */}
+    
       <div className="mb-4">
-        <Button
-          type={localSelectedMethod === 'standard' ? 'primary' : 'default'}
-          onClick={() => handleSelectMethod('standard')}
-          disabled={isCalculatingFee}
-        >
-          Giao hàng tiết kiệm
-        </Button>
-      </div>
+        <Row gutter={16} justify="start">
+          {/* Giao hàng tiết kiệm */}
+          <Col >
+            <Button
+              type={localSelectedMethod === 'standard' ? 'primary' : 'default'}
+              onClick={() => handleSelectMethod('standard')}
+              disabled={isCalculatingFee}
+              block
+            >
+              Giao hàng tiết kiệm
+            </Button>
+          </Col>
 
-      {/* Chọn Giao hàng nhanh (xteam) */}
-      <div className="mb-4">
-        <Button
-          type={localSelectedMethod === 'xteam' ? 'primary' : 'default'}
-          onClick={() => handleSelectMethod('xteam')}
-          disabled={isCalculatingFee}
-        >
-          Giao hàng nhanh (Xteam)
-        </Button>
+          {/* Giao hàng nhanh (Xteam) */}
+          <Col>
+            <Button
+              type={localSelectedMethod === 'xteam' ? 'primary' : 'default'}
+              onClick={() => handleSelectMethod('xteam')}
+              disabled={isCalculatingFee}
+              block
+            >
+              Giao hàng nhanh (Xteam)
+            </Button>
+          </Col>
+        </Row>
       </div>
 
       {/* Hiển thị phí giao hàng */}
@@ -188,8 +198,8 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
             </Typography.Text>
           ) : (
             <div>
-              <Typography.Text type="danger" className="ml-2 block">
-                Không thể tính phí (vui lòng nhập địa chỉ nhận hàng)
+              <Typography.Text type="danger" className="block">
+                Không thể tính phí (vui lòng chọn sản phẩm cần mua)
               </Typography.Text>
               {/* ✅ Hiển thị lý do lỗi cho giao hàng nhanh */}
               {localSelectedMethod === 'xteam' && (totalValue < 1 || totalValue > 20000000) && (
@@ -204,14 +214,14 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
           <br />
           <Typography.Text type="secondary" className="text-sm">
             {localSelectedMethod === 'xteam' 
-              ? 'Thời gian giao hàng nhanh: 1-2 ngày làm việc.' 
+              ? 'Thời gian giao hàng nhanh: Trong ngày.' 
               : 'Thời gian giao hàng tiết kiệm: 3-7 ngày làm việc.'}
           </Typography.Text>
 
           <div className="mt-4 flex flex-wrap gap-3 items-center">
             <Typography.Text strong>Được hỗ trợ bởi:</Typography.Text>
             <Image
-              src={GHTKLogo}
+              src={"/image/ghtk.png"}
               alt="Giao Hàng Tiết Kiệm"
               width={60}
               height={20}

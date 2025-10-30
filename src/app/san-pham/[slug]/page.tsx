@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useTransition } from 'react';
 import { useParams, useRouter  } from 'next/navigation';
 import { Card, Button, Typography, Space, Breadcrumb, Tabs, message, Modal } from 'antd';
 import Link from 'next/link';
@@ -18,6 +18,8 @@ import { useAttributeValues } from '@/hooks/attribute-value/useAttributeValues';
 import { Attribute } from '@/types/attribute.type';
 import { useAllCategories } from '@/hooks/category/useAllCategories';
 import { useAllBrands } from '@/hooks/brand/useAllBrands';
+import RatingComponent from '@/components/layout/rating/RatingComponent';
+import { useAddCartItemWithOptimistic } from '@/hooks/cart/useAddCartItemWithOptimistic';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -26,12 +28,14 @@ export default function ProductDetailPage() {
   const router = useRouter();
 
   // ✅ Auth hook
-  const { currentUser, isAuthenticated } = useAuth();
+  const {  isAuthenticated } = useAuth();
 
   const { data: product, isLoading: loadingProduct, isError } = useProductBySlug({ slug: slug as string });
   const productId = product?.id;
-  const { data: variants } = useProductVariants(productId ?? 0);
+  const { data: variants } = useProductVariants(productId);
   const addCartItemMutation = useAddCartItem();
+  const addToCart = useAddCartItemWithOptimistic();
+  const [isAdding, setIsAdding] = useState(false);
 
   // ✅ Modal login state
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -114,44 +118,93 @@ export default function ProductDetailPage() {
     }
   };
 
-  // ✅ Kiểm tra login trước khi thêm vào giỏ
-  const handleAddToCart = () => {
-    if (!selectedVariant) return message.error('Vui lòng chọn đầy đủ thuộc tính!');
-    
-    if (!isAuthenticated) {
-      // ✅ Chưa login → hiện modal
-      setIsLoginModalOpen(true);
-      return;
+const handleAddToCart = useCallback(() => {
+  if (!selectedVariant || !product) return;
+
+  if (!isAuthenticated) {
+    setIsLoginModalOpen(true);
+    return;
+  }
+  if (isAdding || !selectedVariant || !product || !isAuthenticated) return;
+
+  setIsAdding(true);
+
+  const price = selectedVariant.priceDelta;
+  const attributes = Object.fromEntries(
+    Object.entries(selectedVariant.attrValues).map(([attrId, valueId]) => [
+      attributeMap[Number(attrId)] || attrId,
+      attributeValueMap[valueId] || valueId,
+    ])
+  );
+
+  addToCart(
+    { productVariantId: selectedVariant.id, quantity: 1 },
+    {
+      productName: product.name,
+      thumb: getImageUrl(selectedVariant.thumb ?? product.thumb),
+      attributes,
+      priceAtAdd: price,
+    },
+    {
+      // HIỆN NGAY KHI THÊM OPTIMISTIC → KHÔNG CHỜ API!
+      onOptimisticSuccess: () => {
+        message.success('Đã thêm vào giỏ hàng!');
+        setTimeout(() => setIsAdding(false), 300);
+      },
+      // API thành công → không cần thông báo nữa
+      // onSuccess: () => {},
+      onError: () => {
+        // Đã có message.error trong hook
+      },
     }
+  );
+}, [
+  selectedVariant,
+  product,
+  isAuthenticated,
+  addToCart,
+  attributeMap,
+  attributeValueMap,
+]);
 
-    // ✅ Đã login → thêm bình thường
-    addCartItemMutation.mutate(
-      { productVariantId: selectedVariant.id, quantity: 1 },
-      { onSuccess: () => message.success('Đã thêm vào giỏ hàng!') }
-    );
-  };
+const handleBuyNow = useCallback(() => {
+  if (!selectedVariant || !product || !isAuthenticated) {
+    if (!isAuthenticated) setIsLoginModalOpen(true);
+    return;
+  }
 
-  // ✅ Tương tự cho Buy Now
-  const handleBuyNow = () => {
-    if (!selectedVariant) return message.error('Vui lòng chọn đầy đủ thuộc tính!');
-    
-    if (!isAuthenticated) {
-      // ✅ Chưa login → hiện modal
-      setIsLoginModalOpen(true);
-      return;
+  const price = product.basePrice + selectedVariant.priceDelta;
+  const attributes = Object.fromEntries(
+    Object.entries(selectedVariant.attrValues).map(([attrId, valueId]) => [
+      attributeMap[Number(attrId)] || attrId,
+      attributeValueMap[valueId] || valueId,
+    ])
+  );
+
+  addToCart(
+    { productVariantId: selectedVariant.id, quantity: 1 },
+    {
+      productName: product.name,
+      thumb: getImageUrl(selectedVariant.thumb ?? product.thumb),
+      attributes,
+      priceAtAdd: price,
+    },
+    {
+      onOptimisticSuccess: () => {
+        message.success('Đã thêm vào giỏ!');
+        router.push('/dat-hang');
+      },
     }
-
-    // ✅ Đã login → thêm và chuyển trang
-    addCartItemMutation.mutate(
-      { productVariantId: selectedVariant.id, quantity: 1 },
-      {
-        onSuccess: () => {
-          message.success('Đã thêm vào giỏ hàng!');
-          router.push('/dat-hang');
-        },
-      }
-    );
-  };
+  );
+}, [
+  selectedVariant,
+  product,
+  isAuthenticated,
+  addToCart,
+  attributeMap,
+  attributeValueMap,
+  router,
+]);
 
   // ✅ Xử lý modal login - chuyển đến trang login với redirect URL
   const handleLoginModalOk = () => {
@@ -287,16 +340,14 @@ export default function ProductDetailPage() {
               type="primary" 
               size="large" 
               onClick={handleAddToCart}
-              loading={addCartItemMutation.isPending}
               disabled={!selectedVariant}
             >
-              Thêm vào giỏ hàng
+              {isAdding ? 'Đang thêm...' : 'Thêm vào giỏ hàng'}
             </Button>
             <Button 
               type="default" 
               size="large" 
               onClick={handleBuyNow}
-              loading={addCartItemMutation.isPending}
               disabled={!selectedVariant}
             >
               Mua ngay
@@ -339,6 +390,9 @@ export default function ProductDetailPage() {
             <Paragraph>Sản phẩm được bảo hành chính hãng, chi tiết liên hệ CSKH.</Paragraph>
           </Tabs.TabPane>
         </Tabs>
+      </div>
+      <div className='mt-10'>
+         {productId && <RatingComponent productId={productId} />}
       </div>
     </div>
   );

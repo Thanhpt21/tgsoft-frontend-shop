@@ -1,16 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Card, Button, Typography, Space, Input, Rate, Form, Avatar, message } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
+import { Card, Button, Typography, Space, Input, Rate, Form, Avatar, message, Alert } from 'antd';
+import { UserOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { Rating } from '@/types/product.type';
-import { useUpdateRating } from '@/hooks/rating/useUpdateRating';
-import { useCreateRating } from '@/hooks/rating/useCreateRating';
-import { useRatings } from '@/hooks/rating/useRatings';
+import { ProductReview } from '@/types/product-review';
 import { useAuth } from '@/context/AuthContext';
+import { useProductReviewsByProduct } from '@/hooks/product-review/useProductReviewsByProduct';
+import { useCreateProductReview } from '@/hooks/product-review/useCreateProductReview';
+import { useUpdateProductReview } from '@/hooks/product-review/useUpdateProductReview';
+import { useCheckUserPurchasedProduct } from '@/hooks/order/useCheckUserPurchasedProduct';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -26,61 +27,78 @@ export default function RatingComponent({ productId }: RatingComponentProps) {
   const pathname = usePathname();
   const messageShownRef = useRef(false);
 
+  // ✅ Check purchase status
   const {
-    data: ratingsData,
-    isLoading: isLoadingRatings,
-    isError: isErrorRatings,
-    error: ratingsError,
-    refetch: refetchRatings
-  } = useRatings({ productId, enabled: !!productId && !isLoadingAuth && currentUserId !== undefined });
+    data: purchaseData,
+    isLoading: isCheckingPurchase,
+    isError: isPurchaseError,
+  } = useCheckUserPurchasedProduct({
+    productId,
+    enabled: !!currentUserId && !isLoadingAuth,
+  });
 
   const {
-    mutate: createRating,
-    isPending: isCreatingRating,
+    data: reviewsData,
+    isLoading: isLoadingReviews,
+    isError: isErrorReviews,
+    error: reviewsError,
+    refetch: refetchReviews,
+  } = useProductReviewsByProduct({
+    productId,
+    page: 1,
+    limit: 10,
+    search: '',
+    enabled: !!productId && !isLoadingAuth && currentUserId !== undefined,
+  });
+
+  const {
+    mutate: createProductReview,
+    isPending: isCreatingReview,
     isSuccess: isCreateSuccess,
-    error: createError
-  } = useCreateRating();
+    error: createError,
+  } = useCreateProductReview();
 
   const {
-    mutate: updateRating,
-    isPending: isUpdatingRating,
+    mutate: updateProductReview,
+    isPending: isUpdatingReview,
     isSuccess: isUpdateSuccess,
-    error: updateError
-  } = useUpdateRating();
+    error: updateError,
+  } = useUpdateProductReview();
 
-  const [userExistingRating, setUserExistingRating] = useState<Rating | null>(null);
+  const [userExistingReview, setUserExistingReview] = useState<ProductReview | null>(null);
 
   useEffect(() => {
-    if (ratingsData?.data && currentUserId !== undefined) {
-      const existingRating = ratingsData.data.find(
-        (rating) => rating.postedBy?.id === currentUserId
+    if (reviewsData?.data && currentUserId !== undefined) {
+      const existingReview = reviewsData.data.find(
+        (review) => review.userId === currentUserId,
       );
-      setUserExistingRating(existingRating || null);
 
-      if (existingRating) {
+      if (existingReview) {
+        setUserExistingReview(existingReview);
         form.setFieldsValue({
-          rating: existingRating.star,
-          comment: existingRating.comment,
+          rating: existingReview.rating,
+          comment: existingReview.comment || '',
         });
       } else {
+        setUserExistingReview(null);
         form.resetFields();
       }
     } else if (currentUserId === undefined && !isLoadingAuth) {
       form.resetFields();
-      setUserExistingRating(null);
+      setUserExistingReview(null);
     }
-  }, [ratingsData, productId, currentUserId, form, isLoadingAuth]);
+  }, [reviewsData, productId, currentUserId, form, isLoadingAuth]);
 
   useEffect(() => {
     if ((isCreateSuccess || isUpdateSuccess) && !messageShownRef.current) {
       message.success('Đánh giá đã được gửi thành công!');
-      refetchRatings();
+      refetchReviews();
       messageShownRef.current = true;
     }
     if (!isCreateSuccess && !isUpdateSuccess) {
       messageShownRef.current = false;
     }
-  }, [isCreateSuccess, isUpdateSuccess, refetchRatings]);
+  }, [isCreateSuccess, isUpdateSuccess, refetchReviews]);
 
   useEffect(() => {
     if (createError) {
@@ -91,7 +109,7 @@ export default function RatingComponent({ productId }: RatingComponentProps) {
     }
   }, [createError, updateError]);
 
-  const handleRatingSubmit = async (values: { rating: number; comment: string }) => {
+  const handleReviewSubmit = async (values: { rating: number; comment: string }) => {
     if (values.rating === 0) {
       message.error('Vui lòng chọn số sao đánh giá!');
       return;
@@ -102,22 +120,34 @@ export default function RatingComponent({ productId }: RatingComponentProps) {
       return;
     }
 
+    // ✅ Kiểm tra đã mua sản phẩm chưa (trừ khi đã có review)
+    if (!purchaseData?.hasPurchased && !userExistingReview) {
+      message.error('Bạn cần mua sản phẩm này trước khi đánh giá!');
+      return;
+    }
+
     messageShownRef.current = false;
 
     try {
-      if (userExistingRating) {
-        updateRating({
-          id: userExistingRating.id,
-          dto: {
-            star: values.rating,
-            comment: values.comment,
+      if (userExistingReview) {
+        // Update existing review
+        updateProductReview({
+          id: userExistingReview.id,
+          data: {
+            rating: values.rating,
+            comment: values.comment || undefined,
           },
         });
       } else {
-        createRating({
-          star: values.rating,
-          comment: values.comment,
+        // Create new review với orderId và orderItemId
+        createProductReview({
           productId,
+          userId: currentUserId,
+          rating: values.rating,
+          comment: values.comment || undefined,
+          orderId: purchaseData?.orderId || undefined,
+          orderItemId: purchaseData?.orderItemId || undefined,
+          isPurchased: true,
         });
       }
     } catch (error) {
@@ -125,53 +155,96 @@ export default function RatingComponent({ productId }: RatingComponentProps) {
     }
   };
 
-  if (isLoadingRatings || isLoadingAuth) {
+  if (isLoadingReviews || isLoadingAuth || isCheckingPurchase) {
     return <div className="text-center py-4 text-gray-600">Đang tải đánh giá...</div>;
   }
 
-  if (isErrorRatings) {
+  if (isErrorReviews) {
     return (
       <div className="text-center py-4 text-red-500">
-        Lỗi khi tải đánh giá: {ratingsError?.message}
+        Lỗi khi tải đánh giá: {reviewsError?.message}
       </div>
     );
   }
 
-  const ratings = ratingsData?.data || [];
-
+  const reviews = reviewsData?.data || [];
   const loginUrl = `/login?returnUrl=${encodeURIComponent(pathname)}`;
+  const hasPurchased = purchaseData?.hasPurchased || false;
 
   return (
-    <div className="py-4">
+    <div className="container mx-auto">
       <Title level={4} className="mb-4">Đánh giá của bạn</Title>
+      
       {currentUserId ? (
-        <Form form={form} layout="vertical" onFinish={handleRatingSubmit}>
-          <Form.Item
-            label="Xếp hạng của bạn"
-            name="rating"
-            rules={[{ required: true, message: 'Vui lòng chọn số sao đánh giá!' }]}
-          >
-            <Rate disabled={isCreatingRating || isUpdatingRating} />
-          </Form.Item>
-          <Form.Item label="Bình luận của bạn" name="comment">
-            <TextArea
-              rows={4}
-              placeholder="Chia sẻ suy nghĩ của bạn về sản phẩm..."
-              disabled={isCreatingRating || isUpdatingRating}
+        <>
+          {/* ✅ Alert khi chưa mua sản phẩm */}
+          {!hasPurchased && !userExistingReview && (
+            <Alert
+              message="Chưa thể đánh giá"
+              description={
+                <div>
+                  <p className="mb-2">
+                    Bạn cần mua sản phẩm này trước khi có thể đánh giá.
+                  </p>
+                  <Link href="/tai-khoan?p=history" className="text-blue-500 hover:underline">
+                    <ShoppingCartOutlined className="mr-1" />
+                    Xem đơn hàng của tôi
+                  </Link>
+                </div>
+              }
+              type="info"
+              showIcon
+              className="mb-4 max-w-2xl"
             />
-          </Form.Item>
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={isCreatingRating || isUpdatingRating}
+          )}
+
+          {/* ✅ Alert khi có lỗi check purchase */}
+          {isPurchaseError && !userExistingReview && (
+            <Alert
+              message="Không thể kiểm tra trạng thái mua hàng"
+              description="Vui lòng thử lại sau hoặc liên hệ hỗ trợ."
+              type="warning"
+              showIcon
+              className="mb-4 max-w-2xl"
+            />
+          )}
+
+          {/* ✅ Form đánh giá - chỉ hiện khi đã mua HOẶC đã có review */}
+          {(hasPurchased || userExistingReview) && (
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={handleReviewSubmit}
+              className="max-w-2xl"
             >
-              {userExistingRating ? 'Cập nhật đánh giá' : 'Gửi đánh giá'}
-            </Button>
-          </Form.Item>
-        </Form>
+              <Form.Item
+                label="Xếp hạng của bạn"
+                name="rating"
+                rules={[{ required: true, message: 'Vui lòng chọn số sao đánh giá!' }]}
+              >
+                <Rate disabled={isCreatingReview || isUpdatingReview} />
+              </Form.Item>
+              <Form.Item label="Bình luận của bạn" name="comment">
+                <TextArea
+                  rows={4}
+                  placeholder="Chia sẻ suy nghĩ của bạn về sản phẩm..."
+                  disabled={isCreatingReview || isUpdatingReview}
+                />
+              </Form.Item>
+              <Form.Item>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={isCreatingReview || isUpdatingReview}
+                >
+                  {userExistingReview ? 'Cập nhật đánh giá' : 'Gửi đánh giá'}
+                </Button>
+              </Form.Item>
+            </Form>
+          )}
+        </>
       ) : (
-        <p className="text-gray-600">
+        <p className="text-gray-600 max-w-2xl">
           Đăng nhập để gửi đánh giá.{' '}
           <Link href={loginUrl} className="text-blue-500 underline hover:no-underline font-medium">
             Đăng nhập ngay
@@ -181,32 +254,39 @@ export default function RatingComponent({ productId }: RatingComponentProps) {
 
       <div className="mt-8">
         <Title level={4} className="mb-4">Đánh giá của khách hàng</Title>
-        {ratings.length === 0 ? (
+        {reviews.length === 0 ? (
           <p className="text-gray-600">Chưa có đánh giá nào từ khách hàng.</p>
         ) : (
-          <Space direction="vertical" className="w-full">
-            {ratings.map((rating) => (
-              <Card key={rating.id} className="w-full shadow-sm border border-gray-200">
+          <Space direction="vertical" size="middle" className="w-full">
+            {reviews.map((review) => (
+              <Card
+                key={review.id}
+                className="w-full shadow-sm border border-gray-200"
+              >
                 <div className="flex items-start mb-2">
-                  {rating.postedBy && (
+                  {review.user && (
                     <div className="flex items-center mr-4">
                       <Avatar
-                        src={rating.postedBy.profilePicture || undefined}
-                        icon={!rating.postedBy.profilePicture && <UserOutlined />}
-                        size="large"
+                        size="small"
+                        icon={<UserOutlined />}
+                        className="bg-gray-300"
                       />
-                      <Text strong>{rating.postedBy.name}</Text>
+                      <Text strong className="ml-2">{review.user.name}</Text>
                     </div>
                   )}
                   <div>
-                    <Rate disabled value={rating.star} className="text-yellow-500 text-base" />
+                    <Rate
+                      disabled
+                      value={review.rating}
+                      className="text-yellow-500 text-base"
+                    />
                     <Text className="ml-2 text-sm text-gray-500 block sm:inline-block">
-                      {new Date(rating.createdAt).toLocaleDateString()}{' '}
-                      {new Date(rating.createdAt).toLocaleTimeString()}
+                      {new Date(review.createdAt).toLocaleDateString()}{' '}
+                      {new Date(review.createdAt).toLocaleTimeString()}
                     </Text>
                   </div>
                 </div>
-                <Paragraph className="mb-0">{rating.comment}</Paragraph>
+                <Paragraph className="mb-0">{review.comment || 'Không có bình luận.'}</Paragraph>
               </Card>
             ))}
           </Space>

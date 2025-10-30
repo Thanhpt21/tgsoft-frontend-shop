@@ -5,6 +5,8 @@ import { useOrdersByUser } from '@/hooks/order/useOrdersByUser';
 import { formatDate } from '@/utils/helpers';
 import { Order } from '@/types/order.type';
 import { getImageUrl } from '@/utils/getImageUrl';
+import Link from 'next/link';
+import { useChat } from '@/context/ChatContext'; // Import useChat để sử dụng context chat
 
 const { Title } = Typography;
 
@@ -12,6 +14,8 @@ const PurchaseHistory: React.FC = () => {
   const { data: currentUser } = useCurrent();
   const userId = currentUser?.id;
   const { data: ordersData, isLoading, isError, error } = useOrdersByUser({ userId });
+  const { sendMessage, isConnected, conversationId, joinConversation } = useChat(); // Lấy các giá trị từ ChatContext
+  const [isChatOpen, setIsChatOpen] = useState(false); // State để kiểm soát chatbox (nếu không có setIsOpen trong context)
 
   const orders = ordersData?.data ?? [];
 
@@ -51,6 +55,34 @@ const PurchaseHistory: React.FC = () => {
     );
   };
 
+  // Hàm xử lý khi bấm nút "Chat hỗ trợ"
+  const handleChatSupport = (order: Order) => {
+    if (!isConnected) {
+      console.log('Chat chưa được kết nối');
+      return;
+    }
+
+    // Mở chatbox (giả sử ChatBox dùng isOpen để hiển thị)
+    setIsChatOpen(true);
+
+    // Nếu chưa có conversationId, tham gia một conversation mới
+    if (!conversationId) {
+      joinConversation(order.id); // Sử dụng order.id để tạo conversation, hoặc tùy chỉnh theo logic backend
+    }
+
+    // Tạo tin nhắn với ID đơn hàng và tên sản phẩm
+    const productNames = order.items
+      ?.map((item) => item.productVariant?.product?.name)
+      .filter((name) => name)
+      .join(', ');
+    const message = `Hỗ trợ đơn hàng ID: ${order.id}. Sản phẩm: ${productNames || 'Không có sản phẩm'}.`;
+
+    // Gửi tin nhắn với metadata
+    setTimeout(() => {
+      sendMessage(message, { orderId: order.id });
+    }, 500); // Delay nhẹ để đảm bảo conversation được khởi tạo
+  };
+
   if (isLoading) {
     return <div>Đang tải...</div>;
   }
@@ -77,11 +109,21 @@ const PurchaseHistory: React.FC = () => {
               ]}
             >
               <List.Item.Meta
-                title={<div className="font-semibold">ID Đơn hàng: {order.id}</div>}
-                description={`Ngày đặt hàng ${formatDate(order.createdAt)} - ${getStatusText(order.status)} - ${order.totalAmount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}`}
+                title={
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">ID Đơn hàng: {order.id}</span>
+                    <Button
+                      type="link"
+                      onClick={() => handleChatSupport(order)}
+                      disabled={!isConnected}
+                    >
+                      Chat hỗ trợ
+                    </Button>
+                  </div>
+                }
+                description={`Ngày đặt hàng ${formatDate(order.createdAt)} - ${getStatusText(order.status)} - ${order.totalAmount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })} `}
               />
               {order.items?.slice(0, 3).map((item) => {
-                // ✅ Ưu tiên variant.thumb → product.thumb → placeholder
                 const imageUrl = getImageUrl(
                   item.productVariant?.thumb || 
                   item.productVariant?.product?.thumb || 
@@ -99,8 +141,19 @@ const PurchaseHistory: React.FC = () => {
                         fallback="/images/no-image.png"
                       />
                     </div>
-                    <div className="ml-2 text-sm truncate max-w-[200px]">
-                      {item.productVariant?.product?.name}
+                    <div className="ml-2 flex-1 flex items-center justify-between">
+                      <div className="text-sm truncate max-w-[200px]">
+                        {item.productVariant?.product?.name}
+                      </div>
+                      <Link href={`/san-pham/${item.productVariant?.product?.slug}`}>
+                        <Button
+                          type="primary"
+                          size="small"
+                          disabled={order.status !== 'DELIVERED'}
+                        >
+                          Đánh giá
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 );
@@ -162,7 +215,6 @@ const PurchaseHistory: React.FC = () => {
                   key: 'image',
                   width: 80,
                   render: (variant: any) => {
-                    // ✅ Ưu tiên variant.thumb → product.thumb → placeholder
                     const imageUrl = getImageUrl(
                       variant?.thumb || 
                       variant?.product?.thumb || 

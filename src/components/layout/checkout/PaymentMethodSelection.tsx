@@ -2,10 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { Button, Typography, Spin, Empty } from 'antd'
-import Image from 'next/image'
 import { usePaymentMethods } from '@/hooks/payment-method/usePaymentMethods'
 import { PaymentMethod, PaymentMethod as PaymentMethodType } from '@/types/payment-method.type'
-import VnpayQr from '@/assets/images/vnpay-qr.jpg' // nếu có ảnh QR VNPay
 
 const { Title, Paragraph } = Typography
 

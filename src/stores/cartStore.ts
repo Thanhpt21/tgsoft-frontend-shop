@@ -1,156 +1,82 @@
-// // src/stores/cartStore.js
-// import { create } from 'zustand';
-// import Cookies from 'js-cookie';
-// import { useEffect } from 'react';
-// import { CartItem, CartState } from '@/types/cart.type'; // Import từ file types
+// src/stores/cartStore.ts
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-// const CART_COOKIE_KEY = 'shoppingCart';
+interface CartItem {
+  id: number;
+  productVariantId: number;
+  quantity: number;
+  priceAtAdd: number;
+  productName: string;
+  thumb: string;
+  attributes: Record<string, string>;
+}
 
-// const loadCartFromCookie = (): CartItem[] => {
-//   try {
-//     const cartData = Cookies.get(CART_COOKIE_KEY);
-//     return cartData ? JSON.parse(cartData) : [];
-//   } catch (error) {
-//     console.error("Lỗi khi đọc cookie giỏ hàng:", error);
-//     return [];
-//   }
-// };
+interface CartStore {
+  items: CartItem[];
+  syncFromServer: (serverItems: any[]) => void;
+  addItemOptimistic: (item: Omit<CartItem, 'id'> & { id: number }) => void;
+  updateQuantityOptimistic: (variantId: number, quantity: number) => void;
+  removeItemOptimistic: (id: number) => void;
+  getTotalPrice: () => number;
+  replaceTempId: (tempId: number, realId: number) => void;
+}
 
-// const saveCartToCookie = (items: CartItem[]) => {
-//   try {
-//     Cookies.set(CART_COOKIE_KEY, JSON.stringify(items), { expires: 7 });
-//   } catch (error) {
-//     console.error("Lỗi khi lưu cookie giỏ hàng:", error);
-//   }
-// };
+export const useCartStore = create<CartStore>()(
+  persist(
+    (set, get) => ({
+      items: [],
 
-// const useCartStore = create<CartState>((set, get) => ({
-//   items: [],
-//   isHydrated: false,
+      syncFromServer: (serverItems) => {
+        const mapped = serverItems.map((item: any) => ({
+          id: item.id,
+          productVariantId: item.productVariantId,
+          quantity: item.quantity,
+          priceAtAdd: item.priceAtAdd,
+          productName: item.variant?.product?.name || 'Sản phẩm',
+          thumb: item.variant?.thumb || item.variant?.product?.thumb || '/placeholder.jpg',
+          attributes: item.variant?.attrValues
+            ? Object.fromEntries(
+                Object.entries(item.variant.attrValues).map(([k, v]: [string, any]) => [k, String(v)])
+              )
+            : {},
+        }));
+        set({ items: mapped });
+      },
 
-//   hydrate: () => {
-//     const cartFromCookie = loadCartFromCookie();
-//     set({ items: cartFromCookie, isHydrated: true });
-//   },
+      // NHẬN id từ hook, KHÔNG TỰ TẠO
+      addItemOptimistic: (newItem) => {
+        set((state) => ({
+          items: [...state.items, newItem],
+        }));
+      },
 
-//   addItem: (itemData) => {
-//     set((state) => {
-//       const {
-//         productId,
-//         variantId,
-//         thumb,
-//         title,
-//         price,
-//         discount,
-//         color,
-//         size,
-//         quantity = 1,
-//       } = itemData;
+      updateQuantityOptimistic: (variantId, quantity) =>
+        set((state) => ({
+          items: state.items.map((i) =>
+            i.productVariantId === variantId ? { ...i, quantity } : i
+          ),
+        })),
 
-//       const discountedPrice = discount && discount > 0 ? price - discount : undefined;
+      // XÓA BẰNG ID (tempId hoặc realId)
+      removeItemOptimistic: (id) =>
+        set((state) => ({
+          items: state.items.filter((i) => i.id !== id),
+        })),
 
-//       const numericalColorId = color?.id ? Number(color.id) : undefined;
-//       const numericalSizeId = size?.id ? Number(size.id) : undefined;
+      getTotalPrice: () =>
+        get().items.reduce((sum, i) => sum + i.priceAtAdd * i.quantity, 0),
 
-//       // Tạo ID tổng hợp duy nhất cho mục trong giỏ hàng
-//       const cartItemId = `${productId}-${numericalColorId || 'no-color'}-${numericalSizeId || 'no-size'}-${variantId || 'no-variant'}`;
-
-//       const newItem: CartItem = {
-//         id: cartItemId, // Gán ID tổng hợp vào CartItem.id
-//         productId: productId,
-//         variantId: variantId,
-//         colorId: numericalColorId,
-//         sizeId: numericalSizeId,
-//         thumb: thumb,
-//         title: title,
-//         price: price,
-//         discountedPrice: discountedPrice,
-//         selectedColor: color,
-//         selectedSizeId: size?.id,
-//         selectedSizeTitle: size?.title,
-//         quantity: quantity,
-//       };
-
-//       // Tìm kiếm mục hiện có dựa trên productId, colorId, sizeId, variantId
-//       const existingItem = state.items.find(
-//         (i) =>
-//           i.productId === newItem.productId &&
-//           i.colorId === newItem.colorId &&
-//           i.sizeId === newItem.sizeId &&
-//           i.variantId === newItem.variantId
-//       );
-
-//       let updatedItems: CartItem[];
-//       if (existingItem) {
-//         updatedItems = state.items.map((i) =>
-//           (i.productId === newItem.productId &&
-//             i.colorId === newItem.colorId &&
-//             i.sizeId === newItem.sizeId &&
-//             i.variantId === newItem.variantId)
-//             ? { ...i, quantity: i.quantity + newItem.quantity }
-//             : i
-//         );
-//       } else {
-//         updatedItems = [...state.items, newItem];
-//       }
-
-//       saveCartToCookie(updatedItems);
-//       return { items: updatedItems };
-//     });
-//   },
-
-//   removeItem: (cartItemId) => { // Chỉ nhận cartItemId
-//     set((state) => {
-//       const updatedItems = state.items.filter((item) => item.id !== cartItemId);
-//       saveCartToCookie(updatedItems);
-//       return { items: updatedItems };
-//     });
-//   },
-
-//   increaseItemQuantity: (cartItemId) => { // Chỉ nhận cartItemId
-//     set((state) => {
-//       const updatedItems = state.items.map((item) =>
-//         item.id === cartItemId
-//           ? { ...item, quantity: item.quantity + 1 }
-//           : item
-//       );
-//       saveCartToCookie(updatedItems);
-//       return { items: updatedItems };
-//     });
-//   },
-
-//   decreaseItemQuantity: (cartItemId) => { // Chỉ nhận cartItemId
-//     set((state) => {
-//       const updatedItems = state.items.map((item) =>
-//         item.id === cartItemId
-//           ? { ...item, quantity: Math.max(1, item.quantity - 1) }
-//           : item
-//       );
-//       saveCartToCookie(updatedItems);
-//       return { items: updatedItems };
-//     });
-//   },
-
-//   clearCart: () => {
-//     set({ items: [] as CartItem[] });
-//     Cookies.remove(CART_COOKIE_KEY);
-//   },
-
-//   getTotalPrice: () => {
-//     return get().items.reduce((total, item) => {
-//       const priceToUse = item.discountedPrice !== undefined ? item.discountedPrice : item.price;
-//       return total + priceToUse * item.quantity;
-//     }, 0);
-//   },
-// }));
-
-// export const useCart = () => {
-//   const store = useCartStore();
-//   useEffect(() => {
-//     store.hydrate();
-//   }, [store.hydrate]);
-
-//   return store;
-// };
-
-// export default useCart;
+      replaceTempId: (tempId, realId) =>
+        set((state) => ({
+          items: state.items.map((i) =>
+            i.id === tempId ? { ...i, id: realId } : i
+          ),
+        })),
+    }),
+    {
+      name: 'cart-storage',
+      partialize: (state) => ({ items: state.items }), // Chỉ lưu items
+    }
+  )
+);

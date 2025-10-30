@@ -21,6 +21,7 @@ import {
 } from '@ant-design/icons';
 
 import ContactBanner from '@/assets/banner/ContactBanner.jpg';
+import Image from 'next/image';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;

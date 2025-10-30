@@ -22,11 +22,12 @@ export const useLogin = (): UseMutationResult<LoginResponse, Error, LoginBody> =
       // Set new cookies
       document.cookie = `userId=${data.user.id}; path=/;`
       document.cookie = `tenantId=${process.env.NEXT_PUBLIC_TENANT_ID || '1'}; path=/;`
+      document.cookie = `access_token=${data.access_token}; path=/;`
 
       // 🔥 NEW: Emit user-login tới socket server
       if (data.user && data.user.id) {
         const tenantId = data.user.tenantId || 
-                        parseInt(process.env.NEXT_PUBLIC_TENANT_ID || '1')
+        parseInt(process.env.NEXT_PUBLIC_TENANT_ID || '1')
         
         console.log('🔐 User logged in, emitting to socket:', {
           userId: data.user.id,

@@ -1,0 +1,12 @@
+# docker-compose.yml
+services:
+  frontend:
+    build: .
+    container_name: tgsoft-shop-frontend-prod
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.prod
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
