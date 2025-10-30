@@ -35,7 +35,7 @@ const [categories] = useState<Category[]>([
           {categories.map((cat) => (
             <a
               key={cat.id}
-              href={`/danh-muc/${cat.slug}`}
+              // href={`/danh-muc/${cat.slug}`}
               className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 cursor-pointer"
             >
               <div className="w-20 h-20 mb-2 rounded-full overflow-hidden">
