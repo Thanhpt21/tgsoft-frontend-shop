@@ -14,20 +14,19 @@ import { useAttributeValues } from '@/hooks/attribute-value/useAttributeValues';
 import { getImageUrl } from '@/utils/getImageUrl';
 import { formatVND } from '@/utils/helpers';
 import { useCartStore } from '@/stores/cartStore';
+import { useMyCart } from '@/hooks/cart/useMyCart';
 
 const ShoppingCart = () => {
   const { currentUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  // LẤY TỪ ZUSTAND → TỨC THÌ
   const {
     items,
     getTotalPrice,
     updateQuantityOptimistic,
     removeItemOptimistic,
     syncFromServer,
-    addItemOptimistic
   } = useCartStore();
 
   const removeItemMutation = useRemoveCartItem();
@@ -38,27 +37,19 @@ const ShoppingCart = () => {
   const { data: allAttributes } = useAllAttributes();
   const { data: allAttributeValues } = useAttributeValues();
 
-  // ĐỒNG BỘ SERVER SAU KHI CÓ DỮ LIỆU (không block UI)
+  // Dùng useMyCart thay fetch thủ công
+  const { data: cartData, isLoading: cartLoading, error: cartError } = useMyCart();
+
+  // Đồng bộ dữ liệu từ server vào store
   useEffect(() => {
-    const fetchCart = async () => {
-      try {
-        const res = await fetch('/api/cart'); // Gọi API thủ công
-        const data = await res.json();
-        if (data?.items) {
-          startTransition(() => {
-            syncFromServer(data.items);
-          });
-        }
-      } catch (err) {
-        console.error('Sync cart failed:', err);
-      }
-    };
-
-    if (currentUser) {
-      fetchCart();
+    if (cartData?.items) {
+      startTransition(() => {
+        syncFromServer(cartData.items);
+      });
     }
-  }, [currentUser, syncFromServer]);
+  }, [cartData?.items, syncFromServer]);
 
+  // Tạo map cho thuộc tính
   const attributeMap = allAttributes?.reduce((acc: Record<number, string>, attr: any) => {
     acc[attr.id] = attr.name;
     return acc;
@@ -69,20 +60,36 @@ const ShoppingCart = () => {
     return acc;
   }, {} as Record<number, string>) ?? {};
 
-  // HIỆN NGAY DÙ CHƯA CÓ SERVER DATA
-  if (authLoading) return <div>Đang xác thực...</div>;
-  if (items.length === 0) return <p className="text-center py-8">Giỏ hàng của bạn đang trống.</p>;
+  // === LOADING & ERROR STATES ===
+  if (authLoading || cartLoading) {
+    return <div className="text-center py-12">Đang tải giỏ hàng...</div>;
+  }
 
+  if (cartError) {
+    return (
+      <div className="text-center py-12 text-red-500">
+        Lỗi tải giỏ hàng: {(cartError as any).message}
+      </div>
+    );
+  }
+
+  if (!items || items.length === 0) {
+    return <p className="text-center py-12 text-lg">Giỏ hàng của bạn đang trống.</p>;
+  }
+
+  // === XỬ LÝ XÓA ===
   const handleRemoveItem = (item: any) => {
     startTransition(() => {
       removeItemOptimistic(item.id);
       removeItemMutation.mutate(item.id, {
         onError: () => {
+          message.error('Xóa sản phẩm thất bại');
         },
       });
     });
   };
 
+  // === XỬ LÝ SỐ LƯỢNG ===
   const onChangeQuantity = (value: number | null, item: any) => {
     if (!value || value < 1 || value === item.quantity) return;
 
@@ -92,7 +99,7 @@ const ShoppingCart = () => {
         { id: item.id, data: { quantity: value } },
         {
           onError: () => {
-            message.error('Cập nhật thất bại');
+            message.error('Cập nhật số lượng thất bại');
             updateQuantityOptimistic(item.productVariantId, item.quantity);
           },
         }
@@ -100,6 +107,7 @@ const ShoppingCart = () => {
     });
   };
 
+  // === ĐI TỚI THANH TOÁN ===
   const handleCheckoutClick = () => {
     if (!currentUser) {
       setIsLoginModalVisible(true);
@@ -108,88 +116,105 @@ const ShoppingCart = () => {
     router.push('/dat-hang');
   };
 
+  // === HIỂN THỊ THUỘC TÍNH ===
   const renderAttributes = (attrValues: Record<string, any>) => {
     if (!attrValues || Object.keys(attrValues).length === 0) return 'Không có thuộc tính';
     return Object.entries(attrValues)
       .map(([attrId, valueId]) => {
-        const attrName = attributeMap[Number(attrId)] || `${attrId}`;
-        const valueName = attributeValueMap[Number(valueId)] || valueId;
+        const attrName = attributeMap[Number(attrId)] || `ID: ${attrId}`;
+        const valueName = attributeValueMap[Number(valueId)] || `ID: ${valueId}`;
         return `${attrName}: ${valueName}`;
       })
       .join(', ');
   };
 
-
+  // === CỘT BẢNG ===
   const columns = [
     {
       title: 'Hình ảnh',
       key: 'thumb',
-      render: (_: any, record: any) => (
-        <Image
-          src={getImageUrl(record.thumb) || '/placeholder.png'}
-          alt={record.productName}
-          width={64}
-          height={64}
-          style={{ objectFit: 'cover' }}
-          preview={false}
-          fallback="/placeholder.png"
-        />
+      width: 80,
+      render: (_: any, record: any) => {
+        const thumb = record.variant?.thumb || record.variant?.product?.thumb;
+        return (
+          <Image
+            src={getImageUrl(thumb) || '/placeholder.png'}
+            alt={record.variant?.product?.name || 'Sản phẩm'}
+            width={64}
+            height={64}
+            style={{ objectFit: 'cover', borderRadius: 8 }}
+            preview={false}
+            fallback="/placeholder.png"
+          />
+        );
+      },
+    },
+    {
+      title: 'Sản phẩm',
+      key: 'name',
+      render: (_: any, r: any) => (
+        <div className="font-medium">{r.variant?.product?.name || 'Sản phẩm không xác định'}</div>
       ),
     },
-    { title: 'Sản phẩm', key: 'name', render: (_: any, r: any) => r.productName },
     {
       title: 'Thuộc tính',
       key: 'attributes',
       render: (_: any, r: any) => (
         <span className="text-sm text-gray-600">
-          {renderAttributes(r.attributes)}
+          {renderAttributes(r.variant?.attrValues)}
         </span>
       ),
     },
-    { title: 'Đơn giá', key: 'price', render: (_: any, r: any) => formatVND(r.priceAtAdd) },
+    {
+      title: 'Đơn giá',
+      key: 'price',
+      render: (_: any, r: any) => <span className="font-medium">{formatVND(r.priceAtAdd)}</span>,
+    },
     {
       title: 'Số lượng',
       key: 'quantity',
+      width: 140,
       render: (_: any, record: any) => (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-1">
           <Button
-            onClick={() => onChangeQuantity(record.quantity - 1, record)}
-            disabled={record.quantity <= 1 || isPending}
-            icon="-"
             size="small"
+            icon="-"
+            disabled={record.quantity <= 1 || isPending}
+            onClick={() => onChangeQuantity(record.quantity - 1, record)}
           />
-          
           <InputNumber
             min={1}
             value={record.quantity}
-            onChange={(value: number | string | null) => {
-              if (typeof value === 'number') {
-                onChangeQuantity(value, record);
-              }
-            }}
-            style={{ width: `30px` }}  // Giới hạn chiều rộng input number
-            controls={false}  // Ẩn nút tăng giảm
+            onChange={(v) => typeof v === 'number' && onChangeQuantity(v, record)}
+            style={{ width: 48 }}
+            controls={false}
             disabled={isPending}
           />
-
           <Button
-            onClick={() => onChangeQuantity(record.quantity + 1, record)}
-            icon="+"
             size="small"
+            icon="+"
             disabled={isPending}
+            onClick={() => onChangeQuantity(record.quantity + 1, record)}
           />
         </div>
       ),
     },
-    { title: 'Tổng', key: 'total', render: (_: any, r: any) => formatVND(r.priceAtAdd * r.quantity) },
+    {
+      title: 'Tổng',
+      key: 'total',
+      render: (_: any, r: any) => (
+        <span className="font-bold text-lg">{formatVND(r.priceAtAdd * r.quantity)}</span>
+      ),
+    },
     {
       title: 'Hành động',
       key: 'action',
+      width: 80,
       render: (_: any, record: any) => (
         <Button
-          icon={<DeleteOutlined />}
           danger
           size="small"
+          icon={<DeleteOutlined />}
           onClick={() => handleRemoveItem(record)}
           loading={isPending}
         />
@@ -198,9 +223,11 @@ const ShoppingCart = () => {
   ];
 
   return (
-    <div className="container mx-auto p-4">
-      <Breadcrumb className="mb-4">
-        <Breadcrumb.Item><Link href="/">Trang chủ</Link></Breadcrumb.Item>
+    <div className="container mx-auto p-4 max-w-6xl">
+      <Breadcrumb className="mb-6">
+        <Breadcrumb.Item>
+          <Link href="/">Trang chủ</Link>
+        </Breadcrumb.Item>
         <Breadcrumb.Item>Giỏ hàng</Breadcrumb.Item>
       </Breadcrumb>
 
@@ -209,16 +236,24 @@ const ShoppingCart = () => {
         columns={columns}
         rowKey="id"
         pagination={false}
-        loading={isPending}
+        loading={isPending || cartLoading}
+        className="shadow-sm"
       />
 
-      <div className="mt-6 flex justify-end items-center gap-4">
-        <span className="text-xl font-bold">Tổng: {formatVND(getTotalPrice())}</span>
-        <Button type="primary" size="large" onClick={handleCheckoutClick} disabled={isPending}>
+      <div className="mt-8 flex justify-end items-center gap-6">
+        <div className="text-2xl font-bold">Tổng: {formatVND(getTotalPrice())}</div>
+        <Button
+          type="primary"
+          size="large"
+          onClick={handleCheckoutClick}
+          disabled={isPending}
+          className="min-w-40"
+        >
           Đặt hàng
         </Button>
       </div>
 
+      {/* Modal đăng nhập */}
       <Modal
         title="Yêu cầu đăng nhập"
         open={isLoginModalVisible}
@@ -229,6 +264,8 @@ const ShoppingCart = () => {
       >
         <p>Bạn cần đăng nhập để tiến hành thanh toán.</p>
       </Modal>
+
+     
     </div>
   );
 };

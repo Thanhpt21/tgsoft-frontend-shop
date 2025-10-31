@@ -30,7 +30,7 @@ export default function BrandTable() {
       width: 60,
       render: (_text, _record, index) => (page - 1) * 10 + index + 1,
     },
-    {
+   {
       title: 'Hình ảnh',
       dataIndex: 'thumb',
       key: 'thumb',
@@ -38,7 +38,6 @@ export default function BrandTable() {
       align: 'center',
       render: (thumb: string | null) => {
         const imageUrl = getImageUrl(thumb)
-        
         if (!imageUrl) {
           return (
             <div className="flex items-center justify-center w-16 h-16 bg-gray-100 rounded">
@@ -46,15 +45,13 @@ export default function BrandTable() {
             </div>
           )
         }
-
         return (
           <Image
             src={imageUrl}
-            alt="Brand"
-             width={40}
+            alt="Category"
+           width={40}
             height={40}
             className="object-cover rounded"
-            fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
             preview={false}
           />
         )

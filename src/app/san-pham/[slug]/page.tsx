@@ -140,19 +140,10 @@ const handleAddToCart = useCallback(() => {
   addToCart(
     { productVariantId: selectedVariant.id, quantity: 1 },
     {
-      productName: product.name,
-      thumb: getImageUrl(selectedVariant.thumb ?? product.thumb),
-      attributes,
-      priceAtAdd: price,
-    },
-    {
-      // HIỆN NGAY KHI THÊM OPTIMISTIC → KHÔNG CHỜ API!
       onOptimisticSuccess: () => {
         message.success('Đã thêm vào giỏ hàng!');
         setTimeout(() => setIsAdding(false), 300);
       },
-      // API thành công → không cần thông báo nữa
-      // onSuccess: () => {},
       onError: () => {
         // Đã có message.error trong hook
       },
@@ -183,12 +174,6 @@ const handleBuyNow = useCallback(() => {
 
   addToCart(
     { productVariantId: selectedVariant.id, quantity: 1 },
-    {
-      productName: product.name,
-      thumb: getImageUrl(selectedVariant.thumb ?? product.thumb),
-      attributes,
-      priceAtAdd: price,
-    },
     {
       onOptimisticSuccess: () => {
         message.success('Đã thêm vào giỏ!');

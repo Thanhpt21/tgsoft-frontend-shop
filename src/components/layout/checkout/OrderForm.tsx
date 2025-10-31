@@ -55,6 +55,8 @@ const OrderForm: React.FC = () => {
   const userId = currentUser?.id
   const { data: shippingAddresses, isLoading: isLoadingShippingAddresses } = useShippingAddressesByUserId(userId || 0)
 
+
+
   // ===== State =====
   const [paymentMethod, setPaymentMethod] = useState<any>(null)
   const [shippingFee, setShippingFee] = useState<number | null>(null)
@@ -139,6 +141,7 @@ const OrderForm: React.FC = () => {
     removeItemOptimistic(itemId)
   }
 
+
   // Tính toán
   const temporaryTotal = items
     .filter(item => selectedItems.has(item.id))
@@ -216,6 +219,16 @@ const OrderForm: React.FC = () => {
     updatedAt: '',
     note: '',
   })
+
+  
+    useEffect(() => {
+  console.log('Cart data:', cart)
+  console.log('Items from Zustand:', items)
+  console.log('Selected items:', Array.from(selectedItems))
+  console.log('Total weight:', totalWeight)
+  console.log('Total value:', totalValue)
+}, [cart, items, selectedItems, totalWeight, totalValue])
+
 
   if (isLoading) return <Spin tip="Đang tải giỏ hàng..." className="flex justify-center items-center min-h-screen" />
 
@@ -459,7 +472,11 @@ const OrderForm: React.FC = () => {
                 <Text type="secondary">Giỏ hàng trống.</Text>
               ) : (
                 items.map((item) => {
-                  const thumbUrl = getImageUrl(item.thumb || '/no-image.png')
+                  const thumbUrl = getImageUrl(
+                    item.variant.thumb || 
+                    item.variant.product.thumb || 
+                    '/no-image.png'
+                  )
 
                   return (
                     <div key={item.id} className="flex items-start py-3 border-b">
@@ -472,15 +489,15 @@ const OrderForm: React.FC = () => {
                       <div className="w-16 h-16 mr-4 flex-shrink-0">
                         <img
                           src={thumbUrl}
-                          alt={item.productName}
+                          alt={item.variant.product.name}
                           className="w-full h-full object-cover rounded-md"
                         />
                       </div>
 
                       <div className="flex-1">
-                        <Text strong>{item.productName}</Text>
+                        <Text strong>{item.variant.product.name}</Text>
                         <div className="text-xs text-gray-500 mt-1">
-                          {renderAttributes(item.attributes)}
+                          {renderAttributes(item.variant.attrValues)}
                         </div>
                         <div className="flex items-center text-sm mt-2">
                           <Text>{formatVND(item.priceAtAdd)}</Text>

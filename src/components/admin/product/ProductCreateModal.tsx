@@ -178,29 +178,44 @@ export const ProductCreateModal = ({ open, onClose, refetch }: ProductCreateModa
 
         <Row gutter={16}>
           <Col span={8}>
-            <Form.Item label="Trọng lượng (g)" name="weight">
+            <Form.Item
+              label="Trọng lượng (g)"
+              name="weight"
+              rules={[{ required: true, message: 'Vui lòng nhập trọng lượng!' }]}
+            >
               <InputNumber min={0} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item label="Dài (cm)" name="length">
-              <InputNumber min={0} style={{ width: '100%' }} />
-            </Form.Item>
-          </Col>
-          </Row>
-           <Row gutter={16}>
-          <Col span={8}>
-            <Form.Item label="Rộng (cm)" name="width">
-              <InputNumber min={0} style={{ width: '100%' }} />
-            </Form.Item>
-          </Col>
-           <Col span={8}>
-            <Form.Item label="Cao (cm)" name="height">
+            <Form.Item
+              label="Dài (cm)"
+              name="length"
+              rules={[{ required: true, message: 'Vui lòng nhập chiều dài!' }]}
+            >
               <InputNumber min={0} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
         </Row>
-
+        <Row gutter={16}>
+          <Col span={8}>
+            <Form.Item
+              label="Rộng (cm)"
+              name="width"
+              rules={[{ required: true, message: 'Vui lòng nhập chiều rộng!' }]}
+            >
+              <InputNumber min={0} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              label="Cao (cm)"
+              name="height"
+              rules={[{ required: true, message: 'Vui lòng nhập chiều cao!' }]}
+            >
+              <InputNumber min={0} style={{ width: '100%' }} />
+            </Form.Item>
+          </Col>
+        </Row>
          <Form.Item label="SEO Title" name="seoTitle">
               <Input />
             </Form.Item>

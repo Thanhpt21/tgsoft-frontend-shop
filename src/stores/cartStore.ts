@@ -1,16 +1,8 @@
 // src/stores/cartStore.ts
+import { CartItem } from '@/types/cart.type';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface CartItem {
-  id: number;
-  productVariantId: number;
-  quantity: number;
-  priceAtAdd: number;
-  productName: string;
-  thumb: string;
-  attributes: Record<string, string>;
-}
 
 interface CartStore {
   items: CartItem[];
@@ -28,18 +20,28 @@ export const useCartStore = create<CartStore>()(
       items: [],
 
       syncFromServer: (serverItems) => {
-        const mapped = serverItems.map((item: any) => ({
+        const mapped: CartItem[] = serverItems.map((item: any) => ({
           id: item.id,
+          cartId: item.cartId,
           productVariantId: item.productVariantId,
           quantity: item.quantity,
           priceAtAdd: item.priceAtAdd,
-          productName: item.variant?.product?.name || 'Sản phẩm',
-          thumb: item.variant?.thumb || item.variant?.product?.thumb || '/placeholder.jpg',
-          attributes: item.variant?.attrValues
-            ? Object.fromEntries(
-                Object.entries(item.variant.attrValues).map(([k, v]: [string, any]) => [k, String(v)])
-              )
-            : {},
+          warehouseId: item.warehouseId || null,
+          variant: {
+            id: item.variant?.id || 0,
+            sku: item.variant?.sku || '',
+            priceDelta: item.variant?.priceDelta || 0,
+            attrValues: item.variant?.attrValues || {},
+            thumb: item.variant?.thumb || null,
+            warehouseId: item.variant?.warehouseId || null,
+            product: {
+              id: item.variant?.product?.id || 0,
+              name: item.variant?.product?.name || 'Sản phẩm',
+              basePrice: item.variant?.product?.basePrice || 0,
+              thumb: item.variant?.product?.thumb || '',
+              weight: item.variant?.product?.weight || 0, 
+            },
+          },
         }));
         set({ items: mapped });
       },
