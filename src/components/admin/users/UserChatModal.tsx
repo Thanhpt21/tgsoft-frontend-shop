@@ -47,7 +47,7 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
   useEffect(() => {
     if (open) {
       const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
-      const socketInstance = ioClient(WS_URL!, {
+      const socketInstance = ioClient(`${WS_URL}/chat`, {
         auth: {
           userId: adminId,
           isAdmin: true,
