@@ -3,7 +3,6 @@
 
 import React from 'react';
 import { Form, Input, Button, message, Spin, Typography } from 'antd';
-import Image from 'next/image';
 import { useCreateContact } from '@/hooks/contact/useCreateContact';
 import { useConfigOne } from '@/hooks/config/useConfigOne';
 import { CreateContactPayload } from '@/types/contact.type';
@@ -20,7 +19,7 @@ import {
   SendOutlined,
 } from '@ant-design/icons';
 
-import ContactBanner from '@/assets/banner/ContactBanner.jpg';
+import ContactBanner from '../../../public/image/ContactBanner.jpg';
 import Image from 'next/image';
 
 const { Title, Text } = Typography;
