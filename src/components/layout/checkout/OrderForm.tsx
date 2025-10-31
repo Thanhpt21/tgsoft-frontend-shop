@@ -488,7 +488,7 @@ const OrderForm: React.FC = () => {
 
                       <div className="w-16 h-16 mr-4 flex-shrink-0">
                         <img
-                          src={thumbUrl}
+                          src={thumbUrl || '/placeholder.jpg'}
                           alt={item.variant.product.name}
                           className="w-full h-full object-cover rounded-md"
                         />

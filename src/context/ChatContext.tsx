@@ -226,20 +226,50 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   }, [messagesLoaded, loadMessages]);
 
   // XỬ LÝ USER LOGIN – GỌI useUserConversationIds NGAY
-  const handleUserLogin = useCallback(
-    async (userId: number, tenantId: number = 1) => {
-      if (!socket || !socket.connected) {
-        setErrorMessage('Kết nối socket không khả dụng.');
-        return;
+const handleUserLogin = useCallback(
+  async (userId: number, tenantId: number = 1) => {
+    if (!socket) {
+      setErrorMessage('Kết nối socket không khả dụng.');
+      return;
+    }
+
+    try {
+      // 🔥 ĐỢI SOCKET CONNECT TRƯỚC!
+      if (!socket.connected) {
+        console.log('⏳ Waiting for socket to connect...');
+        
+        // Đợi tối đa 5 giây
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Socket connection timeout'));
+          }, 5000);
+
+          if (socket.connected) {
+            clearTimeout(timeout);
+            resolve();
+            return;
+          }
+
+          socket.once('connect', () => {
+            clearTimeout(timeout);
+            console.log('✅ Socket connected, proceeding with login...');
+            resolve();
+          });
+
+          socket.once('connect_error', (error: any) => {
+            clearTimeout(timeout);
+            reject(error);
+          });
+        });
       }
 
-      console.log('Emitting user-login:', { userId });
+      console.log('🔐 Socket is connected, emitting user-login:', { userId });
       socket.emit('user-login', { userId });
 
       // Lưu userId
       localStorage.setItem('userId', userId.toString());
 
-      // GỌI NGAY useUserConversationIds QUA fetchQuery
+      // Fetch conversation IDs
       try {
         const conversationIds = await queryClient.fetchQuery<number[]>({
           queryKey: ['chat', 'conversation-ids', userId, tenantId],
@@ -261,24 +291,36 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
 
         const latestConversationId = conversationIds[0] ?? null;
         if (latestConversationId && latestConversationId !== conversationId) {
-          console.log('Conversation ID fetched immediately:', latestConversationId);
+          console.log('💬 Conversation ID fetched immediately:', latestConversationId);
           setConversationId(latestConversationId);
+          
+          // Join conversation sau khi có ID
+          if (socket.connected) {
+            socket.emit('join:conversation', latestConversationId);
+            console.log('🚪 Joined conversation:', latestConversationId);
+          }
+          
           setTimeout(() => loadMessages(), 300);
         }
       } catch (error) {
-        console.error('Error fetching conversation IDs on login:', error);
+        console.error('❌ Error fetching conversation IDs on login:', error);
       }
 
-      // Invalidate để các hook khác tự refetch
+      // Invalidate queries
       queryClient.invalidateQueries({
         queryKey: ['chat', 'conversation-ids', userId],
       });
 
-      // Đảm bảo load tin nhắn
+      // Load messages
       setTimeout(() => loadMessages(), 1000);
-    },
-    [socket, conversationId, loadMessages, queryClient]
-  );
+
+    } catch (error) {
+      console.error('❌ Error in handleUserLogin:', error);
+      setErrorMessage('Không thể kết nối đến server chat. Vui lòng thử lại.');
+    }
+  },
+  [socket, conversationId, loadMessages, queryClient]
+);
 
   const sendMessage = useCallback(
     (message: string, metadata?: any) => {

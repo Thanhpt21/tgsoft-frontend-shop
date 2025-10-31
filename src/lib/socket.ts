@@ -34,16 +34,22 @@ export const getSocket = (options: SocketOptions = {}): SocketType | null => {
     }
 
 
-    socket = ioClient(wsUrl, {
+     // 🔥 FIX: Thêm /chat namespace và cấu hình đầy đủ
+    socket = ioClient(`${wsUrl}/chat`, {
       auth: {
         userId,
         sessionId,
         tenantId: parseInt(process.env.NEXT_PUBLIC_TENANT_ID || '1', 10),
+        isAdmin: false, // Frontend user không phải admin
       },
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'], // 🔥 Thêm polling fallback
       reconnection: true,
-      reconnectionDelay: options.reconnectionDelay || 1000,
+      reconnectionDelay: options.reconnectionDelay || 2000,
       reconnectionAttempts: options.reconnectionAttempts || 5,
+      timeout: 10000, // 🔥 Timeout 10s
+      forceNew: false,
+      upgrade: true,
+      rememberUpgrade: true,
     });
 
     // Connection events
@@ -76,5 +82,18 @@ export const disconnectSocket = () => {
   if (socket) {
     socket.disconnect();
     socket = null;
+  }
+};
+
+// 🔥 Thêm function để check connection status
+export const isSocketConnected = (): boolean => {
+  return socket?.connected ?? false;
+};
+
+// 🔥 Thêm function để force reconnect
+export const reconnectSocket = () => {
+  if (socket && !socket.connected) {
+    console.log('🔄 Force reconnecting...');
+    socket.connect();
   }
 };
