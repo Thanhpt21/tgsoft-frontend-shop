@@ -1,7 +1,7 @@
 'use client';
 
 import { Button, Menu, Dropdown, Badge, Spin, Avatar, Drawer } from 'antd';
-import { ShoppingCartOutlined, UserOutlined, LoadingOutlined, MenuOutlined, CloseOutlined } from '@ant-design/icons';
+import { ShoppingCartOutlined, UserOutlined, LoadingOutlined, MenuOutlined, CloseOutlined, SearchOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Config } from '@/types/config.type';
@@ -12,6 +12,8 @@ import { useAuth } from '@/context/AuthContext';
 import { getImageUrl } from '@/utils/getImageUrl';
 import { useMyCart } from '@/hooks/cart/useMyCart';
 import { useCartStore } from '@/stores/cartStore';
+import SearchBar from './common/SearchBar';
+
 
 interface HeaderProps {
   config: Config;
@@ -24,9 +26,8 @@ const Header = ({ config }: HeaderProps) => {
   const { items: wishlistItems } = useWishlist();
   const wishlistItemCount = wishlistItems.length;
 
-    // Lấy số lượng sản phẩm trong giỏ hàng từ Zustand store
   const cartItems = useCartStore((state) => state.items);
-  const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0); // Tổng số lượng
+  const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const { currentUser, isLoading: isAuthLoading } = useAuth();
   const { logoutUser, isPending: isLogoutPending } = useLogout();
@@ -34,8 +35,13 @@ const Header = ({ config }: HeaderProps) => {
   const isAdmin = currentUser?.role === 'admin';
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const handleLogout = () => logoutUser();
+
+  const toggleSearch = () => {
+    setIsSearchOpen(!isSearchOpen);
+  };
 
   const userDropdownMenuItems = [
     isAuthLoading
@@ -92,16 +98,17 @@ const Header = ({ config }: HeaderProps) => {
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Main Header Row */}
         <div className="flex items-center justify-between h-16">
           {/* Logo Section */}
-          <Link href="/" className="flex items-center group">
+          <Link href="/" className="flex items-center group flex-shrink-0">
             <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent transition-all duration-300 group-hover:from-purple-600 group-hover:to-blue-600">
               {config.name || 'Tên trang web'}
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-1 flex-1 justify-center">
+          <nav className="hidden lg:flex items-center space-x-1 flex-1 justify-center mx-4">
             {mainMenuItems.map((item) => (
               <Link
                 key={item.href}
@@ -118,7 +125,19 @@ const Header = ({ config }: HeaderProps) => {
           </nav>
 
           {/* Right Section: Actions */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            {/* Search Button - Desktop */}
+            <button
+              onClick={toggleSearch}
+              className={`hidden md:block p-2.5 rounded-lg transition-all duration-200 ${
+                isSearchOpen
+                  ? 'text-blue-600 bg-blue-50'
+                  : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
+              }`}
+            >
+              <SearchOutlined className="text-xl" />
+            </button>
+
             {/* Cart Button */}
             <Link href="/gio-hang">
               <button className="relative p-2.5 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 group">
@@ -168,11 +187,29 @@ const Header = ({ config }: HeaderProps) => {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-2.5 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
+              className="lg:hidden p-2.5 rounded-lg text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
             >
               <MenuOutlined className="text-xl" />
             </button>
           </div>
+        </div>
+
+        {/* Expandable Search Bar - Desktop with smooth animation */}
+        <div
+          className={`hidden md:block overflow-hidden transition-all duration-300 ease-in-out ${
+            isSearchOpen ? 'max-h-20 opacity-100 pb-4' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div className="flex items-center justify-center">
+            <div className="w-full max-w-2xl transform transition-transform duration-300 ease-in-out">
+              <SearchBar />
+            </div>
+          </div>
+        </div>
+
+        {/* Search Bar - Mobile (always visible) */}
+        <div className="md:hidden pb-3">
+          <SearchBar />
         </div>
       </div>
 

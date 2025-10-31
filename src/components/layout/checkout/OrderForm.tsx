@@ -1,16 +1,14 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Typography, Button, Spin, message, Breadcrumb, Modal, Result, Radio, Space } from 'antd'
+import { Typography, Button, Spin, message, Breadcrumb, Modal, Result, Radio, Space, Checkbox } from 'antd'
 import { CheckCircleOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { useMyCart } from '@/hooks/cart/useMyCart'
 import { useCreateOrder } from '@/hooks/order/useCreateOrder'
 import { CreateOrderDto, OrderItemDto } from '@/types/order.type'
 import { ShippingAddress } from '@/types/shipping-address.type'
-import OrderSummary from './OrderSummary'
 import PaymentMethodSelection from './PaymentMethodSelection'
-import ShippingInformation from './ShippingInformation'
 import Link from 'next/link'
 import ShippingMethodSelection from './ShippingMethodSelection'
 import { DeliveryMethod } from '@/enums/order.enums'
@@ -21,8 +19,14 @@ import { Warehouse } from '@/types/warehouse.type'
 import { useAuth } from '@/context/AuthContext'
 import { useShippingAddressesByUserId } from '@/hooks/shipping-address/useShippingAddressesByUserId'
 import ShippingAddressSelection from './ShippingAddressSelection'
+import { useCartStore } from '@/stores/cartStore'
+import useShippingMethod from '@/stores/shippingMethodStore'
+import { getImageUrl } from '@/utils/getImageUrl'
+import { formatVND } from '@/utils/helpers'
+import { useAllAttributes } from '@/hooks/attribute/useAllAttributes'
+import { useAttributeValues } from '@/hooks/attribute-value/useAttributeValues'
 
-const { Title } = Typography
+const { Title, Text } = Typography
 
 const OrderForm: React.FC = () => {
   const router = useRouter()
@@ -51,24 +55,114 @@ const OrderForm: React.FC = () => {
   const userId = currentUser?.id
   const { data: shippingAddresses, isLoading: isLoadingShippingAddresses } = useShippingAddressesByUserId(userId || 0)
 
-  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
-  const handleSelectedItemsChange = (newSelectedItems: Set<number>) => {
-    setSelectedItems(newSelectedItems);
-  };
+  // ===== State =====
+  const [paymentMethod, setPaymentMethod] = useState<any>(null)
+  const [shippingFee, setShippingFee] = useState<number | null>(null)
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(DeliveryMethod.STANDARD)
+  const [isModalVisible, setIsModalVisible] = useState(false)
+  const [paymentUrl, setPaymentUrl] = useState('')
+  
+  // ===== Order Summary State =====
+  const { items, syncFromServer, updateQuantityOptimistic, removeItemOptimistic } = useCartStore()
+  const { data: allAttributes } = useAllAttributes()
+  const { data: allAttributeValues } = useAttributeValues()
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
+  const [selectAll, setSelectAll] = useState(false)
+
+  // Map id → name/value
+  const attributeMap = allAttributes?.reduce((acc: Record<number, string>, attr: any) => {
+    acc[attr.id] = attr.name
+    return acc
+  }, {} as Record<number, string>) ?? {}
+
+  const attributeValueMap = allAttributeValues?.data?.reduce((acc: Record<number, string>, val: any) => {
+    acc[val.id] = val.value
+    return acc
+  }, {} as Record<number, string>) ?? {}
+
+  // Đồng bộ server ở background
+  useEffect(() => {
+    const syncCart = async () => {
+      try {
+        const res = await fetch('/api/cart')
+        const data = await res.json()
+        if (data?.items) {
+          syncFromServer(data.items)
+        }
+      } catch (err) {
+        console.error('Sync cart failed:', err)
+      }
+    }
+    syncCart()
+  }, [syncFromServer])
+
+  const renderAttributes = (attrValues: Record<string, any>) => {
+    if (!attrValues || Object.keys(attrValues).length === 0) return 'Không có thuộc tính'
+    return Object.entries(attrValues)
+      .map(([attrId, valueId]) => {
+        const attrName = attributeMap[Number(attrId)] || `${attrId}`
+        const valueName = attributeValueMap[Number(valueId)] || valueId
+        return `${attrName}: ${valueName}`
+      })
+      .join(', ')
+  }
+
+  const handleCheckboxChange = (itemId: number) => {
+    const newSelectedItems = new Set(selectedItems)
+    if (newSelectedItems.has(itemId)) {
+      newSelectedItems.delete(itemId)
+    } else {
+      newSelectedItems.add(itemId)
+    }
+    
+    setSelectAll(newSelectedItems.size === items.length)
+    setSelectedItems(newSelectedItems)
+  }
+
+  const handleSelectAll = (e: any) => {
+    const isChecked = e.target.checked
+    setSelectAll(isChecked)
+
+    if (isChecked) {
+      const allItemIds = items.map(item => item.id)
+      setSelectedItems(new Set(allItemIds))
+    } else {
+      setSelectedItems(new Set())
+    }
+  }
+
+  const handleQuantityChange = (itemId: number, quantity: number) => {
+    updateQuantityOptimistic(itemId, quantity)
+  }
+
+  const handleRemoveItem = (itemId: number) => {
+    removeItemOptimistic(itemId)
+  }
+
+  // Tính toán
+  const temporaryTotal = items
+    .filter(item => selectedItems.has(item.id))
+    .reduce((total, item) => total + item.priceAtAdd * item.quantity, 0)
+
+  const currentShippingFee = shippingFee || 0
+  const finalTotal = temporaryTotal + currentShippingFee
+  const isSelectAllDisabled = items.length > 10
+
+  // ===== End Order Summary =====
 
   // Tính tổng trọng lượng của các sản phẩm được chọn
   const totalWeight = cart?.items.reduce((sum, item) => {
     if (selectedItems.has(item.id)) {
-      return sum + item.variant.product.weight * item.quantity;
+      return sum + item.variant.product.weight * item.quantity
     }
-    return sum;
-  }, 0) || 0;
+    return sum
+  }, 0) || 0
 
   // Tính tổng giá trị của các sản phẩm được chọn
   const totalValue = cart?.items.filter(item => selectedItems.has(item.id))
-    .reduce((sum, item) => sum + item.priceAtAdd * item.quantity, 0) || 0;
+    .reduce((sum, item) => sum + item.priceAtAdd * item.quantity, 0) || 0
 
-    // ✅ Tự động chọn địa chỉ mặc định khi trang được render
+  // Tự động chọn địa chỉ mặc định
   useEffect(() => {
     if (shippingAddresses && shippingAddresses.length > 0) {
       const defaultAddress = shippingAddresses.find((address: ShippingAddress) => address.is_default)
@@ -79,12 +173,12 @@ const OrderForm: React.FC = () => {
   }, [shippingAddresses])
   
   const handleWarehouseChange = (e: any) => {
-    const selected = e.target.value;
-    setSelectedWarehouse(selected);
-    setWarehouseId(selected.id);
+    const selected = e.target.value
+    setSelectedWarehouse(selected)
+    setWarehouseId(selected.id)
     
     if (selected && selected.location) {
-      const location = selected.location;
+      const location = selected.location
       setPickInfo({
         address: location.address || '',
         district_id: location.district_id || null,
@@ -96,14 +190,14 @@ const OrderForm: React.FC = () => {
         ward_id: location.ward_id || null,
         ward_name: location.ward_name || '',
         note: ''
-      });
+      })
     }
   }
 
   const [shippingInfo, setShippingInfo] = useState<ShippingAddress>({
-    id: 0,              
-    tenantId: 1,       
-    userId: null,       
+    id: 0,
+    tenantId: 1,
+    userId: null,
     name: '',
     phone: '',
     address: '',
@@ -113,43 +207,28 @@ const OrderForm: React.FC = () => {
     ward_name: '',
     district_name: '',
     province_name: '',
-    city_name: '',      
-    province: '',      
-    district: '',       
-    ward: '',           
-    is_default: false,  
-    createdAt: '',     
-    updatedAt: '',    
+    city_name: '',
+    province: '',
+    district: '',
+    ward: '',
+    is_default: false,
+    createdAt: '',
+    updatedAt: '',
     note: '',
-  });
-
-
-  // ✅ Lưu phương thức thanh toán
-  const [paymentMethod, setPaymentMethod] = useState<any>(null)
-
-  // ✅ Lưu shippingFee và deliveryMethod
-  const [shippingFee, setShippingFee] = useState<number | null>(null)
-  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(DeliveryMethod.STANDARD)
-  
-  // ✅ Modal để hiển thị trang thanh toán VNPay
-  const [isModalVisible, setIsModalVisible] = useState(false)
-  const [paymentUrl, setPaymentUrl] = useState('')
+  })
 
   if (isLoading) return <Spin tip="Đang tải giỏ hàng..." className="flex justify-center items-center min-h-screen" />
 
-
-  // ✅ Callback nhận fee và method từ ShippingMethodSelection
   const handleSelectShippingMethod = (methodId: number | null, fee: number | null) => {
     setShippingFee(fee)
     setDeliveryMethod(methodId === 1 ? DeliveryMethod.XTEAM : DeliveryMethod.STANDARD)
   }
 
   const handleSelectShippingAddress = (selectedAddress: ShippingAddress) => {
-    setShippingInfo(selectedAddress); // Cập nhật thông tin giao hàng khi chọn địa chỉ
+    setShippingInfo(selectedAddress)
   }
 
   const handlePlaceOrder = () => {
-    // ✅ Validation
     if (!cart?.items?.length) {
       return message.warning('Giỏ hàng trống.')
     }
@@ -162,7 +241,6 @@ const OrderForm: React.FC = () => {
       return message.warning('Vui lòng chọn phương thức vận chuyển.')
     }
 
-    // ✅ Validation thông tin giao hàng
     if (!shippingInfo.name || !shippingInfo.phone || !shippingInfo.address) {
       return message.warning('Vui lòng chọn địa chỉ giao hàng.')
     }
@@ -171,7 +249,6 @@ const OrderForm: React.FC = () => {
       return message.warning('Vui lòng chọn kho để giao hàng.')
     }
 
-    // Chuẩn hóa shippingInfo
     const shippingPayload = {
       name: shippingInfo.name,
       phone: shippingInfo.phone,
@@ -185,18 +262,19 @@ const OrderForm: React.FC = () => {
       note: shippingInfo.note,
     }
 
-     const orderItems: OrderItemDto[] = cart.items
-      .filter(item => selectedItems.has(item.id)) // Filter selected items
+    const orderItems: OrderItemDto[] = cart.items
+      .filter(item => selectedItems.has(item.id))
       .map(item => ({
         sku: item.variant.sku,
         productVariantId: item.variant.id,
         quantity: item.quantity,
         unitPrice: item.priceAtAdd,
         warehouseId: Number(warehouseId)
-      }));
+      }))
+
     const totalAmount = orderItems.reduce((sum, item) => {
-    return sum + item.unitPrice * item.quantity + shippingFee!;
-    }, 0);
+      return sum + item.unitPrice * item.quantity + shippingFee!
+    }, 0)
 
     const payload: CreateOrderDto = {
       shippingInfo: shippingPayload,
@@ -209,40 +287,44 @@ const OrderForm: React.FC = () => {
       deliveryMethod: deliveryMethod,
     }
 
-    console.log('Order Payload:', payload);
+    console.log('Order Payload:', payload)
 
     createOrder(payload, {
       onSuccess: async (response) => {
-        const orderId = response.id;
+        const orderId = response.id
         const totalAmount = response.totalAmount
         message.success('Đặt hàng thành công!')
 
-        cart.items.forEach(item => {
-          removeCartItem(item.id)
+        selectedItems.forEach(itemId => {
+          removeCartItem(itemId)
+          removeItemOptimistic(itemId) // Xóa khỏi Zustand store
         })
+        
+        // Reset selected items
+        setSelectedItems(new Set())
+        setSelectAll(false)
 
-        // ✅ Nếu thanh toán qua VNPay
         if (paymentMethod.code === 'VNPAY') {
-          const paymentUrl = `https://api.aiban.vn/payments/vnpay?orderId=${orderId}&amount=${totalAmount}&returnUrl=https://api.aiban.vn/payments/vnpay/callback`;
+          const paymentUrl = `https://api.aiban.vn/payments/vnpay?orderId=${orderId}&amount=${totalAmount}&returnUrl=https://api.aiban.vn/payments/vnpay/callback`
 
           try {
             const paymentResponse = await axios.get(paymentUrl, {
               headers: {
                 'x-tenant-id': process.env.NEXT_PUBLIC_TENANT_ID || '1',
               },
-            });
+            })
 
             if (paymentResponse?.data?.url) {
-              window.location.href = paymentResponse.data.url;
+              window.location.href = paymentResponse.data.url
             } else {
-              message.error('Không nhận được đường dẫn thanh toán từ VNPay!');
+              message.error('Không nhận được đường dẫn thanh toán từ VNPay!')
             }
           } catch (error) {
-            message.error('Không thể tạo link thanh toán VNPay!');
+            message.error('Không thể tạo link thanh toán VNPay!')
           }
         } else {
-          setCompletedOrderId(orderId);
-          setOrderCompleted(true);
+          setCompletedOrderId(orderId)
+          setOrderCompleted(true)
         }
       },
       onError: (error) => {
@@ -255,7 +337,6 @@ const OrderForm: React.FC = () => {
     setIsModalVisible(false)
   }
 
-  // ✅ Màn hình đặt hàng thành công (không phải VNPay)
   if (orderCompleted) {
     return (
       <div className="container mx-auto py-10">
@@ -289,12 +370,11 @@ const OrderForm: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* ✅ Cột trái */}
+        {/* Cột trái */}
         <div className="lg:col-span-8 space-y-6">
-          {/* ✅ Component hiển thị danh sách địa chỉ đã lưu */}
           <ShippingAddressSelection
             shippingAddresses={shippingAddresses || []}
-            onSelectAddress={handleSelectShippingAddress} // Cập nhật địa chỉ khi chọn
+            onSelectAddress={handleSelectShippingAddress}
           />
 
           {/* Warehouse Selection */}
@@ -333,7 +413,7 @@ const OrderForm: React.FC = () => {
             deliveryWard={shippingInfo.ward || null}
             deliveryAddress={shippingInfo.address || null}
             totalWeight={totalWeight}
-            totalValue={totalValue} 
+            totalValue={totalValue}
             pickProvince={pickInfo.province_name || ''}
             pickDistrict={pickInfo.district_name || ''}
             pickWard={pickInfo.ward_name || null}
@@ -356,11 +436,80 @@ const OrderForm: React.FC = () => {
           </Button>
         </div>
 
-        {/* ✅ Cột phải - Order Summary */}
+        {/* Cột phải - Order Summary (Đã gộp vào) */}
         <div className="lg:col-span-4">
           <div className="bg-white p-6 rounded-xl shadow-sm sticky top-6">
             <Title level={4} className="mb-4">Tóm tắt đơn hàng</Title>
-            <OrderSummary onSelectedItemsChange={handleSelectedItemsChange} />
+            
+            {/* Order Summary Content */}
+            <div>
+              {/* Chọn tất cả checkbox */}
+              <div className="flex items-center mb-4">
+                <Checkbox
+                  checked={selectAll}
+                  onChange={handleSelectAll}
+                  disabled={isSelectAllDisabled}
+                />
+                <Text className="ml-2">Chọn tất cả</Text>
+                {isSelectAllDisabled && <Text type="secondary" className="ml-2">(Tối đa 10 sản phẩm)</Text>}
+              </div>
+
+              {/* Cart Items List */}
+              {items.length === 0 ? (
+                <Text type="secondary">Giỏ hàng trống.</Text>
+              ) : (
+                items.map((item) => {
+                  const thumbUrl = getImageUrl(item.thumb || '/no-image.png')
+
+                  return (
+                    <div key={item.id} className="flex items-start py-3 border-b">
+                      <Checkbox
+                        checked={selectedItems.has(item.id)}
+                        onChange={() => handleCheckboxChange(item.id)}
+                        className="mr-4"
+                      />
+
+                      <div className="w-16 h-16 mr-4 flex-shrink-0">
+                        <img
+                          src={thumbUrl}
+                          alt={item.productName}
+                          className="w-full h-full object-cover rounded-md"
+                        />
+                      </div>
+
+                      <div className="flex-1">
+                        <Text strong>{item.productName}</Text>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {renderAttributes(item.attributes)}
+                        </div>
+                        <div className="flex items-center text-sm mt-2">
+                          <Text>{formatVND(item.priceAtAdd)}</Text>
+                          <Text className="ml-2">x {item.quantity}</Text>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+
+              {/* Tổng tiền */}
+              <div className="py-4 border-t mt-4">
+                <div className="flex justify-between py-1">
+                  <Text>Tạm tính:</Text>
+                  <Text>{formatVND(temporaryTotal)}</Text>
+                </div>
+                <div className="flex justify-between py-1">
+                  <Text>Phí vận chuyển:</Text>
+                  <Text>{formatVND(currentShippingFee)}</Text>
+                </div>
+                <div className="flex justify-between py-2 border-t mt-2">
+                  <Text strong>Tổng cộng:</Text>
+                  <Text strong type="danger" className="text-lg">
+                    {formatVND(finalTotal)}
+                  </Text>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

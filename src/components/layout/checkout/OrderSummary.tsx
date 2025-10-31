@@ -28,6 +28,8 @@ const OrderSummary: React.FC<{ onSelectedItemsChange: (selectedItems: Set<number
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
 
+  
+
   // Map id → name/value
   const attributeMap = allAttributes?.reduce((acc: Record<number, string>, attr: any) => {
     acc[attr.id] = attr.name;
@@ -173,45 +175,7 @@ const handleSelectAll = (e: any) => {
               </div>
             </div>
 
-            {/* Điều khiển số lượng và nút xóa */}
-            <div className="flex flex-col items-end ml-auto space-y-2">
-              {/* Quantity Change */}
-              {/* <div className="flex items-center space-x-2">
-                <Button
-                  onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                  disabled={item.quantity <= 1}
-                  icon="-"
-                  size="small"
-                />
-                  <InputNumber
-                    min={1}
-                    value={item.quantity ?? 1}
-                    onChange={(value: number | string | null) => {
-                      if (typeof value === 'number') {
-                        handleQuantityChange(item.id, value);
-                      }
-                    }}
-                    className="mx-2"
-                    style={{ width: `30px` }}  // Điều chỉnh width theo số lượng chữ
-                    controls={false}  // Ẩn các nút tăng giảm
-                  />
-                <Button
-                  onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                  icon="+"
-                  size="small"
-                />
-              </div> */}
-
-              {/* Remove Item */}
-              <Button
-                type="text"
-                danger
-                onClick={() => handleRemoveItem(item.id)}
-                icon={<DeleteOutlined />}
-                className="mt-2"
-              >
-              </Button>
-            </div>
+          
           </div>
         );
       })}

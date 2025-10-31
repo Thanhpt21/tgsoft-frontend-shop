@@ -78,7 +78,6 @@ const ShoppingCart = () => {
       removeItemOptimistic(item.id);
       removeItemMutation.mutate(item.id, {
         onError: () => {
-          message.error('Xóa thất bại, đang khôi phục...');
         },
       });
     });
@@ -120,33 +119,6 @@ const ShoppingCart = () => {
       .join(', ');
   };
 
-  const onAddToCart = (product: any, selectedAttributes: Record<string, any>) => {
-    // Kiểm tra sản phẩm có tồn tại trong giỏ hàng không (dựa trên productVariantId và selectedAttributes)
-    const existingItem = items.find(item =>
-      item.productVariantId === product.productVariantId &&
-      JSON.stringify(item.attributes) === JSON.stringify(selectedAttributes)
-    );
-
-    if (existingItem) {
-      // Nếu sản phẩm đã có, tăng số lượng
-      onChangeQuantity(existingItem.quantity + 1, existingItem);
-    } else {
-      // Nếu sản phẩm chưa có, thêm mới vào giỏ hàng
-      const newItem = {
-        ...product,
-        attributes: selectedAttributes,
-        quantity: 1,
-      };
-      startTransition(() => {
-        addItemOptimistic(newItem);
-        updateItemMutation.mutate({ ...newItem }, {
-          onError: () => {
-            message.error('Thêm sản phẩm vào giỏ hàng thất bại.');
-          }
-        });
-      });
-    }
-  };
 
   const columns = [
     {
