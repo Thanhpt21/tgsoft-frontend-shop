@@ -39,6 +39,7 @@
     "react-hook-form": "^7.56.4",
     "react-i18next": "^15.5.2",
     "react-quill": "^2.0.0",
+    "sharp": "^0.34.4",
     "socket.io-client": "^4.8.1",
     "sonner": "^2.0.3",
     "swiper": "^12.0.3",

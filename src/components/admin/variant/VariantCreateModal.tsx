@@ -136,9 +136,9 @@ const onFinish = async (values: any) => {
         </Row>
 
         <Form.Item
-          label="Giá chênh lệch (Delta Price)"
+          label="Giá biến thể"
           name="priceDelta"
-          tooltip="Giá cộng thêm/trừ đi so với giá cơ bản của sản phẩm."
+          tooltip="Giá của sản phẩm."
           initialValue={0}
         >
           <InputNumber min={0} style={{ width: '100%' }} />

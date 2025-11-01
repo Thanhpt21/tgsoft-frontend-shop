@@ -151,7 +151,7 @@ const PurchaseHistory: React.FC = () => {
                           size="small"
                           disabled={order.status !== 'DELIVERED'}
                         >
-                          Đánh giá
+                          {order.status !== 'DELIVERED' ? 'Chưa giao' : 'Đánh giá'}
                         </Button>
                       </Link>
                     </div>
