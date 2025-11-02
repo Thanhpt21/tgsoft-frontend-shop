@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Typography, Button, Spin, message, Breadcrumb, Modal, Result, Radio, Space, Checkbox } from 'antd'
-import { CheckCircleOutlined } from '@ant-design/icons'
+import { Typography, Button, Spin, message, Modal, Result, Radio, Space, Checkbox, Card } from 'antd'
+import { CheckCircleOutlined, ShoppingCartOutlined, HomeOutlined, EnvironmentOutlined, TruckOutlined, CreditCardOutlined, ShopOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { useMyCart } from '@/hooks/cart/useMyCart'
 import { useCreateOrder } from '@/hooks/order/useCreateOrder'
@@ -20,7 +20,6 @@ import { useAuth } from '@/context/AuthContext'
 import { useShippingAddressesByUserId } from '@/hooks/shipping-address/useShippingAddressesByUserId'
 import ShippingAddressSelection from './ShippingAddressSelection'
 import { useCartStore } from '@/stores/cartStore'
-import useShippingMethod from '@/stores/shippingMethodStore'
 import { getImageUrl } from '@/utils/getImageUrl'
 import { formatVND } from '@/utils/helpers'
 import { useAllAttributes } from '@/hooks/attribute/useAllAttributes'
@@ -30,6 +29,7 @@ const { Title, Text } = Typography
 
 const OrderForm: React.FC = () => {
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
   const [orderCompleted, setOrderCompleted] = useState(false)
   const [completedOrderId, setCompletedOrderId] = useState<number | null>(null)
   const { data: cart, isLoading } = useMyCart()
@@ -55,23 +55,22 @@ const OrderForm: React.FC = () => {
   const userId = currentUser?.id
   const { data: shippingAddresses, isLoading: isLoadingShippingAddresses } = useShippingAddressesByUserId(userId || 0)
 
-
-
-  // ===== State =====
   const [paymentMethod, setPaymentMethod] = useState<any>(null)
   const [shippingFee, setShippingFee] = useState<number | null>(null)
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(DeliveryMethod.STANDARD)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [paymentUrl, setPaymentUrl] = useState('')
   
-  // ===== Order Summary State =====
   const { items, syncFromServer, updateQuantityOptimistic, removeItemOptimistic } = useCartStore()
   const { data: allAttributes } = useAllAttributes()
   const { data: allAttributeValues } = useAttributeValues()
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
   const [selectAll, setSelectAll] = useState(false)
 
-  // Map id → name/value
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const attributeMap = allAttributes?.reduce((acc: Record<number, string>, attr: any) => {
     acc[attr.id] = attr.name
     return acc
@@ -82,7 +81,6 @@ const OrderForm: React.FC = () => {
     return acc
   }, {} as Record<number, string>) ?? {}
 
-  // Đồng bộ server ở background
   useEffect(() => {
     const syncCart = async () => {
       try {
@@ -133,16 +131,6 @@ const OrderForm: React.FC = () => {
     }
   }
 
-  const handleQuantityChange = (itemId: number, quantity: number) => {
-    updateQuantityOptimistic(itemId, quantity)
-  }
-
-  const handleRemoveItem = (itemId: number) => {
-    removeItemOptimistic(itemId)
-  }
-
-
-  // Tính toán
   const temporaryTotal = items
     .filter(item => selectedItems.has(item.id))
     .reduce((total, item) => total + item.priceAtAdd * item.quantity, 0)
@@ -151,9 +139,6 @@ const OrderForm: React.FC = () => {
   const finalTotal = temporaryTotal + currentShippingFee
   const isSelectAllDisabled = items.length > 10
 
-  // ===== End Order Summary =====
-
-  // Tính tổng trọng lượng của các sản phẩm được chọn
   const totalWeight = cart?.items.reduce((sum, item) => {
     if (selectedItems.has(item.id)) {
       return sum + item.variant.product.weight * item.quantity
@@ -161,11 +146,9 @@ const OrderForm: React.FC = () => {
     return sum
   }, 0) || 0
 
-  // Tính tổng giá trị của các sản phẩm được chọn
   const totalValue = cart?.items.filter(item => selectedItems.has(item.id))
     .reduce((sum, item) => sum + item.priceAtAdd * item.quantity, 0) || 0
 
-  // Tự động chọn địa chỉ mặc định
   useEffect(() => {
     if (shippingAddresses && shippingAddresses.length > 0) {
       const defaultAddress = shippingAddresses.find((address: ShippingAddress) => address.is_default)
@@ -220,17 +203,16 @@ const OrderForm: React.FC = () => {
     note: '',
   })
 
-  
-    useEffect(() => {
-  console.log('Cart data:', cart)
-  console.log('Items from Zustand:', items)
-  console.log('Selected items:', Array.from(selectedItems))
-  console.log('Total weight:', totalWeight)
-  console.log('Total value:', totalValue)
-}, [cart, items, selectedItems, totalWeight, totalValue])
-
-
-  if (isLoading) return <Spin tip="Đang tải giỏ hàng..." className="flex justify-center items-center min-h-screen" />
+  if (!mounted || isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải...</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleSelectShippingMethod = (methodId: number | null, fee: number | null) => {
     setShippingFee(fee)
@@ -300,8 +282,6 @@ const OrderForm: React.FC = () => {
       deliveryMethod: deliveryMethod,
     }
 
-    console.log('Order Payload:', payload)
-
     createOrder(payload, {
       onSuccess: async (response) => {
         const orderId = response.id
@@ -310,10 +290,9 @@ const OrderForm: React.FC = () => {
 
         selectedItems.forEach(itemId => {
           removeCartItem(itemId)
-          removeItemOptimistic(itemId) // Xóa khỏi Zustand store
+          removeItemOptimistic(itemId)
         })
         
-        // Reset selected items
         setSelectedItems(new Set())
         setSelectAll(false)
 
@@ -346,204 +325,265 @@ const OrderForm: React.FC = () => {
     })
   }
 
-  const handleModalClose = () => {
-    setIsModalVisible(false)
-  }
-
   if (orderCompleted) {
     return (
-      <div className="container mx-auto py-10">
-        <Result
-          status="success"
-          icon={<CheckCircleOutlined className="text-green-600" />}
-          title="Đặt hàng thành công!"
-          subTitle={`Mã đơn hàng: #${completedOrderId}. Đơn hàng của bạn đang được xử lý.`}
-          extra={[
-            <Button type="primary" key="orders" onClick={() => router.push('/tai-khoan?p=history')}>
-              Xem đơn hàng
-            </Button>,
-            <Button key="shop" onClick={() => router.push('/san-pham')}>
-              Tiếp tục mua sắm
-            </Button>,
-          ]}
-        />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center py-12">
+        <Card className="max-w-2xl w-full mx-4 !rounded-3xl !border-2 shadow-2xl">
+          <Result
+            status="success"
+            icon={<CheckCircleOutlined className="text-green-600" style={{ fontSize: 72 }} />}
+            title={<span className="text-3xl font-bold">Đặt hàng thành công!</span>}
+            subTitle={
+              <div className="text-lg text-gray-600 mt-4">
+                <p>Mã đơn hàng: <span className="font-semibold text-blue-600">#{completedOrderId}</span></p>
+                <p className="mt-2">Đơn hàng của bạn đang được xử lý.</p>
+              </div>
+            }
+            extra={[
+              <Button 
+                type="primary" 
+                key="orders" 
+                size="large"
+                onClick={() => router.push('/tai-khoan?p=history')}
+                className="!h-12 !px-8 !rounded-xl !bg-gradient-to-r !from-blue-500 !to-purple-500 hover:!from-blue-600 hover:!to-purple-600"
+              >
+                Xem đơn hàng
+              </Button>,
+              <Button 
+                key="shop" 
+                size="large"
+                onClick={() => router.push('/san-pham')}
+                className="!h-12 !px-8 !rounded-xl"
+              >
+                Tiếp tục mua sắm
+              </Button>,
+            ]}
+          />
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="mb-4">
-        <Breadcrumb className="mb-2">
-          <Breadcrumb.Item>
-            <Link href="/gio-hang">Giỏ hàng</Link>
-          </Breadcrumb.Item>
-          <Breadcrumb.Item>Thanh toán</Breadcrumb.Item>
-        </Breadcrumb>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Cột trái */}
-        <div className="lg:col-span-8 space-y-6">
-          <ShippingAddressSelection
-            shippingAddresses={shippingAddresses || []}
-            onSelectAddress={handleSelectShippingAddress}
-          />
-
-          {/* Warehouse Selection */}
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <Title level={5} className="mb-4">Chọn kho để giao hàng</Title>
-            {isWarehousesLoading ? (
-              <Spin tip="Đang tải kho..." />
-            ) : (
-              <Radio.Group onChange={handleWarehouseChange} value={selectedWarehouse} className="w-full">
-                <Space direction="vertical" className="w-full" size="middle">
-                  {warehouses?.map((warehouse: Warehouse) => (
-                    <Radio key={warehouse.id} value={warehouse} className="w-full">
-                      <div className="flex flex-col py-2">
-                        <div className="font-semibold text-base">{warehouse.name}</div>
-                        {warehouse.location && (
-                          <div className="text-sm text-gray-500 mt-1">
-                            {warehouse.location.address}
-                            {warehouse.location.ward_name && `, ${warehouse.location.ward_name}`}
-                            {warehouse.location.district_name && `, ${warehouse.location.district_name}`}
-                            {warehouse.location.province_name && `, ${warehouse.location.province_name}`}
-                          </div>
-                        )}
-                      </div>
-                    </Radio>
-                  ))}
-                </Space>
-              </Radio.Group>
-            )}
-          </div>
-
-          {/* Shipping Method */}
-          <ShippingMethodSelection
-            onMethodSelected={handleSelectShippingMethod}
-            deliveryProvince={shippingInfo.province || ''}
-            deliveryDistrict={shippingInfo.district || ''}
-            deliveryWard={shippingInfo.ward || null}
-            deliveryAddress={shippingInfo.address || null}
-            totalWeight={totalWeight}
-            totalValue={totalValue}
-            pickProvince={pickInfo.province_name || ''}
-            pickDistrict={pickInfo.district_name || ''}
-            pickWard={pickInfo.ward_name || null}
-            pickAddress={pickInfo.address || ''}
-          />
-
-          {/* Payment Method */}
-          <PaymentMethodSelection onMethodSelected={setPaymentMethod} />
-
-          {/* Place Order Button */}
-          <Button
-            type="primary"
-            size="large"
-            onClick={handlePlaceOrder}
-            loading={isCreatingOrder}
-            className="w-full"
-            disabled={!shippingInfo.name || !paymentMethod || !warehouseId || shippingFee === null}
-          >
-            Đặt hàng
-          </Button>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8 md:py-12">
+      <div className="container mx-auto px-4 max-w-7xl">
+        {/* Breadcrumb */}
+        <div className="mb-8 flex items-center gap-2 text-gray-600">
+          <Link href="/gio-hang" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
+            <ShoppingCartOutlined />
+            <span>Giỏ hàng</span>
+          </Link>
+          <span>/</span>
+          <span className="text-gray-900 font-medium">Thanh toán</span>
         </div>
 
-        {/* Cột phải - Order Summary (Đã gộp vào) */}
-        <div className="lg:col-span-4">
-          <div className="bg-white p-6 rounded-xl shadow-sm sticky top-6">
-            <Title level={4} className="mb-4">Tóm tắt đơn hàng</Title>
-            
-            {/* Order Summary Content */}
-            <div>
-              {/* Chọn tất cả checkbox */}
-              <div className="flex items-center mb-4">
-                <Checkbox
-                  checked={selectAll}
-                  onChange={handleSelectAll}
-                  disabled={isSelectAllDisabled}
-                />
-                <Text className="ml-2">Chọn tất cả</Text>
-                {isSelectAllDisabled && <Text type="secondary" className="ml-2">(Tối đa 10 sản phẩm)</Text>}
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
+            <CreditCardOutlined className="text-white text-2xl" />
+          </div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Thanh toán
+            </h1>
+            <p className="text-gray-600">Hoàn tất đơn hàng của bạn</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Shipping Address */}
+            <Card className="!rounded-3xl !border-2 shadow-lg">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl flex items-center justify-center">
+                  <EnvironmentOutlined className="text-white text-lg" />
+                </div>
+                <Title level={5} className="!mb-0">Địa chỉ giao hàng</Title>
+              </div>
+              <ShippingAddressSelection
+                shippingAddresses={shippingAddresses || []}
+                onSelectAddress={handleSelectShippingAddress}
+              />
+            </Card>
+
+            {/* Warehouse Selection */}
+            <Card className="!rounded-3xl !border-2 shadow-lg">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
+                  <ShopOutlined className="text-white text-lg" />
+                </div>
+                <Title level={5} className="!mb-0">Chọn kho giao hàng</Title>
+              </div>
+              {isWarehousesLoading ? (
+                <div className="text-center py-8"><Spin /></div>
+              ) : (
+                <Radio.Group onChange={handleWarehouseChange} value={selectedWarehouse} className="w-full">
+                  <Space direction="vertical" className="w-full" size="middle">
+                    {warehouses?.map((warehouse: Warehouse) => (
+                      <Radio key={warehouse.id} value={warehouse} className="w-full !items-start">
+                        <div className="flex flex-col py-2">
+                          <div className="font-semibold text-base text-gray-900">{warehouse.name}</div>
+                          {warehouse.location && (
+                            <div className="text-sm text-gray-500 mt-1">
+                              {warehouse.location.address}
+                              {warehouse.location.ward_name && `, ${warehouse.location.ward_name}`}
+                              {warehouse.location.district_name && `, ${warehouse.location.district_name}`}
+                              {warehouse.location.province_name && `, ${warehouse.location.province_name}`}
+                            </div>
+                          )}
+                        </div>
+                      </Radio>
+                    ))}
+                  </Space>
+                </Radio.Group>
+              )}
+            </Card>
+
+            {/* Shipping Method */}
+            <Card className="!rounded-3xl !border-2 shadow-lg">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-500 rounded-xl flex items-center justify-center">
+                  <TruckOutlined className="text-white text-lg" />
+                </div>
+                <Title level={5} className="!mb-0">Phương thức vận chuyển</Title>
+              </div>
+              <ShippingMethodSelection
+                onMethodSelected={handleSelectShippingMethod}
+                deliveryProvince={shippingInfo.province || ''}
+                deliveryDistrict={shippingInfo.district || ''}
+                deliveryWard={shippingInfo.ward || null}
+                deliveryAddress={shippingInfo.address || null}
+                totalWeight={totalWeight}
+                totalValue={totalValue}
+                pickProvince={pickInfo.province_name || ''}
+                pickDistrict={pickInfo.district_name || ''}
+                pickWard={pickInfo.ward_name || null}
+                pickAddress={pickInfo.address || ''}
+              />
+            </Card>
+
+            {/* Payment Method */}
+            <Card className="!rounded-3xl !border-2 shadow-lg">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
+                  <CreditCardOutlined className="text-white text-lg" />
+                </div>
+                <Title level={5} className="!mb-0">Phương thức thanh toán</Title>
+              </div>
+              <PaymentMethodSelection onMethodSelected={setPaymentMethod} />
+            </Card>
+          </div>
+
+          {/* Right Column - Order Summary */}
+          <div className="lg:col-span-5">
+            <Card className="!rounded-3xl !border-2 shadow-lg sticky top-6">
+              <Title level={4} className="mb-6">Tóm tắt đơn hàng</Title>
+              
+              {/* Select All */}
+              <div className="flex items-center justify-between mb-4 p-4 bg-blue-50 rounded-xl">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={selectAll}
+                    onChange={handleSelectAll}
+                    disabled={isSelectAllDisabled}
+                  />
+                  <Text className="font-medium">Chọn tất cả</Text>
+                </div>
+                {isSelectAllDisabled && <Text type="secondary" className="text-xs">(Tối đa 10 sp)</Text>}
               </div>
 
-              {/* Cart Items List */}
-              {items.length === 0 ? (
-                <Text type="secondary">Giỏ hàng trống.</Text>
-              ) : (
-                items.map((item) => {
-                  const thumbUrl = getImageUrl(
-                    item.variant.thumb || 
-                    item.variant.product.thumb || 
-                    '/no-image.png'
-                  )
+              {/* Cart Items */}
+              <div className="max-h-96 overflow-y-auto mb-4 space-y-3">
+                {items.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">Giỏ hàng trống</div>
+                ) : (
+                  items.map((item) => {
+                    const thumbUrl = getImageUrl(
+                      item.variant.thumb || 
+                      item.variant.product.thumb || 
+                      '/no-image.png'
+                    )
 
-                  return (
-                    <div key={item.id} className="flex items-start py-3 border-b">
-                      <Checkbox
-                        checked={selectedItems.has(item.id)}
-                        onChange={() => handleCheckboxChange(item.id)}
-                        className="mr-4"
-                      />
+                    return (
+                      <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all">
+                        <Checkbox
+                          checked={selectedItems.has(item.id)}
+                          onChange={() => handleCheckboxChange(item.id)}
+                        />
 
-                      <div className="w-16 h-16 mr-4 flex-shrink-0">
                         <img
                           src={thumbUrl || '/placeholder.jpg'}
                           alt={item.variant.product.name}
-                          className="w-full h-full object-cover rounded-md"
+                          className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
                         />
-                      </div>
 
-                      <div className="flex-1">
-                        <Text strong>{item.variant.product.name}</Text>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {renderAttributes(item.variant.attrValues)}
-                        </div>
-                        <div className="flex items-center text-sm mt-2">
-                          <Text>{formatVND(item.priceAtAdd)}</Text>
-                          <Text className="ml-2">x {item.quantity}</Text>
+                        <div className="flex-1 min-w-0">
+                          <Text strong className="block truncate">{item.variant.product.name}</Text>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {renderAttributes(item.variant.attrValues)}
+                          </div>
+                          <div className="flex items-center justify-between mt-2">
+                            <Text className="text-blue-600 font-semibold">{formatVND(item.priceAtAdd)}</Text>
+                            <Text type="secondary">x {item.quantity}</Text>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )
-                })
-              )}
+                    )
+                  })
+                )}
+              </div>
 
-              {/* Tổng tiền */}
-              <div className="py-4 border-t mt-4">
-                <div className="flex justify-between py-1">
-                  <Text>Tạm tính:</Text>
-                  <Text>{formatVND(temporaryTotal)}</Text>
+              {/* Summary */}
+              <div className="border-t pt-4 space-y-3">
+                <div className="flex justify-between">
+                  <Text className="text-gray-600">Tạm tính:</Text>
+                  <Text className="font-semibold">{formatVND(temporaryTotal)}</Text>
                 </div>
-                <div className="flex justify-between py-1">
-                  <Text>Phí vận chuyển:</Text>
-                  <Text>{formatVND(currentShippingFee)}</Text>
+                <div className="flex justify-between">
+                  <Text className="text-gray-600">Phí vận chuyển:</Text>
+                  <Text className="font-semibold">{formatVND(currentShippingFee)}</Text>
                 </div>
-                <div className="flex justify-between py-2 border-t mt-2">
-                  <Text strong>Tổng cộng:</Text>
-                  <Text strong type="danger" className="text-lg">
+                <div className="flex justify-between items-center pt-3 border-t">
+                  <Text strong className="text-lg">Tổng cộng:</Text>
+                  <Text strong className="text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     {formatVND(finalTotal)}
                   </Text>
                 </div>
               </div>
-            </div>
+
+              {/* Place Order Button */}
+              <Button
+                type="primary"
+                size="large"
+                block
+                onClick={handlePlaceOrder}
+                loading={isCreatingOrder}
+                disabled={!shippingInfo.name || !paymentMethod || !warehouseId || shippingFee === null || selectedItems.size === 0}
+                className="mt-6 !h-14 !rounded-xl !text-base font-bold !bg-gradient-to-r !from-blue-500 !to-purple-500 hover:!from-blue-600 hover:!to-purple-600 !border-0 shadow-lg hover:shadow-xl transition-all"
+              >
+                Đặt hàng ngay
+              </Button>
+            </Card>
           </div>
         </div>
       </div>
 
       {/* Modal VNPay */}
       <Modal
-        title="Thanh toán VNPay"
-        visible={isModalVisible}
-        onCancel={handleModalClose}
+        title={<span className="text-xl font-bold">Thanh toán VNPay</span>}
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
         footer={null}
         width="80%"
+        centered
       >
         <iframe
           src={paymentUrl}
           width="100%"
           height="600"
           title="VNPay Payment"
+          className="rounded-xl"
         />
       </Modal>
     </div>
