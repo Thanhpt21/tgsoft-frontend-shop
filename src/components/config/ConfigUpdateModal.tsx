@@ -1,6 +1,6 @@
 'use client'
 
-import { Modal, Form, Input, Button, Upload, message, Row, Col } from 'antd'
+import { Modal, Form, Input, Button, Upload, message, Row, Col, Checkbox } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
 import { useUpdateConfig } from '@/hooks/config/useUpdateConfig'
@@ -39,6 +39,19 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
         youtube: config.youtube || '',
         x: config.x || '',
         linkedin: config.linkedin || '',
+
+        // Checkboxes
+        showEmail: config.showEmail ?? true,
+        showMobile: config.showMobile ?? true,
+        showAddress: config.showAddress ?? true,
+        showGooglemap: config.showGooglemap ?? false,
+        showFacebook: config.showFacebook ?? true,
+        showZalo: config.showZalo ?? false,
+        showInstagram: config.showInstagram ?? false,
+        showTiktok: config.showTiktok ?? false,
+        showYoutube: config.showYoutube ?? false,
+        showX: config.showX ?? false,
+        showLinkedin: config.showLinkedin ?? false,
       })
 
       if (config.logo) {
@@ -58,12 +71,13 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
     try {
       const formData = new FormData()
       Object.entries(values).forEach(([key, val]) => {
-        if (val !== undefined && val !== null) formData.append(key, val as string)
+        if (val !== undefined && val !== null) {
+          formData.append(key, val as any)
+        }
       })
 
       const file = fileList?.[0]?.originFileObj
       if (file) formData.append('logo', file)
-
       await mutateAsync({ id: config.id, data: formData })
       message.success('Cập nhật cấu hình thành công')
       onClose()
@@ -89,7 +103,7 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
       onCancel={onClose} 
       footer={null} 
       destroyOnClose
-      width={800}
+      width={1000}
     >
       <Form form={form} layout="vertical" onFinish={onFinish}>
         <Row gutter={16}>
@@ -99,93 +113,178 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Email" name="email">
-              <Input placeholder="Email liên hệ" />
+            <Form.Item label="Logo" tooltip="Chấp nhận JPEG, PNG, JPG, WEBP. Tối đa 5MB">
+              <Upload
+                listType="picture"
+                fileList={fileList}
+                onChange={({ fileList }) => setFileList(fileList)}
+                beforeUpload={createImageUploadValidator(MAX_IMAGE_SIZE_MB)}
+                maxCount={1}
+                accept={ACCEPTED_IMAGE_TYPES}
+              >
+                <Button icon={<UploadOutlined />}>Chọn logo</Button>
+              </Upload>
             </Form.Item>
           </Col>
         </Row>
 
-        <Row gutter={16}>
+        {/* Email */}
+        <Row gutter={16} align="middle">
+          <Col span={12}>
+            <Form.Item label="Email" name="email">
+              <Input placeholder="Email liên hệ" />
+            </Form.Item>
+          </Col>
+          <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Form.Item name="showEmail" valuePropName="checked" noStyle>
+              <Checkbox>Hiển thị Email</Checkbox>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        {/* Mobile */}
+        <Row gutter={16} align="middle">
           <Col span={12}>
             <Form.Item label="Số điện thoại" name="mobile">
               <Input placeholder="Ví dụ: 0123456789" />
             </Form.Item>
           </Col>
+          <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Form.Item name="showMobile" valuePropName="checked" noStyle>
+              <Checkbox>Hiển thị SĐT</Checkbox>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        {/* Address */}
+        <Row gutter={16} align="middle">
           <Col span={12}>
             <Form.Item label="Địa chỉ" name="address">
               <Input placeholder="Địa chỉ công ty / cửa hàng" />
             </Form.Item>
           </Col>
+          <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Form.Item name="showAddress" valuePropName="checked" noStyle>
+              <Checkbox>Hiển thị Địa chỉ</Checkbox>
+            </Form.Item>
+          </Col>
         </Row>
 
-        <Row gutter={16}>
+        {/* Google Map */}
+        <Row gutter={16} align="middle">
           <Col span={12}>
             <Form.Item label="Google Map" name="googlemap">
               <Input placeholder="Google Map URL" />
             </Form.Item>
           </Col>
+          <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Form.Item name="showGooglemap" valuePropName="checked" noStyle>
+              <Checkbox>Hiển thị Google Map</Checkbox>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        {/* Facebook */}
+        <Row gutter={16} align="middle">
           <Col span={12}>
             <Form.Item label="Facebook" name="facebook">
               <Input placeholder="Facebook URL" />
             </Form.Item>
           </Col>
+          <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Form.Item name="showFacebook" valuePropName="checked" noStyle>
+              <Checkbox>Hiển thị Facebook</Checkbox>
+            </Form.Item>
+          </Col>
         </Row>
 
-        <Row gutter={16}>
+        {/* Zalo */}
+        <Row gutter={16} align="middle">
           <Col span={12}>
             <Form.Item label="Zalo" name="zalo">
               <Input placeholder="Zalo URL" />
             </Form.Item>
           </Col>
+          <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Form.Item name="showZalo" valuePropName="checked" noStyle>
+              <Checkbox>Hiển thị Zalo</Checkbox>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        {/* Instagram */}
+        <Row gutter={16} align="middle">
           <Col span={12}>
             <Form.Item label="Instagram" name="instagram">
               <Input placeholder="Instagram URL" />
             </Form.Item>
           </Col>
+          <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Form.Item name="showInstagram" valuePropName="checked" noStyle>
+              <Checkbox>Hiển thị Instagram</Checkbox>
+            </Form.Item>
+          </Col>
         </Row>
 
-        <Row gutter={16}>
+        {/* TikTok */}
+        <Row gutter={16} align="middle">
           <Col span={12}>
             <Form.Item label="TikTok" name="tiktok">
               <Input placeholder="TikTok URL" />
             </Form.Item>
           </Col>
+          <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Form.Item name="showTiktok" valuePropName="checked" noStyle>
+              <Checkbox>Hiển thị TikTok</Checkbox>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        {/* YouTube */}
+        <Row gutter={16} align="middle">
           <Col span={12}>
             <Form.Item label="YouTube" name="youtube">
               <Input placeholder="YouTube URL" />
             </Form.Item>
           </Col>
+          <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Form.Item name="showYoutube" valuePropName="checked" noStyle>
+              <Checkbox>Hiển thị YouTube</Checkbox>
+            </Form.Item>
+          </Col>
         </Row>
 
-        <Row gutter={16}>
+        {/* X */}
+        <Row gutter={16} align="middle">
           <Col span={12}>
-            <Form.Item label="X" name="x">
+            <Form.Item label="X (Twitter)" name="x">
               <Input placeholder="X URL" />
             </Form.Item>
           </Col>
+          <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Form.Item name="showX" valuePropName="checked" noStyle>
+              <Checkbox>Hiển thị X</Checkbox>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        {/* LinkedIn */}
+        <Row gutter={16} align="middle">
           <Col span={12}>
             <Form.Item label="LinkedIn" name="linkedin">
               <Input placeholder="LinkedIn URL" />
             </Form.Item>
           </Col>
+          <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Form.Item name="showLinkedin" valuePropName="checked" noStyle>
+              <Checkbox>Hiển thị LinkedIn</Checkbox>
+            </Form.Item>
+          </Col>
         </Row>
 
-        <Form.Item label="Logo" tooltip="Chấp nhận JPEG, PNG, JPG, WEBP. Tối đa 5MB">
-          <Upload
-            listType="picture"
-            fileList={fileList}
-            onChange={({ fileList }) => setFileList(fileList)}
-            beforeUpload={createImageUploadValidator(MAX_IMAGE_SIZE_MB)}
-            maxCount={1}
-            accept={ACCEPTED_IMAGE_TYPES}
-          >
-            <Button icon={<UploadOutlined />}>Chọn logo</Button>
-          </Upload>
-        </Form.Item>
-
-        <Form.Item>
-          <Button type="primary" htmlType="submit" loading={isPending} block>
-            Cập nhật
+        <Form.Item style={{ marginTop: 24 }}>
+          <Button type="primary" htmlType="submit" loading={isPending} block size="large">
+            Cập nhật cấu hình
           </Button>
         </Form.Item>
       </Form>

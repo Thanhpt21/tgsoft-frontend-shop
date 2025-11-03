@@ -14,6 +14,7 @@ import {
 import { UploadOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
 import { useUpdateUser } from '@/hooks/user/useUpdateUser'
+import { createImageUploadValidator, ACCEPTED_IMAGE_TYPES, MAX_IMAGE_SIZE_MB } from '@/utils/upload.utils'
 
 interface UserUpdateModalProps {
   open: boolean
@@ -42,13 +43,13 @@ export const UserUpdateModal = ({
       })
 
       setFileList(
-        user.profilePicture
+        user.avatar
           ? [
               {
                 uid: '-1',
                 name: 'avatar.jpg',
                 status: 'done',
-                url: user.profilePicture,
+                url: user.avatar,
               },
             ]
           : []
@@ -62,14 +63,14 @@ export const UserUpdateModal = ({
       
       // Append các field từ form
       formData.append('name', values.name)
-      if (values.phoneNumber) formData.append('phoneNumber', values.phoneNumber)
+      if (values.phone) formData.append('phone', values.phone)
       if (values.gender) formData.append('gender', values.gender)
       if (values.role) formData.append('role', values.role)
       
       // Append file nếu có (file mới được chọn)
       const file = fileList?.[0]?.originFileObj
       if (file) {
-        formData.append('file', file)
+        formData.append('avatar', file)
       }
 
       await mutateAsync({
@@ -103,9 +104,9 @@ export const UserUpdateModal = ({
             listType="picture"
             fileList={fileList}
             onChange={({ fileList }) => setFileList(fileList)}
-            beforeUpload={() => false}
             maxCount={1}
-            accept="image/*"
+            accept={ACCEPTED_IMAGE_TYPES}
+            beforeUpload={createImageUploadValidator(MAX_IMAGE_SIZE_MB)} 
           >
             <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
           </Upload>
