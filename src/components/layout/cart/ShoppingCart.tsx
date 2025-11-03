@@ -1,6 +1,6 @@
 'use client';
 
-import { Table, Button, InputNumber, Image, Breadcrumb, Modal, message } from 'antd';
+import { Table, Button, InputNumber, Image, Breadcrumb, Modal, message, Checkbox } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import { useState, useEffect, useTransition } from 'react';
 import Link from 'next/link';
@@ -27,12 +27,15 @@ const ShoppingCart = () => {
     updateQuantityOptimistic,
     removeItemOptimistic,
     syncFromServer,
+    selectedItems,
+    setSelectedItems,
   } = useCartStore();
 
   const removeItemMutation = useRemoveCartItem();
   const updateItemMutation = useUpdateCartItem();
 
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
+  const [selectAll, setSelectAll] = useState(false);
 
   const { data: allAttributes } = useAllAttributes();
   const { data: allAttributeValues } = useAttributeValues();
@@ -49,6 +52,11 @@ const ShoppingCart = () => {
     }
   }, [cartData?.items, syncFromServer]);
 
+  // Cập nhật selectAll khi selectedItems thay đổi
+  useEffect(() => {
+    setSelectAll(selectedItems.size > 0 && selectedItems.size === items.length);
+  }, [selectedItems, items.length]);
+
   // Tạo map cho thuộc tính
   const attributeMap = allAttributes?.reduce((acc: Record<number, string>, attr: any) => {
     acc[attr.id] = attr.name;
@@ -59,6 +67,34 @@ const ShoppingCart = () => {
     acc[val.id] = val.value;
     return acc;
   }, {} as Record<number, string>) ?? {};
+
+  // === CHECKBOX HANDLERS ===
+  const handleCheckboxChange = (itemId: number) => {
+    const newSelectedItems = new Set(selectedItems);
+    if (newSelectedItems.has(itemId)) {
+      newSelectedItems.delete(itemId);
+    } else {
+      newSelectedItems.add(itemId);
+    }
+    setSelectedItems(newSelectedItems);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectAll(checked);
+    if (checked) {
+      const allItemIds = items.map(item => item.id);
+      setSelectedItems(new Set(allItemIds));
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
+  // === TÍNH TỔNG CHỈ CÁC ITEM ĐƯỢC CHỌN ===
+  const getSelectedTotal = () => {
+    return items
+      .filter(item => selectedItems.has(item.id))
+      .reduce((total, item) => total + item.priceAtAdd * item.quantity, 0);
+  };
 
   // === LOADING & ERROR STATES ===
   if (authLoading || cartLoading) {
@@ -81,6 +117,11 @@ const ShoppingCart = () => {
   const handleRemoveItem = (item: any) => {
     startTransition(() => {
       removeItemOptimistic(item.id);
+      // Xóa khỏi selectedItems nếu có
+      const newSelected = new Set(selectedItems);
+      newSelected.delete(item.id);
+      setSelectedItems(newSelected);
+      
       removeItemMutation.mutate(item.id, {
         onError: () => {
           message.error('Xóa sản phẩm thất bại');
@@ -113,6 +154,12 @@ const ShoppingCart = () => {
       setIsLoginModalVisible(true);
       return;
     }
+    
+    if (selectedItems.size === 0) {
+      message.warning('Vui lòng chọn ít nhất một sản phẩm để đặt hàng');
+      return;
+    }
+    
     router.push('/dat-hang');
   };
 
@@ -130,6 +177,22 @@ const ShoppingCart = () => {
 
   // === CỘT BẢNG ===
   const columns = [
+    {
+      title: (
+        <Checkbox
+          checked={selectAll}
+          onChange={(e) => handleSelectAll(e.target.checked)}
+        />
+      ),
+      key: 'checkbox',
+      width: 50,
+      render: (_: any, record: any) => (
+        <Checkbox
+          checked={selectedItems.has(record.id)}
+          onChange={() => handleCheckboxChange(record.id)}
+        />
+      ),
+    },
     {
       title: 'Hình ảnh',
       key: 'thumb',
@@ -240,17 +303,22 @@ const ShoppingCart = () => {
         className="shadow-sm"
       />
 
-      <div className="mt-8 flex justify-end items-center gap-6">
-        <div className="text-2xl font-bold">Tổng: {formatVND(getTotalPrice())}</div>
-        <Button
-          type="primary"
-          size="large"
-          onClick={handleCheckoutClick}
-          disabled={isPending}
-          className="min-w-40"
-        >
-          Đặt hàng
-        </Button>
+      <div className="mt-8 flex justify-between items-center">
+        <div className="text-sm text-gray-600">
+          Đã chọn: <span className="font-semibold">{selectedItems.size}</span> / {items.length} sản phẩm
+        </div>
+        <div className="flex items-center gap-6">
+          <div className="text-2xl font-bold">Tổng: {formatVND(getSelectedTotal())}</div>
+          <Button
+            type="primary"
+            size="large"
+            onClick={handleCheckoutClick}
+            disabled={isPending || selectedItems.size === 0}
+            className="min-w-40"
+          >
+            Đặt hàng ({selectedItems.size})
+          </Button>
+        </div>
       </div>
 
       {/* Modal đăng nhập */}
@@ -264,8 +332,6 @@ const ShoppingCart = () => {
       >
         <p>Bạn cần đăng nhập để tiến hành thanh toán.</p>
       </Modal>
-
-     
     </div>
   );
 };

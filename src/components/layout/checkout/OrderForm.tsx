@@ -65,11 +65,10 @@ const OrderForm: React.FC = () => {
   const [paymentUrl, setPaymentUrl] = useState('')
   
   // ===== Order Summary State =====
-  const { items, syncFromServer, updateQuantityOptimistic, removeItemOptimistic } = useCartStore()
+  const { items, syncFromServer, updateQuantityOptimistic, removeItemOptimistic, selectedItems, toggleSelectItem, selectAll,isSelectAll, getSelectedTotal, clearSelectedItems } = useCartStore()
   const { data: allAttributes } = useAllAttributes()
   const { data: allAttributeValues } = useAttributeValues()
-  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
-  const [selectAll, setSelectAll] = useState(false)
+
 
   // Map id → name/value
   const attributeMap = allAttributes?.reduce((acc: Record<number, string>, attr: any) => {
@@ -82,21 +81,13 @@ const OrderForm: React.FC = () => {
     return acc
   }, {} as Record<number, string>) ?? {}
 
-  // Đồng bộ server ở background
+
+  // Đồng bộ khi cart từ server thay đổi
   useEffect(() => {
-    const syncCart = async () => {
-      try {
-        const res = await fetch('/api/cart')
-        const data = await res.json()
-        if (data?.items) {
-          syncFromServer(data.items)
-        }
-      } catch (err) {
-        console.error('Sync cart failed:', err)
-      }
+    if (cart?.items) {
+      syncFromServer(cart.items);
     }
-    syncCart()
-  }, [syncFromServer])
+  }, [cart?.items, syncFromServer]);
 
   const renderAttributes = (attrValues: Record<string, any>) => {
     if (!attrValues || Object.keys(attrValues).length === 0) return 'Không có thuộc tính'
@@ -110,28 +101,14 @@ const OrderForm: React.FC = () => {
   }
 
   const handleCheckboxChange = (itemId: number) => {
-    const newSelectedItems = new Set(selectedItems)
-    if (newSelectedItems.has(itemId)) {
-      newSelectedItems.delete(itemId)
-    } else {
-      newSelectedItems.add(itemId)
-    }
-    
-    setSelectAll(newSelectedItems.size === items.length)
-    setSelectedItems(newSelectedItems)
-  }
+    toggleSelectItem(itemId);
+  };
 
   const handleSelectAll = (e: any) => {
-    const isChecked = e.target.checked
-    setSelectAll(isChecked)
-
-    if (isChecked) {
-      const allItemIds = items.map(item => item.id)
-      setSelectedItems(new Set(allItemIds))
-    } else {
-      setSelectedItems(new Set())
-    }
-  }
+    const isChecked = e.target.checked;
+    const allItemIds = items.map((item) => item.id);
+    selectAll(isChecked, allItemIds);
+  };
 
   const handleQuantityChange = (itemId: number, quantity: number) => {
     updateQuantityOptimistic(itemId, quantity)
@@ -143,9 +120,7 @@ const OrderForm: React.FC = () => {
 
 
   // Tính toán
-  const temporaryTotal = items
-    .filter(item => selectedItems.has(item.id))
-    .reduce((total, item) => total + item.priceAtAdd * item.quantity, 0)
+  const temporaryTotal = getSelectedTotal();
 
   const currentShippingFee = shippingFee || 0
   const finalTotal = temporaryTotal + currentShippingFee
@@ -153,17 +128,14 @@ const OrderForm: React.FC = () => {
 
   // ===== End Order Summary =====
 
-  // Tính tổng trọng lượng của các sản phẩm được chọn
-  const totalWeight = cart?.items.reduce((sum, item) => {
-    if (selectedItems.has(item.id)) {
-      return sum + item.variant.product.weight * item.quantity
-    }
-    return sum
-  }, 0) || 0
+  const totalWeight = items
+    .filter(item => selectedItems.has(item.id))
+    .reduce((sum, item) => sum + (item.variant.product.weight || 0) * item.quantity, 0);
 
-  // Tính tổng giá trị của các sản phẩm được chọn
-  const totalValue = cart?.items.filter(item => selectedItems.has(item.id))
-    .reduce((sum, item) => sum + item.priceAtAdd * item.quantity, 0) || 0
+  const totalValue = items
+    .filter(item => selectedItems.has(item.id))
+    .reduce((sum, item) => sum + item.priceAtAdd * item.quantity, 0);
+
 
   // Tự động chọn địa chỉ mặc định
   useEffect(() => {
@@ -219,16 +191,6 @@ const OrderForm: React.FC = () => {
     updatedAt: '',
     note: '',
   })
-
-  
-    useEffect(() => {
-  console.log('Cart data:', cart)
-  console.log('Items from Zustand:', items)
-  console.log('Selected items:', Array.from(selectedItems))
-  console.log('Total weight:', totalWeight)
-  console.log('Total value:', totalValue)
-}, [cart, items, selectedItems, totalWeight, totalValue])
-
 
   if (isLoading) return <Spin tip="Đang tải giỏ hàng..." className="flex justify-center items-center min-h-screen" />
 
@@ -309,13 +271,12 @@ const OrderForm: React.FC = () => {
         message.success('Đặt hàng thành công!')
 
         selectedItems.forEach(itemId => {
-          removeCartItem(itemId)
-          removeItemOptimistic(itemId) // Xóa khỏi Zustand store
-        })
-        
-        // Reset selected items
-        setSelectedItems(new Set())
-        setSelectAll(false)
+          removeCartItem(itemId);
+          removeItemOptimistic(itemId);
+        });
+        // Xóa selectedItems sau khi đặt hàng
+        clearSelectedItems();
+              
 
         if (paymentMethod.code === 'VNPAY') {
           const paymentUrl = `https://api.aiban.vn/payments/vnpay?orderId=${orderId}&amount=${totalAmount}&returnUrl=https://api.aiban.vn/payments/vnpay/callback`
@@ -459,9 +420,17 @@ const OrderForm: React.FC = () => {
               {/* Chọn tất cả checkbox */}
               <div className="flex items-center mb-4">
                 <Checkbox
-                  checked={selectAll}
-                  onChange={handleSelectAll}
-                  disabled={isSelectAllDisabled}
+                  checked={isSelectAll()}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    if (checked && items.length > 10) {
+                      message.warning('Chỉ được chọn tối đa 10 sản phẩm');
+                      return;
+                    }
+                    const ids = items.slice(0, 10).map(i => i.id);
+                    selectAll(checked, ids);
+                  }}
+                  disabled={items.length > 10}
                 />
                 <Text className="ml-2">Chọn tất cả</Text>
                 {isSelectAllDisabled && <Text type="secondary" className="ml-2">(Tối đa 10 sản phẩm)</Text>}
