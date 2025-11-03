@@ -20,6 +20,7 @@ const ShoppingCart = () => {
   const { currentUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [mounted, setMounted] = useState(false);
 
   const {
     items,
@@ -37,13 +38,15 @@ const ShoppingCart = () => {
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
   const [selectAll, setSelectAll] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { data: allAttributes } = useAllAttributes();
   const { data: allAttributeValues } = useAttributeValues();
 
-  // Dùng useMyCart thay fetch thủ công
   const { data: cartData, isLoading: cartLoading, error: cartError } = useMyCart();
 
-  // Đồng bộ dữ liệu từ server vào store
   useEffect(() => {
     if (cartData?.items) {
       startTransition(() => {
@@ -97,20 +100,25 @@ const ShoppingCart = () => {
   };
 
   // === LOADING & ERROR STATES ===
-  if (authLoading || cartLoading) {
-    return <div className="text-center py-12">Đang tải giỏ hàng...</div>;
-  }
-
-  if (cartError) {
+  if (!mounted || authLoading || cartLoading) {
     return (
-      <div className="text-center py-12 text-red-500">
-        Lỗi tải giỏ hàng: {(cartError as any).message}
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải giỏ hàng...</p>
+        </div>
       </div>
     );
   }
 
-  if (!items || items.length === 0) {
-    return <p className="text-center py-12 text-lg">Giỏ hàng của bạn đang trống.</p>;
+  if (cartError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center text-red-500">
+          <p className="text-xl">Lỗi tải giỏ hàng: {(cartError as any).message}</p>
+        </div>
+      </div>
+    );
   }
 
   // === XỬ LÝ XÓA ===
@@ -175,7 +183,7 @@ const ShoppingCart = () => {
       .join(', ');
   };
 
-  // === CỘT BẢNG ===
+  // === CỘT BẢNG (Desktop) ===
   const columns = [
     {
       title: (
@@ -200,64 +208,64 @@ const ShoppingCart = () => {
       render: (_: any, record: any) => {
         const thumb = record.variant?.thumb || record.variant?.product?.thumb;
         return (
-          <Image
-            src={getImageUrl(thumb) || '/placeholder.png'}
-            alt={record.variant?.product?.name || 'Sản phẩm'}
-            width={64}
-            height={64}
-            style={{ objectFit: 'cover', borderRadius: 8 }}
-            preview={false}
-            fallback="/placeholder.png"
-          />
+          <div className="flex items-center gap-4">
+            <Image
+              src={getImageUrl(thumb) || '/placeholder.png'}
+              alt={record.variant?.product?.name || 'Sản phẩm'}
+              width={80}
+              height={80}
+              style={{ objectFit: 'cover', borderRadius: 12 }}
+              preview={false}
+              fallback="/placeholder.png"
+              className="flex-shrink-0"
+            />
+            <div>
+              <div className="font-semibold text-gray-900 mb-1">
+                {record.variant?.product?.name || 'Sản phẩm không xác định'}
+              </div>
+              <div className="text-sm text-gray-500">
+                {renderAttributes(record.variant?.attrValues)}
+              </div>
+            </div>
+          </div>
         );
       },
     },
     {
-      title: 'Sản phẩm',
-      key: 'name',
-      render: (_: any, r: any) => (
-        <div className="font-medium">{r.variant?.product?.name || 'Sản phẩm không xác định'}</div>
-      ),
-    },
-    {
-      title: 'Thuộc tính',
-      key: 'attributes',
-      render: (_: any, r: any) => (
-        <span className="text-sm text-gray-600">
-          {renderAttributes(r.variant?.attrValues)}
-        </span>
-      ),
-    },
-    {
       title: 'Đơn giá',
       key: 'price',
-      render: (_: any, r: any) => <span className="font-medium">{formatVND(r.priceAtAdd)}</span>,
+      width: 150,
+      render: (_: any, r: any) => (
+        <span className="font-semibold text-gray-900">{formatVND(r.priceAtAdd)}</span>
+      ),
     },
     {
       title: 'Số lượng',
       key: 'quantity',
-      width: 140,
+      width: 180,
       render: (_: any, record: any) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <Button
-            size="small"
-            icon="-"
+            size="middle"
+            icon={<MinusOutlined />}
             disabled={record.quantity <= 1 || isPending}
             onClick={() => onChangeQuantity(record.quantity - 1, record)}
+            className="!rounded-lg"
           />
           <InputNumber
             min={1}
             value={record.quantity}
             onChange={(v) => typeof v === 'number' && onChangeQuantity(v, record)}
-            style={{ width: 48 }}
+            className="!w-16 text-center !rounded-lg"
             controls={false}
             disabled={isPending}
           />
           <Button
-            size="small"
-            icon="+"
+            size="middle"
+            icon={<PlusOutlined />}
             disabled={isPending}
             onClick={() => onChangeQuantity(record.quantity + 1, record)}
+            className="!rounded-lg"
           />
         </div>
       ),
@@ -265,43 +273,89 @@ const ShoppingCart = () => {
     {
       title: 'Tổng',
       key: 'total',
+      width: 150,
       render: (_: any, r: any) => (
-        <span className="font-bold text-lg">{formatVND(r.priceAtAdd * r.quantity)}</span>
+        <span className="font-bold text-lg text-blue-600">{formatVND(r.priceAtAdd * r.quantity)}</span>
       ),
     },
     {
-      title: 'Hành động',
+      title: '',
       key: 'action',
       width: 80,
       render: (_: any, record: any) => (
         <Button
           danger
-          size="small"
+          type="text"
+          size="large"
           icon={<DeleteOutlined />}
           onClick={() => handleRemoveItem(record)}
           loading={isPending}
+          className="!rounded-lg hover:!bg-red-50"
         />
       ),
     },
   ];
 
-  return (
-    <div className="container mx-auto p-4 max-w-6xl">
-      <Breadcrumb className="mb-6">
-        <Breadcrumb.Item>
-          <Link href="/">Trang chủ</Link>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>Giỏ hàng</Breadcrumb.Item>
-      </Breadcrumb>
+  // === GIỎ HÀNG TRỐNG ===
+  if (!items || items.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="mb-8 flex items-center gap-2 text-gray-600">
+            <Link href="/" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
+              <HomeOutlined />
+              <span>Trang chủ</span>
+            </Link>
+            <span>/</span>
+            <span className="text-gray-900 font-medium">Giỏ hàng</span>
+          </div>
 
-      <Table
-        dataSource={items}
-        columns={columns}
-        rowKey="id"
-        pagination={false}
-        loading={isPending || cartLoading}
-        className="shadow-sm"
-      />
+          <Card className="!rounded-3xl !border-2 shadow-lg">
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <div className="py-8">
+                  <p className="text-xl font-semibold text-gray-700 mb-2">Giỏ hàng của bạn đang trống</p>
+                  <p className="text-gray-500 mb-6">Hãy thêm sản phẩm vào giỏ hàng để tiếp tục mua sắm</p>
+                  <Link href="/">
+                    <Button type="primary" size="large" icon={<ShoppingCartOutlined />} className="!rounded-xl">
+                      Tiếp tục mua sắm
+                    </Button>
+                  </Link>
+                </div>
+              }
+            />
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8 md:py-12">
+      <div className="container mx-auto px-4 max-w-7xl">
+        {/* Breadcrumb */}
+        <div className="mb-8 flex items-center gap-2 text-gray-600">
+          <Link href="/" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
+            <HomeOutlined />
+            <span>Trang chủ</span>
+          </Link>
+          <span>/</span>
+          <span className="text-gray-900 font-medium">Giỏ hàng</span>
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
+            <ShoppingCartOutlined className="text-white text-2xl" />
+          </div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Giỏ hàng của bạn
+            </h1>
+            <p className="text-gray-600">Bạn có {items.length} sản phẩm trong giỏ hàng</p>
+          </div>
+        </div>
 
       <div className="mt-8 flex justify-between items-center">
         <div className="text-sm text-gray-600">
@@ -323,14 +377,16 @@ const ShoppingCart = () => {
 
       {/* Modal đăng nhập */}
       <Modal
-        title="Yêu cầu đăng nhập"
+        title={<span className="text-xl font-bold">Yêu cầu đăng nhập</span>}
         open={isLoginModalVisible}
         onOk={() => router.push(`/login?returnUrl=${encodeURIComponent('/gio-hang')}`)}
         onCancel={() => setIsLoginModalVisible(false)}
         okText="Đăng nhập"
         cancelText="Hủy"
+        centered
+        className="modern-modal"
       >
-        <p>Bạn cần đăng nhập để tiến hành thanh toán.</p>
+        <p className="text-gray-600 py-4">Bạn cần đăng nhập để tiến hành thanh toán.</p>
       </Modal>
     </div>
   );

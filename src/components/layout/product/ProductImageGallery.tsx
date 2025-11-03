@@ -33,7 +33,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
   const showNavigation = uniqueCurrentImages.length > 4;
 
   return (
-    <div className="grid grid-cols-5 gap-4">
+    <div className="grid grid-cols-5 gap-4 h-[350px] md:h-[600px]">
       {/* Thumbnail column */}
       <div className="col-span-1 flex flex-col items-center justify-center gap-2">
         {showNavigation && (
