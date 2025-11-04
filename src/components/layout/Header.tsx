@@ -197,7 +197,7 @@ const Header = ({ config }: HeaderProps) => {
                 // Hiển thị logo ảnh - SỬA LỖI: dùng Next.js Image với unoptimized
                 <div className="relative h-10 sm:h-12 w-32">
                   <Image
-                    src={getImageUrl(configData.logo)}
+                    src={getImageUrl(configData.logo) || ''}
                     alt={configData?.name || 'Logo'}
                     fill
                     className="object-contain"
@@ -276,7 +276,7 @@ const Header = ({ config }: HeaderProps) => {
                             {item.megaMenu.map((section, idx) => (
                               <div key={idx}>
                                 <ul className="space-y-2">
-                                  {section.links.map((link) => (
+                                  {section.links.map((link: any) => (
                                     <li key={link.href}>
                                       <Link
                                         href={link.href}

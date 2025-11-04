@@ -166,27 +166,8 @@ export default function ContactPage() {
             </div>
           </div>
 
-<<<<<<< HEAD
           {/* Quick Info */}
           <div className="space-y-6">
-=======
-          {/* Image & Quick Info */}
-          <div className="space-y-10">
-            {/* Banner Image */}
-            <div className="group relative h-96 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border-2 border-gray-100">
-              {/* <Image
-                src={ContactBanner}
-                alt="Liên hệ với chúng tôi"
-                fill
-                style={{ objectFit: 'cover' }}
-                priority
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="group-hover:scale-110 transition-transform duration-700"
-              /> */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
-            </div>
-
->>>>>>> c382e8b975d71647dd2926f43c3f557d49b9ba2b
             {isLoadingConfig ? (
               <div className="flex justify-center items-center h-48">
                 <Spin size="large" />
