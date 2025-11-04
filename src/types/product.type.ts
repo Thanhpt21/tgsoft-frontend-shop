@@ -1,4 +1,5 @@
 import { Attribute } from "./attribute.type";
+import { PromotionProduct } from "./promotion-product.type";
 
 export type ProductAttributeType = 'TEXT' | 'SELECT' | 'MULTISELECT' | 'COLOR' | 'SIZE';
 
@@ -11,6 +12,8 @@ export interface ProductAttribute {
   createdAt: string
   updatedAt: string
 }
+
+
 
 export interface Product {
   id: number
@@ -40,4 +43,5 @@ export interface Product {
   createdAt: string
   updatedAt: string
   attributes: ProductAttribute[]
+  promotionProducts?: PromotionProduct[];
 }

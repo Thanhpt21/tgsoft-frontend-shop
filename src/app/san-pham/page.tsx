@@ -5,11 +5,10 @@ import { Product } from "@/types/product.type";
 import { useProducts } from "@/hooks/product/useProducts";
 import { useCategories } from "@/hooks/category/useCategories";
 import { useBrands } from "@/hooks/brand/useBrands";
-import { Breadcrumb, Button, Select, Spin, Pagination, Tag } from "antd";
+import { Breadcrumb, Button, Select, Spin, Pagination, Tag, Checkbox } from "antd";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { Brand } from "@/types/brand.type";
 import { Category } from "@/types/category.type";
-import { ProductCard } from "@/components/layout/product/ProductCard";
 import {
   PlusOutlined,
   MinusOutlined,
@@ -17,6 +16,11 @@ import {
   FilterOutlined,
 } from "@ant-design/icons";
 import { useSearchParams, useRouter } from "next/navigation";
+
+// Import đúng 3 loại card
+import ProductCard from "@/components/layout/product/ProductCard";
+import ProductCardFeatured from "@/components/layout/product/ProductCardFeatured";
+import ProductCardPromoted from "@/components/layout/product/ProductCardPromoted";
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -31,7 +35,11 @@ export default function ProductsPage() {
   const [selectedBrandId, setSelectedBrandId] = useState<number | null>(
     brandIdFromUrl ? Number(brandIdFromUrl) : null
   );
-  const [sortBy, setSortBy] = useState<string | undefined>("createdAt_desc");
+  const [sortBy, setSortBy] = useState<string>("createdAt_desc");
+
+  // === MỚI: Checkbox lọc nổi bật & khuyến mãi ===
+  const [showFeatured, setShowFeatured] = useState<boolean>(false);
+  const [showPromoted, setShowPromoted] = useState<boolean>(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const PRODUCTS_PER_PAGE = 12;
@@ -51,15 +59,17 @@ export default function ProductsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, showFeatured, showPromoted]);
 
   const areFiltersActive = useMemo(() => {
     return (
       selectedCategoryId !== null ||
       selectedBrandId !== null ||
-      searchQuery !== ""
+      searchQuery !== "" ||
+      showFeatured ||
+      showPromoted
     );
-  }, [selectedCategoryId, selectedBrandId, searchQuery]);
+  }, [selectedCategoryId, selectedBrandId, searchQuery, showFeatured, showPromoted]);
 
   const {
     data: productsResponse,
@@ -74,8 +84,23 @@ export default function ProductsPage() {
     sortBy: sortBy,
   });
 
-  const products = (productsResponse?.data as Product[]) || [];
-  const totalProducts = productsResponse?.total || 0;
+  // === LỌC THEO NỔI BẬT & KHUYẾN MÃI ===
+  const filteredProducts = useMemo(() => {
+    const rawProducts = (productsResponse?.data as Product[]) || [];
+
+    return rawProducts.filter((p) => {
+      const isFeaturedMatch = !showFeatured || p.isFeatured;
+      const isPromotedMatch = !showPromoted || (p.promotionProducts && p.promotionProducts.length > 0);
+      return isFeaturedMatch && isPromotedMatch;
+    });
+  }, [productsResponse?.data, showFeatured, showPromoted]);
+
+  const totalProducts = filteredProducts.length;
+  const totalPages = Math.ceil(totalProducts / PRODUCTS_PER_PAGE);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * PRODUCTS_PER_PAGE,
+    currentPage * PRODUCTS_PER_PAGE
+  );
 
   const { data: categoriesResponse, isLoading: isCategoriesLoading } =
     useCategories({ limit: 100 });
@@ -110,21 +135,13 @@ export default function ProductsPage() {
     (categoryId: number | null, brandId: number | null) => {
       const params = new URLSearchParams(searchParams.toString());
 
-      if (categoryId !== null) {
-        params.set("categoryId", categoryId.toString());
-      } else {
-        params.delete("categoryId");
-      }
+      if (categoryId !== null) params.set("categoryId", categoryId.toString());
+      else params.delete("categoryId");
 
-      if (brandId !== null) {
-        params.set("brandId", brandId.toString());
-      } else {
-        params.delete("brandId");
-      }
+      if (brandId !== null) params.set("brandId", brandId.toString());
+      else params.delete("brandId");
 
-      if (searchQuery) {
-        params.set("search", searchQuery);
-      }
+      if (searchQuery) params.set("search", searchQuery);
 
       const newUrl = params.toString()
         ? `/san-pham?${params.toString()}`
@@ -151,6 +168,8 @@ export default function ProductsPage() {
   const resetFilters = useCallback(() => {
     setSelectedCategoryId(null);
     setSelectedBrandId(null);
+    setShowFeatured(false);
+    setShowPromoted(false);
     setSortBy("createdAt_desc");
     setCurrentPage(1);
     router.push("/san-pham");
@@ -173,9 +192,7 @@ export default function ProductsPage() {
     { value: "price_desc", label: "💎 Giá: Cao → Thấp" },
   ];
 
-  const selectedCategory = allCategories.find(
-    (c) => c.id === selectedCategoryId
-  );
+  const selectedCategory = allCategories.find((c) => c.id === selectedCategoryId);
   const selectedBrand = allBrands.find((b) => b.id === selectedBrandId);
 
   if (isProductsLoading && currentPage === 1) {
@@ -183,9 +200,7 @@ export default function ProductsPage() {
       <div className="min-h-screen flex justify-center items-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-          <p className="text-lg text-gray-600 font-medium">
-            Đang tải sản phẩm...
-          </p>
+          <p className="text-lg text-gray-600 font-medium">Đang tải sản phẩm...</p>
         </div>
       </div>
     );
@@ -196,9 +211,7 @@ export default function ProductsPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50">
         <div className="text-center p-8 bg-white rounded-2xl shadow-xl">
           <div className="text-6xl mb-4">❌</div>
-          <p className="text-xl text-red-600 font-semibold">
-            Lỗi khi tải sản phẩm
-          </p>
+          <p className="text-xl text-red-600 font-semibold">Lỗi khi tải sản phẩm</p>
         </div>
       </div>
     );
@@ -206,6 +219,7 @@ export default function ProductsPage() {
 
   const FilterSidebar = () => (
     <aside className="space-y-4">
+      {/* Header Bộ lọc */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-4 text-white shadow-lg">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -222,6 +236,7 @@ export default function ProductsPage() {
         </div>
       </div>
 
+      {/* ✅ DANH MỤC */}
       <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 shadow-lg border border-white/50">
         <div
           className="flex justify-between items-center cursor-pointer pb-3 border-b border-gray-200"
@@ -278,6 +293,7 @@ export default function ProductsPage() {
         )}
       </div>
 
+      {/* ✅ THƯƠNG HIỆU */}
       <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 shadow-lg border border-white/50">
         <div
           className="flex justify-between items-center cursor-pointer pb-3 border-b border-gray-200"
@@ -339,13 +355,11 @@ export default function ProductsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 w-full">
       <div className="container p-4 md:p-8 lg:p-12 mx-auto">
+        {/* Breadcrumb */}
         <div className="mb-8 bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/50">
           <Breadcrumb className="text-sm">
             <Breadcrumb.Item>
-              <Link
-                href="/"
-                className="text-gray-600 hover:text-blue-600 transition-colors font-medium"
-              >
+              <Link href="/" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
                 🏠 Trang chủ
               </Link>
             </Breadcrumb.Item>
@@ -361,6 +375,7 @@ export default function ProductsPage() {
           </Breadcrumb>
         </div>
 
+        {/* Active Filters */}
         {areFiltersActive && (
           <div className="mb-6 bg-white/80 backdrop-blur-md rounded-2xl p-5 shadow-lg border border-white/50">
             <div className="flex flex-wrap gap-3 items-center">
@@ -370,43 +385,32 @@ export default function ProductsPage() {
               </div>
 
               {searchQuery && (
-                <Tag
-                  closable
-                  onClose={() => router.push("/san-pham")}
-                  className="!px-4 !py-2 !rounded-full !border-2 !border-blue-200 !bg-blue-50 !text-blue-700 font-medium"
-                >
+                <Tag closable onClose={() => router.push("/san-pham")} className="!px-4 !py-2 !rounded-full !border-2 !border-blue-200 !bg-blue-50 !text-blue-700 font-medium">
                   🔍 {searchQuery}
                 </Tag>
               )}
-
               {selectedCategory && (
-                <Tag
-                  closable
-                  onClose={() => handleCategoryClick(null)}
-                  className="!px-4 !py-2 !rounded-full !border-2 !border-purple-200 !bg-purple-50 !text-purple-700 font-medium"
-                >
+                <Tag closable onClose={() => handleCategoryClick(null)} className="!px-4 !py-2 !rounded-full !border-2 !border-purple-200 !bg-purple-50 !text-purple-700 font-medium">
                   📁 {selectedCategory.name}
                 </Tag>
               )}
-
               {selectedBrand && (
-                <Tag
-                  closable
-                  onClose={() => handleBrandClick(null)}
-                  className="!px-4 !py-2 !rounded-full !border-2 !border-pink-200 !bg-pink-50 !text-pink-700 font-medium"
-                >
+                <Tag closable onClose={() => handleBrandClick(null)} className="!px-4 !py-2 !rounded-full !border-2 !border-pink-200 !bg-pink-50 !text-pink-700 font-medium">
                   🏷️ {selectedBrand.name}
                 </Tag>
               )}
-
-              {(selectedCategoryId || selectedBrandId) && (
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={resetFilters}
-                  icon={<CloseCircleOutlined />}
-                  className="!text-red-600 hover:!text-red-700 font-medium"
-                >
+              {showFeatured && (
+                <Tag closable onClose={() => setShowFeatured(false)} className="!px-4 !py-2 !rounded-full !border-2 !border-yellow-200 !bg-yellow-50 !text-yellow-700 font-medium">
+                  ⭐ Nổi bật
+                </Tag>
+              )}
+              {showPromoted && (
+                <Tag closable onClose={() => setShowPromoted(false)} className="!px-4 !py-2 !rounded-full !border-2 !border-red-200 !bg-red-50 !text-red-700 font-medium">
+                  🔥 Khuyến mãi
+                </Tag>
+              )}
+              {(selectedCategoryId || selectedBrandId || showFeatured || showPromoted) && (
+                <Button type="link" size="small" onClick={resetFilters} icon={<CloseCircleOutlined />} className="!text-red-600 hover:!text-red-700 font-medium">
                   Xóa tất cả
                 </Button>
               )}
@@ -422,37 +426,22 @@ export default function ProductsPage() {
             </div>
           </div>
 
-          {/* Mobile Filter Sidebar - Full Width */}
+          {/* Mobile Filters */}
           {showMobileFilters && (
             <>
-              {/* Backdrop */}
-              <div
-                className="lg:hidden fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm transition-opacity duration-300"
-                onClick={() => setShowMobileFilters(false)}
-              />
-
-              {/* Sidebar */}
-              <div
-                className="lg:hidden fixed right-0 top-0 bottom-0 z-[9999] w-full sm:w-96 bg-gradient-to-br from-slate-50 to-blue-50 shadow-2xl flex flex-col transform transition-transform duration-300 ease-out"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Fixed Header */}
+              <div className="lg:hidden fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm transition-opacity duration-300" onClick={() => setShowMobileFilters(false)} />
+              <div className="lg:hidden fixed right-0 top-0 bottom-0 z-[9999] w-full sm:w-96 bg-gradient-to-br from-slate-50 to-blue-50 shadow-2xl flex flex-col transform transition-transform duration-300 ease-out">
                 <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-purple-600 p-4 shadow-lg">
                   <div className="flex justify-between items-center text-white">
                     <div className="flex items-center gap-2">
                       <FilterOutlined className="text-2xl" />
                       <h3 className="text-xl font-bold">Lọc sản phẩm</h3>
                     </div>
-                    <button
-                      onClick={() => setShowMobileFilters(false)}
-                      className="text-white hover:bg-white/20 text-2xl w-10 h-10 flex items-center justify-center rounded-lg transition-colors active:scale-95"
-                    >
+                    <button onClick={() => setShowMobileFilters(false)} className="text-white hover:bg-white/20 text-2xl w-10 h-10 flex items-center justify-center rounded-lg transition-colors active:scale-95">
                       ✕
                     </button>
                   </div>
                 </div>
-
-                {/* Scrollable Content */}
                 <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
                   <FilterSidebar />
                 </div>
@@ -460,94 +449,100 @@ export default function ProductsPage() {
             </>
           )}
 
-          {/* Product Grid */}
+          {/* Main Content */}
           <div className="lg:col-span-9">
             <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 md:p-5 shadow-lg border border-white/50 mb-6">
-              <div className="flex justify-between items-center gap-3">
-                {/* Left: Title + Filter Button (Mobile) */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                {/* Left: Title + Filter Button */}
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  {/* Mobile Filter Button - Inline */}
                   <Button
                     type="primary"
                     icon={<FilterOutlined />}
-                    onClick={() => setShowMobileFilters(!showMobileFilters)}
+                    onClick={() => setShowMobileFilters(true)}
                     className="lg:hidden !h-10 !w-10 flex-shrink-0 !rounded-lg !shadow-md !bg-gradient-to-r !from-blue-600 !to-purple-600 !border-0 hover:scale-105 transition-transform"
                   />
-
                   <div className="flex-1 min-w-0">
                     <h2 className="text-lg md:text-2xl font-bold text-gray-800 mb-0.5 truncate">
                       {searchQuery ? (
                         <span>
                           {totalProducts > 0 ? (
                             <>
-                              Tìm thấy{" "}
-                              <span className="text-blue-600">
-                                {totalProducts}
-                              </span>{" "}
+                              Tìm thấy <span className="text-blue-600">{totalProducts}</span>{" "}
                               <span className="hidden sm:inline">sản phẩm</span>
                             </>
                           ) : (
-                            <span className="text-gray-600">
-                              Không tìm thấy
-                            </span>
+                            <span className="text-gray-600">Không tìm thấy</span>
                           )}
                         </span>
                       ) : selectedCategory ? (
-                        <span className="text-blue-600 truncate">
-                          {selectedCategory.name}
-                        </span>
+                        <span className="text-blue-600 truncate">{selectedCategory.name}</span>
                       ) : (
-                        <span>
-                          {totalProducts > 0
-                            ? "Tất cả sản phẩm"
-                            : "Không có sản phẩm"}
-                        </span>
+                        <span>{totalProducts > 0 ? "Tất cả sản phẩm" : "Không có sản phẩm"}</span>
                       )}
                     </h2>
                     <p className="text-xs text-gray-600 hidden sm:block">
                       {totalProducts > 0
-                        ? `Hiển thị ${Math.min(
-                            products.length,
-                            PRODUCTS_PER_PAGE
-                          )} / ${totalProducts} sản phẩm`
+                        ? `Hiển thị ${Math.min(paginatedProducts.length, PRODUCTS_PER_PAGE)} / ${totalProducts} sản phẩm`
                         : "Không có sản phẩm nào"}
                     </p>
                   </div>
                 </div>
 
-                {/* Right: Sort Select */}
-                <Select
-                  value={sortBy}
-                  style={{ width: 140 }}
-                  onChange={handleSortChange}
-                  options={sortOptions}
-                  placeholder="Sắp xếp"
-                  className="modern-select flex-shrink-0"
-                  size="middle"
-                  disabled={products.length === 0}
-                />
+                {/* Right: Checkboxes + Sort */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <Checkbox
+                    checked={showFeatured}
+                    onChange={(e) => {
+                      setShowFeatured(e.target.checked);
+                      setCurrentPage(1);
+                    }}
+                    className="font-medium"
+                  >
+                    <span className="text-yellow-600">⭐ Nổi bật</span>
+                  </Checkbox>
+
+                  <Checkbox
+                    checked={showPromoted}
+                    onChange={(e) => {
+                      setShowPromoted(e.target.checked);
+                      setCurrentPage(1);
+                    }}
+                    className="font-medium"
+                  >
+                    <span className="text-red-600">🔥 Khuyến mãi</span>
+                  </Checkbox>
+
+                  <Select
+                    value={sortBy}
+                    onChange={handleSortChange}
+                    options={sortOptions}
+                    className="w-40 modern-select"
+                    size="middle"
+                    disabled={paginatedProducts.length === 0}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* ✅ Grid container fix layout width */}
-            {/* ✅ Khi có sản phẩm */}
-            {products.length > 0 && (
+            {/* Product Grid */}
+            {paginatedProducts.length > 0 ? (
               <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 md:p-5 shadow-lg border border-white/50">
-                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6 w-full">
-                  {products.map((product) => (
-                    <div
-                      key={product.id}
-                      className="transform transition-all duration-300 hover:scale-105"
-                    >
-                      <ProductCard product={product} />
-                    </div>
-                  ))}
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
+                  {paginatedProducts.map((product, index) => {
+                    const globalIndex = (currentPage - 1) * PRODUCTS_PER_PAGE + index;
+
+                    // Ưu tiên: Khuyến mãi → Nổi bật → Thường
+                    if (product.promotionProducts && product.promotionProducts.length > 0) {
+                      return <ProductCardPromoted key={product.id} product={product} index={globalIndex} />;
+                    }
+                    if (product.isFeatured) {
+                      return <ProductCardFeatured key={product.id} product={product} index={globalIndex} />;
+                    }
+                    return <ProductCard key={product.id} product={product} index={globalIndex} />;
+                  })}
                 </div>
               </div>
-            )}
-
-            {/* 🚫 Khi không có sản phẩm */}
-            {products.length === 0 && (
+            ) : (
               <div className="w-full">
                 <div className="flex justify-center">
                   <div className="flex flex-col justify-center items-center bg-white rounded-2xl shadow-md p-6 md:p-10 border border-gray-100 text-center w-full">
@@ -558,7 +553,6 @@ export default function ProductsPage() {
                         className="w-48 md:w-64 h-auto mx-auto"
                       />
                     </div>
-                   
                     <p className="text-gray-600 text-base md:text-lg mb-6 md:mb-8 leading-relaxed px-4">
                       {searchQuery
                         ? `Không có sản phẩm nào phù hợp với "${searchQuery}"`
@@ -578,6 +572,20 @@ export default function ProductsPage() {
                     </Button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-10">
+                <Pagination
+                  current={currentPage}
+                  total={totalProducts}
+                  pageSize={PRODUCTS_PER_PAGE}
+                  onChange={handlePageChange}
+                  showSizeChanger={false}
+                  className="custom-pagination"
+                />
               </div>
             )}
           </div>
@@ -617,11 +625,7 @@ export default function ProductsPage() {
         }
 
         .ant-pagination-item-active {
-          background: linear-gradient(
-            135deg,
-            #3b82f6 0%,
-            #8b5cf6 100%
-          ) !important;
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
           border-color: transparent !important;
         }
 

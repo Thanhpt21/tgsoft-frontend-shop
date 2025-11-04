@@ -75,6 +75,7 @@ export default function SidebarAdmin({ collapsed }: SidebarAdminProps) {
             icon: <MessageOutlined />,
             label: <Link href="/admin/contact">Liên hệ</Link>,
           },
+           { key: '11', icon: <GiftOutlined />, label: <Link href="/admin/promotion">Khuyến mãi</Link> },
           // {
           //   key: 'sub1',
           //   icon: <UnorderedListOutlined />,
