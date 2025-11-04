@@ -1,6 +1,6 @@
 'use client'
 
-import { Modal, Form, Input, Button, Select, Row, Col, message, Spin } from 'antd'
+import { Modal, Form, Input, Button, Select, Row, Col, message } from 'antd'
 import { useEffect, useState } from 'react'
 import { useCreateWarehouse } from '@/hooks/warehouse/useCreateWarehouse'
 import { District, Province, Ward } from '@/types/address.type'
@@ -30,106 +30,128 @@ export const WarehouseCreateModal = ({ open, onClose, refetch }: WarehouseCreate
       fetchProvinces()
     } else {
       form.resetFields()
+      setDistricts([])
+      setWards([])
     }
   }, [open])
 
+  /** 🔹 Lấy danh sách tỉnh/thành */
   const fetchProvinces = async () => {
     setLoading(prev => ({ ...prev, provinces: true }))
     try {
-      const res = await fetch('https://provinces.open-api.vn/api/p/')
-      const data: Province[] = await res.json()
-      setProvinces(data)
+      const res = await fetch('https://esgoo.net/api-tinhthanh/1/0.htm')
+      const data = await res.json()
+      if (data.error === 0 && data.data) {
+        const formatted = data.data.map((p: any) => ({
+          code: p.id.toString(),
+          name: p.full_name
+        }))
+        setProvinces(formatted)
+      } else {
+        throw new Error('API không trả dữ liệu hợp lệ')
+      }
     } catch (error) {
+      console.error('❌ Lỗi tải tỉnh:', error)
       message.error('Không thể tải danh sách tỉnh/thành phố')
     } finally {
       setLoading(prev => ({ ...prev, provinces: false }))
     }
   }
 
+  /** 🔹 Lấy danh sách quận/huyện theo tỉnh */
   const fetchDistricts = async (provinceCode: string) => {
     setLoading(prev => ({ ...prev, districts: true }))
-    setDistricts([])
-    setWards([])
-    setSelectedDistrict('')
-    setSelectedWard('')
     try {
-      const res = await fetch(`https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`)
+      const res = await fetch(`https://esgoo.net/api-tinhthanh/2/${provinceCode}.htm`)
       const data = await res.json()
-      setDistricts(data.districts || [])
+      if (data.error === 0 && data.data) {
+        const formatted = data.data.map((d: any) => ({
+          code: d.id.toString(),
+          name: d.full_name
+        }))
+        setDistricts(formatted)
+      } else {
+        throw new Error('API không trả dữ liệu quận/huyện hợp lệ')
+      }
     } catch (error) {
+      console.error('❌ Lỗi tải quận/huyện:', error)
       message.error('Không thể tải danh sách quận/huyện')
     } finally {
       setLoading(prev => ({ ...prev, districts: false }))
     }
   }
 
+  /** 🔹 Lấy danh sách phường/xã theo quận */
   const fetchWards = async (districtCode: string) => {
     setLoading(prev => ({ ...prev, wards: true }))
-    setWards([])
-    setSelectedWard('')
     try {
-      const res = await fetch(`https://provinces.open-api.vn/api/d/${districtCode}?depth=2`)
+      const res = await fetch(`https://esgoo.net/api-tinhthanh/3/${districtCode}.htm`)
       const data = await res.json()
-      setWards(data.wards || [])
+      if (data.error === 0 && data.data) {
+        const formatted = data.data.map((w: any) => ({
+          code: w.id.toString(),
+          name: w.full_name
+        }))
+        setWards(formatted)
+      } else {
+        throw new Error('API không trả dữ liệu phường/xã hợp lệ')
+      }
     } catch (error) {
+      console.error('❌ Lỗi tải phường/xã:', error)
       message.error('Không thể tải danh sách phường/xã')
     } finally {
       setLoading(prev => ({ ...prev, wards: false }))
     }
   }
 
+  /** 🔸 Xử lý khi chọn tỉnh */
   const handleProvinceChange = (value: string) => {
-    const province = provinces.find(p => p.code === value)
-    if (province) {
-      setSelectedProvince(value)
-      form.setFieldsValue({
-        province_id: value,
-        district: '',
-        ward: '',
-      })
-      fetchDistricts(value)
-    }
+    setSelectedProvince(value)
+    setSelectedDistrict(undefined)
+    setSelectedWard(undefined)
+    setDistricts([])
+    setWards([])
+    form.setFieldsValue({ district_id: undefined, ward_id: undefined })
+    fetchDistricts(value)
   }
 
+  /** 🔸 Xử lý khi chọn quận/huyện */
   const handleDistrictChange = (value: string) => {
-    const district = districts.find(d => d.code === value)
-    if (district) {
-      setSelectedDistrict(value)
-      form.setFieldsValue({
-        district_id: value,
-        ward: '',
-      })
-      fetchWards(value)
-    }
+    setSelectedDistrict(value)
+    setSelectedWard(undefined)
+    setWards([])
+    form.setFieldsValue({ ward_id: undefined })
+    fetchWards(value)
   }
 
+  /** 🔸 Xử lý khi chọn phường/xã */
   const handleWardChange = (value: string) => {
     setSelectedWard(value)
-    form.setFieldsValue({ ward_id: value })
   }
 
+  /** ✅ Submit form */
   const onFinish = async (values: any) => {
     try {
-      const selectedProvinceDetails = provinces.find(p => p.code === values.province_id)
-      const selectedDistrictDetails = districts.find(d => d.code === values.district_id)
-      const selectedWardDetails = wards.find(w => w.code === values.ward_id)
+      const province = provinces.find(p => p.code === values.province_id)
+      const district = districts.find(d => d.code === values.district_id)
+      const ward = wards.find(w => w.code === values.ward_id)
 
       const location = {
         name: values.name,
         phone: values.phone || undefined,
         address: values.address,
-        province_id: values.province_id,
-        province_name: selectedProvinceDetails?.name,
-        district_id: values.district_id,
-        district_name: selectedDistrictDetails?.name,
-        ward_id: values.ward_id,
-        ward_name: selectedWardDetails?.name,
+        province_id: Number(values.province_id),
+        province_name: province?.name,
+        district_id: Number(values.district_id),
+        district_name: district?.name,
+        ward_id: Number(values.ward_id),
+        ward_name: ward?.name
       }
 
       const data = {
         name: values.name,
         code: values.code || undefined,
-        location: location,
+        location
       }
 
       await mutateAsync(data)
@@ -137,7 +159,8 @@ export const WarehouseCreateModal = ({ open, onClose, refetch }: WarehouseCreate
       onClose()
       form.resetFields()
       refetch?.()
-    } catch (err) {
+    } catch (error) {
+      console.error(error)
       message.error('Lỗi tạo nhà kho')
     }
   }
@@ -155,17 +178,12 @@ export const WarehouseCreateModal = ({ open, onClose, refetch }: WarehouseCreate
         <Form.Item
           label="Tên nhà kho"
           name="name"
-          rules={[{ required: true, message: 'Vui lòng nhập tên nhà kho' }, { min: 2, message: 'Tên phải có ít nhất 2 ký tự' }]}
+          rules={[{ required: true, message: 'Vui lòng nhập tên nhà kho' }]}
         >
           <Input placeholder="Ví dụ: Kho Hà Nội" />
         </Form.Item>
 
-        <Form.Item
-          label="Mã nhà kho (Code)"
-          name="code"
-          rules={[{ max: 10, message: 'Mã không được vượt quá 10 ký tự' }]}
-          tooltip="Mã định danh duy nhất (tùy chọn)"
-        >
+        <Form.Item label="Mã nhà kho (Code)" name="code">
           <Input placeholder="Ví dụ: KHO001" />
         </Form.Item>
 
@@ -193,16 +211,16 @@ export const WarehouseCreateModal = ({ open, onClose, refetch }: WarehouseCreate
             <Form.Item
               label="Tỉnh/Thành phố"
               name="province_id"
-              rules={[{ required: true, message: 'Vui lòng chọn tỉnh thành' }]}
+              rules={[{ required: true, message: 'Vui lòng chọn tỉnh/thành phố' }]}
             >
               <Select
                 placeholder="Chọn Tỉnh"
                 loading={loading.provinces}
                 onChange={handleProvinceChange}
               >
-                {provinces.map((province) => (
-                  <Select.Option key={province.code} value={province.code}>
-                    {province.name}
+                {provinces.map((p) => (
+                  <Select.Option key={p.code} value={p.code}>
+                    {p.name}
                   </Select.Option>
                 ))}
               </Select>
@@ -212,17 +230,17 @@ export const WarehouseCreateModal = ({ open, onClose, refetch }: WarehouseCreate
             <Form.Item
               label="Quận/Huyện"
               name="district_id"
-              rules={[{ required: true, message: 'Vui lòng chọn quận huyện' }]}
+              rules={[{ required: true, message: 'Vui lòng chọn quận/huyện' }]}
             >
               <Select
-                placeholder="Chọn Quận"
+                placeholder="Chọn Quận/Huyện"
                 loading={loading.districts}
                 onChange={handleDistrictChange}
                 disabled={!selectedProvince}
               >
-                {districts.map((district) => (
-                  <Select.Option key={district.code} value={district.code}>
-                    {district.name}
+                {districts.map((d) => (
+                  <Select.Option key={d.code} value={d.code}>
+                    {d.name}
                   </Select.Option>
                 ))}
               </Select>
@@ -232,17 +250,17 @@ export const WarehouseCreateModal = ({ open, onClose, refetch }: WarehouseCreate
             <Form.Item
               label="Phường/Xã"
               name="ward_id"
-              rules={[{ required: true, message: 'Vui lòng chọn phường xã' }]}
+              rules={[{ required: true, message: 'Vui lòng chọn phường/xã' }]}
             >
               <Select
-                placeholder="Chọn Phường"
+                placeholder="Chọn Phường/Xã"
                 loading={loading.wards}
                 onChange={handleWardChange}
                 disabled={!selectedDistrict}
               >
-                {wards.map((ward) => (
-                  <Select.Option key={ward.code} value={ward.code}>
-                    {ward.name}
+                {wards.map((w) => (
+                  <Select.Option key={w.code} value={w.code}>
+                    {w.name}
                   </Select.Option>
                 ))}
               </Select>

@@ -460,7 +460,7 @@ const OrderForm: React.FC = () => {
             <Title level={4} className="mb-4">Tóm tắt đơn hàng</Title>
             
             {/* Order Summary Content */}
-            <div>
+            <Card>
               {/* Chọn tất cả checkbox */}
               <div className="flex items-center mb-4">
                 <Checkbox
@@ -573,6 +573,7 @@ const OrderForm: React.FC = () => {
           className="rounded-xl"
         />
       </Modal>
+    </div>
     </div>
   )
 }

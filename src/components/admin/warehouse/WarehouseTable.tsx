@@ -135,9 +135,13 @@ export default function WarehouseTable() {
           </Button>
         </div>
 
-        <Button type="primary" onClick={() => setOpenCreate(true)}>
-          Tạo mới
-        </Button>
+      <Button
+        type="primary"
+        onClick={() => setOpenCreate(true)}
+        disabled={(data?.data?.length ?? 0) >= 1}
+      >
+        Tạo mới
+      </Button>
       </div>
 
       <Table

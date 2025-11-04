@@ -1,6 +1,6 @@
 'use client'
 
-import { Modal, Form, Input, Button, Select, Row, Col, message, Spin } from 'antd'
+import { Modal, Form, Input, Button, Select, Row, Col, message } from 'antd'
 import { useEffect, useState } from 'react'
 import { useUpdateWarehouse } from '@/hooks/warehouse/useUpdateWarehouse'
 import { District, Province, Ward } from '@/types/address.type'
@@ -13,7 +13,12 @@ interface WarehouseUpdateModalProps {
   refetch?: () => void
 }
 
-export const WarehouseUpdateModal = ({ open, onClose, warehouse, refetch }: WarehouseUpdateModalProps) => {
+export const WarehouseUpdateModal = ({
+  open,
+  onClose,
+  warehouse,
+  refetch,
+}: WarehouseUpdateModalProps) => {
   const [form] = Form.useForm()
   const { mutateAsync, isPending } = useUpdateWarehouse()
 
@@ -21,151 +26,174 @@ export const WarehouseUpdateModal = ({ open, onClose, warehouse, refetch }: Ware
   const [districts, setDistricts] = useState<District[]>([])
   const [wards, setWards] = useState<Ward[]>([])
 
-  const [selectedProvince, setSelectedProvince] = useState<string | undefined>(undefined)
-  const [selectedDistrict, setSelectedDistrict] = useState<string | undefined>(undefined)
-  const [selectedWard, setSelectedWard] = useState<string | undefined>(undefined)
+  const [selectedProvince, setSelectedProvince] = useState<string | undefined>()
+  const [selectedDistrict, setSelectedDistrict] = useState<string | undefined>()
+  const [selectedWard, setSelectedWard] = useState<string | undefined>()
 
-  const [loading, setLoading] = useState({ provinces: false, districts: false, wards: false })
+  const [loading, setLoading] = useState({
+    provinces: false,
+    districts: false,
+    wards: false,
+  })
 
+  // 🔹 Fetch provinces when modal opens
   useEffect(() => {
-    if (open) {
-      fetchProvinces()
-    } else {
-      form.resetFields()
-    }
+    if (open) fetchProvinces()
+    else form.resetFields()
   }, [open])
 
+  // 🔹 Prefill data when editing
   useEffect(() => {
-    if (warehouse) {
-      // Set selected values for province, district, and ward when warehouse is provided
-      const { location } = warehouse
-      if (location) {
-        setSelectedProvince(location.province_id)
-        setSelectedDistrict(location.district_id)
-        setSelectedWard(location.ward_id)
+    if (warehouse && open) {
+      const loadData = async () => {
+        const { location } = warehouse
+        if (location) {
+          setSelectedProvince(location.province_id.toString())
+          setSelectedDistrict(location.district_id.toString())
+          setSelectedWard(location.ward_id.toString())
 
-        // Fetch the districts and wards based on the warehouse's location
-        fetchDistricts(location.province_id)
-        fetchWards(location.district_id)
+          // Fetch nested address lists
+          await fetchProvinces()
+          await fetchDistricts(location.province_id.toString())
+          await fetchWards(location.district_id.toString())
 
-        form.setFieldsValue({
-          name: warehouse.name,
-          code: warehouse.code || '',
-          phone: location.phone || '',
-          address: location.address || '',
-          province_id: location.province_id,
-          district_id: location.district_id,
-          ward_id: location.ward_id,
-        })
+          // Set initial form values
+          form.setFieldsValue({
+            name: warehouse.name,
+            code: warehouse.code || '',
+            phone: location.phone || '',
+            address: location.address || '',
+            province_id: location.province_id.toString(),
+            district_id: location.district_id.toString(),
+            ward_id: location.ward_id.toString(),
+          })
+        }
       }
-    }
-  }, [warehouse, open, form])
 
+      loadData()
+    }
+  }, [warehouse, open])
+
+  /** 🔹 Lấy danh sách tỉnh/thành */
   const fetchProvinces = async () => {
-    setLoading(prev => ({ ...prev, provinces: true }))
+    setLoading((prev) => ({ ...prev, provinces: true }))
     try {
-      const res = await fetch('https://provinces.open-api.vn/api/p/')
-      const data: Province[] = await res.json()
-      setProvinces(data)
-    } catch (error) {
+      const res = await fetch('https://esgoo.net/api-tinhthanh/1/0.htm')
+      const data = await res.json()
+      if (data.error === 0 && data.data) {
+        const formatted = data.data.map((p: any) => ({
+          code: p.id.toString(),
+          name: p.full_name,
+        }))
+        setProvinces(formatted)
+      }
+    } catch (err) {
+      console.error('❌ Lỗi tải tỉnh/thành:', err)
       message.error('Không thể tải danh sách tỉnh/thành phố')
     } finally {
-      setLoading(prev => ({ ...prev, provinces: false }))
+      setLoading((prev) => ({ ...prev, provinces: false }))
     }
   }
 
+  /** 🔹 Lấy danh sách quận/huyện theo tỉnh */
   const fetchDistricts = async (provinceCode: string) => {
-    setLoading(prev => ({ ...prev, districts: true }))
-    setDistricts([])  // Reset districts and wards when province changes
-    setWards([])
-    setSelectedDistrict('')
-    setSelectedWard('')
+    setLoading((prev) => ({ ...prev, districts: true }))
     try {
-      const res = await fetch(`https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`)
+      const res = await fetch(`https://esgoo.net/api-tinhthanh/2/${provinceCode}.htm`)
       const data = await res.json()
-      setDistricts(data.districts || [])
-    } catch (error) {
+      if (data.error === 0 && data.data) {
+        const formatted = data.data.map((d: any) => ({
+          code: d.id.toString(),
+          name: d.full_name,
+        }))
+        setDistricts(formatted)
+      }
+    } catch (err) {
+      console.error('❌ Lỗi tải quận/huyện:', err)
       message.error('Không thể tải danh sách quận/huyện')
     } finally {
-      setLoading(prev => ({ ...prev, districts: false }))
+      setLoading((prev) => ({ ...prev, districts: false }))
     }
   }
 
+  /** 🔹 Lấy danh sách phường/xã theo quận */
   const fetchWards = async (districtCode: string) => {
-    setLoading(prev => ({ ...prev, wards: true }))
-    setWards([]) // Reset wards when district changes
-    setSelectedWard('')
+    setLoading((prev) => ({ ...prev, wards: true }))
     try {
-      const res = await fetch(`https://provinces.open-api.vn/api/d/${districtCode}?depth=2`)
+      const res = await fetch(`https://esgoo.net/api-tinhthanh/3/${districtCode}.htm`)
       const data = await res.json()
-      setWards(data.wards || [])
-    } catch (error) {
+      if (data.error === 0 && data.data) {
+        const formatted = data.data.map((w: any) => ({
+          code: w.id.toString(),
+          name: w.full_name,
+        }))
+        setWards(formatted)
+      }
+    } catch (err) {
+      console.error('❌ Lỗi tải phường/xã:', err)
       message.error('Không thể tải danh sách phường/xã')
     } finally {
-      setLoading(prev => ({ ...prev, wards: false }))
+      setLoading((prev) => ({ ...prev, wards: false }))
     }
   }
 
+  /** 🔸 Chọn tỉnh */
   const handleProvinceChange = (value: string) => {
-    const province = provinces.find(p => p.code === value)
-    if (province) {
-      setSelectedProvince(value)
-      form.setFieldsValue({
-        province_id: value,
-        district_id: '',
-        ward_id: '',
-      })
-      fetchDistricts(value)
-    }
+    setSelectedProvince(value)
+    setSelectedDistrict(undefined)
+    setSelectedWard(undefined)
+    setDistricts([])
+    setWards([])
+    form.setFieldsValue({ district_id: undefined, ward_id: undefined })
+    fetchDistricts(value)
   }
 
+  /** 🔸 Chọn quận/huyện */
   const handleDistrictChange = (value: string) => {
-    const district = districts.find(d => d.code === value)
-    if (district) {
-      setSelectedDistrict(value)
-      form.setFieldsValue({
-        district_id: value,
-        ward_id: '',
-      })
-      fetchWards(value)
-    }
+    setSelectedDistrict(value)
+    setSelectedWard(undefined)
+    setWards([])
+    form.setFieldsValue({ ward_id: undefined })
+    fetchWards(value)
   }
 
+  /** 🔸 Chọn phường/xã */
   const handleWardChange = (value: string) => {
     setSelectedWard(value)
-    form.setFieldsValue({ ward_id: value })
   }
 
+  /** ✅ Submit update */
   const onFinish = async (values: any) => {
     try {
-      const selectedProvinceDetails = provinces.find(p => p.code === values.province_id)
-      const selectedDistrictDetails = districts.find(d => d.code === values.district_id)
-      const selectedWardDetails = wards.find(w => w.code === values.ward_id)
+      const province = provinces.find((p) => p.code === values.province_id)
+      const district = districts.find((d) => d.code === values.district_id)
+      const ward = wards.find((w) => w.code === values.ward_id)
 
       const location = {
         name: values.name,
         phone: values.phone || undefined,
         address: values.address,
-        province_id: values.province_id,
-        province_name: selectedProvinceDetails?.name,
-        district_id: values.district_id,
-        district_name: selectedDistrictDetails?.name,
-        ward_id: values.ward_id,
-        ward_name: selectedWardDetails?.name,
+        province_id: Number(values.province_id),
+        province_name: province?.name,
+        district_id: Number(values.district_id),
+        district_name: district?.name,
+        ward_id: Number(values.ward_id),
+        ward_name: ward?.name,
       }
 
       const data = {
         name: values.name,
         code: values.code || undefined,
-        location: location,
+        location,
       }
 
-      await mutateAsync({ id: warehouse?.id || '', data: data })
+      await mutateAsync({ id: warehouse?.id || '', data })
       message.success('Cập nhật nhà kho thành công')
       onClose()
       form.resetFields()
       refetch?.()
     } catch (err) {
+      console.error(err)
       message.error('Lỗi cập nhật nhà kho')
     }
   }
@@ -183,24 +211,22 @@ export const WarehouseUpdateModal = ({ open, onClose, warehouse, refetch }: Ware
         <Form.Item
           label="Tên nhà kho"
           name="name"
-          rules={[{ required: true, message: 'Vui lòng nhập tên nhà kho' }, { min: 2, message: 'Tên phải có ít nhất 2 ký tự' }]}
+          rules={[{ required: true, message: 'Vui lòng nhập tên nhà kho' }]}
         >
           <Input placeholder="Ví dụ: Kho Hà Nội" />
         </Form.Item>
 
-        <Form.Item
-          label="Mã nhà kho (Code)"
-          name="code"
-          rules={[{ max: 10, message: 'Mã không được vượt quá 10 ký tự' }]}
-          tooltip="Mã định danh duy nhất (tùy chọn)"
-        >
+        <Form.Item label="Mã nhà kho (Code)" name="code">
           <Input placeholder="Ví dụ: KHO001" />
         </Form.Item>
 
         <Form.Item
           label="Số điện thoại"
           name="phone"
-          rules={[{ required: true, message: 'Vui lòng nhập số điện thoại' }, { pattern: /^[0-9]{10}$/, message: 'Số điện thoại phải gồm 10 chữ số' }]}
+          rules={[
+            { required: true, message: 'Vui lòng nhập số điện thoại' },
+            { pattern: /^[0-9]{10}$/, message: 'Số điện thoại phải gồm 10 chữ số' },
+          ]}
         >
           <Input placeholder="Số điện thoại liên hệ" />
         </Form.Item>
@@ -218,7 +244,7 @@ export const WarehouseUpdateModal = ({ open, onClose, warehouse, refetch }: Ware
             <Form.Item
               label="Tỉnh/Thành phố"
               name="province_id"
-              rules={[{ required: true, message: 'Vui lòng chọn tỉnh thành' }]}
+              rules={[{ required: true, message: 'Vui lòng chọn tỉnh/thành' }]}
             >
               <Select
                 placeholder="Chọn Tỉnh"
@@ -226,9 +252,9 @@ export const WarehouseUpdateModal = ({ open, onClose, warehouse, refetch }: Ware
                 onChange={handleProvinceChange}
                 value={selectedProvince}
               >
-                {provinces.map((province) => (
-                  <Select.Option key={province.code} value={province.code}>
-                    {province.name}
+                {provinces.map((p) => (
+                  <Select.Option key={p.code} value={p.code}>
+                    {p.name}
                   </Select.Option>
                 ))}
               </Select>
@@ -238,18 +264,18 @@ export const WarehouseUpdateModal = ({ open, onClose, warehouse, refetch }: Ware
             <Form.Item
               label="Quận/Huyện"
               name="district_id"
-              rules={[{ required: true, message: 'Vui lòng chọn quận huyện' }]}
+              rules={[{ required: true, message: 'Vui lòng chọn quận/huyện' }]}
             >
               <Select
-                placeholder="Chọn Quận"
+                placeholder="Chọn Quận/Huyện"
                 loading={loading.districts}
                 onChange={handleDistrictChange}
                 disabled={!selectedProvince}
                 value={selectedDistrict}
               >
-                {districts.map((district) => (
-                  <Select.Option key={district.code} value={district.code}>
-                    {district.name}
+                {districts.map((d) => (
+                  <Select.Option key={d.code} value={d.code}>
+                    {d.name}
                   </Select.Option>
                 ))}
               </Select>
@@ -259,18 +285,18 @@ export const WarehouseUpdateModal = ({ open, onClose, warehouse, refetch }: Ware
             <Form.Item
               label="Phường/Xã"
               name="ward_id"
-              rules={[{ required: true, message: 'Vui lòng chọn phường xã' }]}
+              rules={[{ required: true, message: 'Vui lòng chọn phường/xã' }]}
             >
               <Select
-                placeholder="Chọn Phường"
+                placeholder="Chọn Phường/Xã"
                 loading={loading.wards}
                 onChange={handleWardChange}
                 disabled={!selectedDistrict}
                 value={selectedWard}
               >
-                {wards.map((ward) => (
-                  <Select.Option key={ward.code} value={ward.code}>
-                    {ward.name}
+                {wards.map((w) => (
+                  <Select.Option key={w.code} value={w.code}>
+                    {w.name}
                   </Select.Option>
                 ))}
               </Select>

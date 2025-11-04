@@ -1,7 +1,7 @@
 'use client';
 
-import { Table, Button, InputNumber, Image, Breadcrumb, Modal, message, Checkbox } from 'antd';
-import { DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, InputNumber, Image, Breadcrumb, Modal, message, Checkbox, Empty, Card } from 'antd';
+import { DeleteOutlined, HomeOutlined, MinusOutlined, PlusOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { useState, useEffect, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -46,6 +46,7 @@ const ShoppingCart = () => {
   const { data: allAttributeValues } = useAttributeValues();
 
   const { data: cartData, isLoading: cartLoading, error: cartError } = useMyCart();
+  console.log('Giỏ hàng data:', cartData);
 
   useEffect(() => {
     if (cartData?.items) {
@@ -54,6 +55,8 @@ const ShoppingCart = () => {
       });
     }
   }, [cartData?.items, syncFromServer]);
+  
+console.log('🧺 items trong store:', items);
 
   // Cập nhật selectAll khi selectedItems thay đổi
   useEffect(() => {
@@ -356,6 +359,13 @@ const ShoppingCart = () => {
             <p className="text-gray-600">Bạn có {items.length} sản phẩm trong giỏ hàng</p>
           </div>
         </div>
+         <Table
+          rowKey="id"
+          dataSource={items}
+          columns={columns}
+          pagination={false}
+          className="!rounded-2xl !overflow-hidden shadow-md"
+        />
 
       <div className="mt-8 flex justify-between items-center">
         <div className="text-sm text-gray-600">
@@ -374,7 +384,7 @@ const ShoppingCart = () => {
           </Button>
         </div>
       </div>
-
+ </div>
       {/* Modal đăng nhập */}
       <Modal
         title={<span className="text-xl font-bold">Yêu cầu đăng nhập</span>}
