@@ -14,6 +14,17 @@ export interface Config {
   x?: string | null
   linkedin?: string | null
   logo?: string | null
+  showEmail: boolean;
+  showMobile: boolean;
+  showAddress: boolean;
+  showGooglemap: boolean;
+  showFacebook: boolean;
+  showZalo: boolean;
+  showInstagram: boolean;
+  showTiktok: boolean;
+  showYoutube: boolean;
+  showX: boolean;
+  showLinkedin: boolean;
   createdAt: string // hoặc Date nếu parse về Date object
   updatedAt: string
 }
@@ -47,5 +58,16 @@ export interface UpdateConfigDto {
   youtube?: string
   x?: string
   linkedin?: string
+  showEmail?: boolean;
+  showMobile?: boolean;
+  showAddress?: boolean;
+  showGooglemap?: boolean;
+  showFacebook?: boolean;
+  showZalo?: boolean;
+  showInstagram?: boolean;
+  showTiktok?: boolean;
+  showYoutube?: boolean;
+  showX?: boolean;
+  showLinkedin?: boolean;
   // logo cũng gửi qua FormData khi update
 }

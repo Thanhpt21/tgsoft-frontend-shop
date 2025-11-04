@@ -86,11 +86,19 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
   useEffect(() => {
     const fetchProvinces = async () => {
       try {
-        const res = await fetch("https://provinces.open-api.vn/api/p/");
-        const data: Province[] = await res.json();
-        setProvinces(data);
+        const res = await fetch('https://esgoo.net/api-tinhthanh/1/0.htm');
+        const data = await res.json();
+        console.log('📍 Danh sách tỉnh/thành phố:', data);
+        if (data.error === 0 && data.data) {
+          const formatted = data.data.map((p: any) => ({
+            code: p.id,
+            name: p.full_name,
+          }));
+          setProvinces(formatted);
+        }
       } catch (error) {
-        message.error("Không thể tải danh sách tỉnh/thành phố");
+        console.error('❌ Lỗi load tỉnh:', error);
+        message.error('Không thể tải danh sách tỉnh/thành phố');
       }
     };
     fetchProvinces();
@@ -112,23 +120,34 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
 
         if (provId && provId !== "0") {
           try {
-            const provRes = await fetch(
-              `https://provinces.open-api.vn/api/p/${provId}?depth=2`
-            );
-            const provData = await provRes.json();
-            setDistricts(provData.districts || []);
+            const distRes = await fetch(`https://esgoo.net/api-tinhthanh/2/${provId}.htm`);
+            const distData = await distRes.json();
+            console.log('🏙️ Chi tiết quận/huyện:', distData);
+            if (distData.error === 0 && distData.data) {
+              const formattedDist = distData.data.map((d: any) => ({
+                code: d.id,
+                name: d.full_name,
+              }));
+              setDistricts(formattedDist);
+            }
 
-            if (distId && distId !== "0") {
-              const wardRes = await fetch(
-                `https://provinces.open-api.vn/api/d/${distId}?depth=2`
-              );
+            if (distId && distId !== '0') {
+              const wardRes = await fetch(`https://esgoo.net/api-tinhthanh/3/${distId}.htm`);
               const wardData = await wardRes.json();
-              setWards(wardData.wards || []);
+              console.log('🏘️ Chi tiết phường/xã:', wardData);
+              if (wardData.error === 0 && wardData.data) {
+                const formattedWard = wardData.data.map((w: any) => ({
+                  code: w.id,
+                  name: w.full_name,
+                }));
+                setWards(formattedWard);
+              }
             } else {
               setWards([]);
             }
           } catch (err) {
-            message.error("Không tải được địa chỉ chi tiết");
+            console.error('❌ Lỗi load địa chỉ chi tiết:', err);
+            message.error('Không tải được địa chỉ chi tiết');
           }
         } else {
           setDistricts([]);
@@ -149,6 +168,7 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
 
   const handleProvinceChange = async (value: string) => {
     const province = provinces.find((p) => p.code === value);
+    console.log('🔄 Chọn tỉnh:', { code: value, province });
     if (!province) return;
 
     setSelectedProvince(value);
@@ -170,18 +190,25 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
     setWards([]);
 
     try {
-      const res = await fetch(
-        `https://provinces.open-api.vn/api/p/${value}?depth=2`
-      );
+      const res = await fetch(`https://esgoo.net/api-tinhthanh/2/${value}.htm`);
       const data = await res.json();
-      setDistricts(data.districts || []);
+      console.log('📦 API quận/huyện trả về:', data);
+      if (data.error === 0 && data.data) {
+        const formatted = data.data.map((d: any) => ({
+          code: d.id,
+          name: d.full_name,
+        }));
+        setDistricts(formatted);
+      }
     } catch (err) {
-      message.error("Không tải được quận/huyện");
+      console.error('❌ Lỗi load quận/huyện:', err);
+      message.error('Không tải được quận/huyện');
     }
   };
 
   const handleDistrictChange = async (value: string) => {
     const district = districts.find((d) => d.code === value);
+    console.log('🔄 Chọn quận/huyện:', { code: value, district });
     if (!district) return;
 
     setSelectedDistrict(value);
@@ -198,18 +225,25 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
     setWards([]);
 
     try {
-      const res = await fetch(
-        `https://provinces.open-api.vn/api/d/${value}?depth=2`
-      );
+      const res = await fetch(`https://esgoo.net/api-tinhthanh/3/${value}.htm`);
       const data = await res.json();
-      setWards(data.wards || []);
+      console.log('📦 API phường/xã trả về:', data);
+      if (data.error === 0 && data.data) {
+        const formatted = data.data.map((w: any) => ({
+          code: w.id,
+          name: w.full_name,
+        }));
+        setWards(formatted);
+      }
     } catch (err) {
-      message.error("Không tải được phường/xã");
+      console.error('❌ Lỗi load phường/xã:', err);
+      message.error('Không tải được phường/xã');
     }
   };
 
   const handleWardChange = (value: string) => {
     const ward = wards.find((w) => w.code === value);
+    console.log('🔄 Chọn phường/xã:', { code: value, ward });
     if (!ward) return;
 
     setSelectedWard(value);
@@ -235,18 +269,12 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
   };
 
   const handleSubmit = async () => {
-    const { name, phone, address, province_id, district_id, ward_id } =
-      formValues;
+    const { name, phone, address, province_id, district_id, ward_id } = formValues;
 
-    if (
-      !name ||
-      !phone ||
-      !address ||
-      !province_id ||
-      !district_id ||
-      !ward_id
-    ) {
-      message.warning("Vui lòng điền đầy đủ thông tin bắt buộc.");
+    console.log('💾 Dữ liệu submit:', formValues);
+
+    if (!name || !phone || !address || !province_id || !district_id || !ward_id) {
+      message.warning('Vui lòng điền đầy đủ thông tin bắt buộc.');
       return;
     }
 
@@ -267,7 +295,8 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
       });
       setIsModalOpen(false);
     } catch (error) {
-      message.error("Có lỗi xảy ra. Vui lòng thử lại.");
+      console.error('❌ Lỗi submit:', error);
+      message.error('Có lỗi xảy ra. Vui lòng thử lại.');
     }
   };
 

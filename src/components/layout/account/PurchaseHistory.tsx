@@ -168,15 +168,15 @@ const PurchaseHistory: React.FC = () => {
                         {statusConfig.icon}
                         {statusConfig.text}
                       </div>
-                      <Button
-                        type="default"
-                        icon={<MessageOutlined />}
-                        onClick={() => handleChatSupport(order)}
-                        disabled={!isConnected}
-                        className="h-10 rounded-lg font-medium hover:border-blue-500 hover:text-blue-600"
-                      >
-                        Chat hỗ trợ
-                      </Button>
+                      <Link href={`/san-pham/${item.productVariant?.product?.slug}`}>
+                        <Button
+                          type="primary"
+                          size="small"
+                          disabled={order.status !== 'DELIVERED'}
+                        >
+                          {order.status !== 'DELIVERED' ? 'Chưa giao' : 'Đánh giá'}
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </div>

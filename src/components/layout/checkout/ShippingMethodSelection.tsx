@@ -51,7 +51,6 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
     data: ghtkFeeResponse,
     error: ghtkError,
   } = useCalculateGHTKFee()
-  console.log('🚚 GHTK Fee Response:', totalWeight, totalValue)
 
   // Khởi tạo method mặc định
   useEffect(() => {

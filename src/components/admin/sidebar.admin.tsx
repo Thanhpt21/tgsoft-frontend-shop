@@ -45,16 +45,15 @@ export default function SidebarAdmin({ collapsed }: SidebarAdminProps) {
             icon: <ProductOutlined />,
             label: <Link href="/admin/product">Sản phẩm</Link>,
           },
-           {
+          { key: '17', icon: <ScissorOutlined />, label: <Link href="/admin/attribute">Thuộc tính</Link> },
+          { key: '18', icon: <BuildOutlined />, label: <Link href="/admin/category">Danh mục</Link> },
+          { key: '19', icon: <AppleOutlined />, label: <Link href="/admin/brand">Thương hiệu</Link> },
+          {
             key: '5',
             icon: <FileProtectOutlined />,
             label: <Link href="/admin/order">Đơn hàng</Link>,
           },
-            {
-            key: '6',
-            icon: <GoldOutlined />,
-            label: <Link href="/admin/warehouse">Kho hàng</Link>,
-          },
+         
           // {
           //   key: '7',
           //   icon: <SolutionOutlined />,
@@ -76,6 +75,7 @@ export default function SidebarAdmin({ collapsed }: SidebarAdminProps) {
             icon: <MessageOutlined />,
             label: <Link href="/admin/contact">Liên hệ</Link>,
           },
+           { key: '11', icon: <GiftOutlined />, label: <Link href="/admin/promotion">Khuyến mãi</Link> },
           // {
           //   key: 'sub1',
           //   icon: <UnorderedListOutlined />,
@@ -108,10 +108,13 @@ export default function SidebarAdmin({ collapsed }: SidebarAdminProps) {
             icon: <BranchesOutlined />,
             label: 'Cấu hình',
             children: [
-              { key: '17', icon: <ScissorOutlined />, label: <Link href="/admin/attribute">Thuộc tính</Link> },
-              { key: '18', icon: <BuildOutlined />, label: <Link href="/admin/category">Danh mục</Link> },
-              { key: '19', icon: <AppleOutlined />, label: <Link href="/admin/brand">Thương hiệu</Link> },
-              { key: '20', icon: <SettingOutlined />, label: <Link href="/admin/config">Cấu hình</Link> },
+            {
+              key: '6',
+              icon: <GoldOutlined />,
+              label: <Link href="/admin/warehouse">Kho hàng</Link>,
+            },
+            { key: '20', icon: <SettingOutlined />, label: <Link href="/admin/config">Cấu hình</Link> },
+             
             ],
           },
         ]}

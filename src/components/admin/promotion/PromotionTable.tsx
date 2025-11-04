@@ -2,35 +2,30 @@
 
 import { Table, Tag, Space, Tooltip, Input, Button, Modal, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
 import { useState } from 'react'
-import { Warehouse } from '@/types/warehouse.type'
-import { useWarehouses } from '@/hooks/warehouse/useWarehouses'
-import { useDeleteWarehouse } from '@/hooks/warehouse/useDeleteWarehouse'
-import { WarehouseCreateModal } from './WarehouseCreateModal'
-import { WarehouseUpdateModal } from './WarehouseUpdateModal'
+import { Promotion } from '@/types/promotion.type'
+import { usePromotions } from '@/hooks/promotion/usePromotions'
+import { useDeletePromotion } from '@/hooks/promotion/useDeletePromotion'
+import { PromotionCreateModal } from './PromotionCreateModal'
+import { PromotionUpdateModal } from './PromotionUpdateModal'
+import { useRouter } from 'next/navigation'
 
-
-// Hàm trợ giúp để trích xuất địa chỉ từ JSON location
-const getLocationAddress = (location: any) => {
-  if (location && typeof location === 'object' && location.address) {
-    return location.address
-  }
-  return 'N/A'
-}
-
-export default function WarehouseTable() {
+export default function PromotionTable() {
+  const router = useRouter()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [inputValue, setInputValue] = useState('')
   const [openCreate, setOpenCreate] = useState(false)
   const [openUpdate, setOpenUpdate] = useState(false)
-  const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null)
+  const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null)
+  const [openProductsModal, setOpenProductsModal] = useState(false)  
+  const [selectedPromotionId, setSelectedPromotionId] = useState<number | null>(null)  
 
-  const { data, isLoading, refetch } = useWarehouses({ page, limit: 10, search })
-  const { mutateAsync: deleteWarehouse } = useDeleteWarehouse()
+  const { data, isLoading, refetch } = usePromotions({ page, limit: 10, search })
+  const { mutateAsync: deletePromotion } = useDeletePromotion()
 
-  const columns: ColumnsType<Warehouse> = [
+  const columns: ColumnsType<Promotion> = [
     {
       title: 'STT',
       key: 'index',
@@ -38,37 +33,35 @@ export default function WarehouseTable() {
       render: (_text, _record, index) => (page - 1) * 10 + index + 1,
     },
     {
-      title: 'Mã',
-      dataIndex: 'code',
-      key: 'code',
-      width: 100,
-      render: (code: string | null) => code || <Tag color="default">N/A</Tag>,
-    },
-    {
-      title: 'Tên nhà kho',
+      title: 'Tên chương trình',
       dataIndex: 'name',
       key: 'name',
     },
     {
-      title: 'Địa chỉ (Location)',
-      dataIndex: 'location',
-      key: 'location',
-      // Hiển thị trường 'address' từ object JSON 'location'
-      render: (location: any) => {
-        const address = getLocationAddress(location)
-        return (
-          <Tooltip title={address}>
-            <span className="truncate max-w-xs block">{address}</span>
-          </Tooltip>
-        )
-      },
+      title: 'Mô tả',
+      dataIndex: 'description',
+      key: 'description',
     },
     {
-      title: 'Ngày tạo',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 120,
+      title: 'Ngày bắt đầu',
+      dataIndex: 'startTime',
+      key: 'startTime',
       render: (date: string) => new Date(date).toLocaleDateString('vi-VN'),
+    },
+    {
+      title: 'Ngày kết thúc',
+      dataIndex: 'endTime',
+      key: 'endTime',
+      render: (date: string) => new Date(date).toLocaleDateString('vi-VN'),
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => {
+        let color = status === 'ACTIVE' ? 'green' : status === 'INACTIVE' ? 'orange' : 'red'
+        return <Tag color={color}>{status}</Tag>
+      },
     },
     {
       title: 'Hành động',
@@ -76,11 +69,17 @@ export default function WarehouseTable() {
       width: 120,
       render: (_, record) => (
         <Space size="middle">
+           <Tooltip title="Quản lý sản phẩm khuyến mãi">
+            <EyeOutlined
+              style={{ color: 'green', cursor: 'pointer', fontSize: 16 }}
+               onClick={() => router.push(`/admin/promotion-product/${record.id}`)}
+            />
+          </Tooltip>
           <Tooltip title="Chỉnh sửa">
             <EditOutlined
               style={{ color: '#1890ff', cursor: 'pointer' }}
               onClick={() => {
-                setSelectedWarehouse(record)
+                setSelectedPromotion(record)
                 setOpenUpdate(true)
               }}
             />
@@ -90,15 +89,15 @@ export default function WarehouseTable() {
               style={{ color: 'red', cursor: 'pointer' }}
               onClick={() => {
                 Modal.confirm({
-                  title: 'Xác nhận xóa nhà kho',
-                  content: `Bạn có chắc chắn muốn xóa nhà kho "${record.name}" không?`,
+                  title: 'Xác nhận xóa chương trình khuyến mãi',
+                  content: `Bạn có chắc chắn muốn xóa chương trình "${record.name}" không?`,
                   okText: 'Xóa',
                   okType: 'danger',
                   cancelText: 'Hủy',
                   onOk: async () => {
                     try {
-                      await deleteWarehouse(record.id)
-                      message.success('Xóa nhà kho thành công')
+                      await deletePromotion(record.id)
+                      message.success('Xóa chương trình thành công')
                       refetch?.()
                     } catch (error: any) {
                       message.error(error?.response?.data?.message || 'Xóa thất bại')
@@ -123,7 +122,7 @@ export default function WarehouseTable() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Input
-            placeholder="Tìm kiếm theo tên nhà kho..."
+            placeholder="Tìm kiếm theo tên chương trình..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onPressEnter={handleSearch}
@@ -135,13 +134,9 @@ export default function WarehouseTable() {
           </Button>
         </div>
 
-      <Button
-        type="primary"
-        onClick={() => setOpenCreate(true)}
-        disabled={(data?.data?.length ?? 0) >= 1}
-      >
-        Tạo mới
-      </Button>
+        <Button type="primary" onClick={() => setOpenCreate(true)}>
+          Tạo mới
+        </Button>
       </div>
 
       <Table
@@ -154,22 +149,23 @@ export default function WarehouseTable() {
           current: page,
           pageSize: 10,
           onChange: (p) => setPage(p),
-          showTotal: (total) => `Tổng ${total} nhà kho`,
+          showTotal: (total) => `Tổng ${total} chương trình`,
         }}
       />
 
-      <WarehouseCreateModal
+      <PromotionCreateModal
         open={openCreate}
         onClose={() => setOpenCreate(false)}
         refetch={refetch}
       />
 
-      <WarehouseUpdateModal
+      <PromotionUpdateModal
         open={openUpdate}
         onClose={() => setOpenUpdate(false)}
-        warehouse={selectedWarehouse} 
+        promotion={selectedPromotion}
         refetch={refetch}
       />
+       
     </div>
   )
 }

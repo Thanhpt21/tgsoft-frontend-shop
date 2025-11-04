@@ -1,7 +1,7 @@
 'use client';
 
-import { Table, Button, InputNumber, Image, Modal, message, Card, Empty } from 'antd';
-import { DeleteOutlined, ShoppingCartOutlined, HomeOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
+import { Table, Button, InputNumber, Image, Breadcrumb, Modal, message, Checkbox, Empty, Card } from 'antd';
+import { DeleteOutlined, HomeOutlined, MinusOutlined, PlusOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { useState, useEffect, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -28,12 +28,15 @@ const ShoppingCart = () => {
     updateQuantityOptimistic,
     removeItemOptimistic,
     syncFromServer,
+    selectedItems,
+    setSelectedItems,
   } = useCartStore();
 
   const removeItemMutation = useRemoveCartItem();
   const updateItemMutation = useUpdateCartItem();
 
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
+  const [selectAll, setSelectAll] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -43,6 +46,7 @@ const ShoppingCart = () => {
   const { data: allAttributeValues } = useAttributeValues();
 
   const { data: cartData, isLoading: cartLoading, error: cartError } = useMyCart();
+  console.log('Giỏ hàng data:', cartData);
 
   useEffect(() => {
     if (cartData?.items) {
@@ -51,7 +55,15 @@ const ShoppingCart = () => {
       });
     }
   }, [cartData?.items, syncFromServer]);
+  
+console.log('🧺 items trong store:', items);
 
+  // Cập nhật selectAll khi selectedItems thay đổi
+  useEffect(() => {
+    setSelectAll(selectedItems.size > 0 && selectedItems.size === items.length);
+  }, [selectedItems, items.length]);
+
+  // Tạo map cho thuộc tính
   const attributeMap = allAttributes?.reduce((acc: Record<number, string>, attr: any) => {
     acc[attr.id] = attr.name;
     return acc;
@@ -61,6 +73,34 @@ const ShoppingCart = () => {
     acc[val.id] = val.value;
     return acc;
   }, {} as Record<number, string>) ?? {};
+
+  // === CHECKBOX HANDLERS ===
+  const handleCheckboxChange = (itemId: number) => {
+    const newSelectedItems = new Set(selectedItems);
+    if (newSelectedItems.has(itemId)) {
+      newSelectedItems.delete(itemId);
+    } else {
+      newSelectedItems.add(itemId);
+    }
+    setSelectedItems(newSelectedItems);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectAll(checked);
+    if (checked) {
+      const allItemIds = items.map(item => item.id);
+      setSelectedItems(new Set(allItemIds));
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
+  // === TÍNH TỔNG CHỈ CÁC ITEM ĐƯỢC CHỌN ===
+  const getSelectedTotal = () => {
+    return items
+      .filter(item => selectedItems.has(item.id))
+      .reduce((total, item) => total + item.priceAtAdd * item.quantity, 0);
+  };
 
   // === LOADING & ERROR STATES ===
   if (!mounted || authLoading || cartLoading) {
@@ -88,6 +128,11 @@ const ShoppingCart = () => {
   const handleRemoveItem = (item: any) => {
     startTransition(() => {
       removeItemOptimistic(item.id);
+      // Xóa khỏi selectedItems nếu có
+      const newSelected = new Set(selectedItems);
+      newSelected.delete(item.id);
+      setSelectedItems(newSelected);
+      
       removeItemMutation.mutate(item.id, {
         onError: () => {
           message.error('Xóa sản phẩm thất bại');
@@ -120,6 +165,12 @@ const ShoppingCart = () => {
       setIsLoginModalVisible(true);
       return;
     }
+    
+    if (selectedItems.size === 0) {
+      message.warning('Vui lòng chọn ít nhất một sản phẩm để đặt hàng');
+      return;
+    }
+    
     router.push('/dat-hang');
   };
 
@@ -138,8 +189,25 @@ const ShoppingCart = () => {
   // === CỘT BẢNG (Desktop) ===
   const columns = [
     {
-      title: 'Sản phẩm',
-      key: 'product',
+      title: (
+        <Checkbox
+          checked={selectAll}
+          onChange={(e) => handleSelectAll(e.target.checked)}
+        />
+      ),
+      key: 'checkbox',
+      width: 50,
+      render: (_: any, record: any) => (
+        <Checkbox
+          checked={selectedItems.has(record.id)}
+          onChange={() => handleCheckboxChange(record.id)}
+        />
+      ),
+    },
+    {
+      title: 'Hình ảnh',
+      key: 'thumb',
+      width: 80,
       render: (_: any, record: any) => {
         const thumb = record.variant?.thumb || record.variant?.product?.thumb;
         return (
@@ -291,123 +359,32 @@ const ShoppingCart = () => {
             <p className="text-gray-600">Bạn có {items.length} sản phẩm trong giỏ hàng</p>
           </div>
         </div>
+         <Table
+          rowKey="id"
+          dataSource={items}
+          columns={columns}
+          pagination={false}
+          className="!rounded-2xl !overflow-hidden shadow-md"
+        />
 
-        {/* Desktop Table */}
-        <div className="hidden lg:block">
-          <Card className="!rounded-3xl !border-2 shadow-lg overflow-hidden">
-            <Table
-              dataSource={items}
-              columns={columns}
-              rowKey="id"
-              pagination={false}
-              loading={isPending || cartLoading}
-              className="modern-cart-table"
-            />
-          </Card>
+      <div className="mt-8 flex justify-between items-center">
+        <div className="text-sm text-gray-600">
+          Đã chọn: <span className="font-semibold">{selectedItems.size}</span> / {items.length} sản phẩm
         </div>
-
-        {/* Mobile Cards */}
-        <div className="lg:hidden space-y-4">
-          {items.map((item: any) => {
-            const thumb = item.variant?.thumb || item.variant?.product?.thumb;
-            return (
-              <Card
-                key={item.id}
-                className="!rounded-2xl !border-2 shadow-md hover:shadow-lg transition-all"
-              >
-                <div className="flex gap-4">
-                  <Image
-                    src={getImageUrl(thumb) || '/placeholder.png'}
-                    alt={item.variant?.product?.name || 'Sản phẩm'}
-                    width={100}
-                    height={100}
-                    style={{ objectFit: 'cover', borderRadius: 12 }}
-                    preview={false}
-                    fallback="/placeholder.png"
-                    className="flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 mb-1 truncate">
-                      {item.variant?.product?.name || 'Sản phẩm không xác định'}
-                    </h3>
-                    <p className="text-sm text-gray-500 mb-2">
-                      {renderAttributes(item.variant?.attrValues)}
-                    </p>
-                    <p className="font-semibold text-blue-600 mb-3">{formatVND(item.priceAtAdd)}</p>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="small"
-                          icon={<MinusOutlined />}
-                          disabled={item.quantity <= 1 || isPending}
-                          onClick={() => onChangeQuantity(item.quantity - 1, item)}
-                          className="!rounded-lg"
-                        />
-                        <InputNumber
-                          min={1}
-                          value={item.quantity}
-                          onChange={(v) => typeof v === 'number' && onChangeQuantity(v, item)}
-                          className="!w-14 text-center !rounded-lg"
-                          controls={false}
-                          disabled={isPending}
-                          size="small"
-                        />
-                        <Button
-                          size="small"
-                          icon={<PlusOutlined />}
-                          disabled={isPending}
-                          onClick={() => onChangeQuantity(item.quantity + 1, item)}
-                          className="!rounded-lg"
-                        />
-                      </div>
-                      <Button
-                        danger
-                        type="text"
-                        icon={<DeleteOutlined />}
-                        onClick={() => handleRemoveItem(item)}
-                        loading={isPending}
-                        className="!rounded-lg"
-                      />
-                    </div>
-                    
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Tổng:</span>
-                        <span className="font-bold text-lg text-blue-600">
-                          {formatVND(item.priceAtAdd * item.quantity)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
+        <div className="flex items-center gap-6">
+          <div className="text-2xl font-bold">Tổng: {formatVND(getSelectedTotal())}</div>
+          <Button
+            type="primary"
+            size="large"
+            onClick={handleCheckoutClick}
+            disabled={isPending || selectedItems.size === 0}
+            className="min-w-40"
+          >
+            Đặt hàng ({selectedItems.size})
+          </Button>
         </div>
-
-        {/* Summary & Checkout */}
-        <Card className="mt-6 !rounded-3xl !border-2 shadow-lg">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div>
-              <p className="text-gray-600 mb-1">Tổng cộng</p>
-              <p className="text-3xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                {formatVND(getTotalPrice())}
-              </p>
-            </div>
-            <Button
-              type="primary"
-              size="large"
-              onClick={handleCheckoutClick}
-              disabled={isPending}
-              className="!h-14 !px-8 !rounded-xl !text-base font-bold !bg-gradient-to-r !from-blue-500 !to-purple-500 hover:!from-blue-600 hover:!to-purple-600 !border-0 shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
-            >
-              Đặt hàng ngay
-            </Button>
-          </div>
-        </Card>
       </div>
-
+ </div>
       {/* Modal đăng nhập */}
       <Modal
         title={<span className="text-xl font-bold">Yêu cầu đăng nhập</span>}
@@ -421,22 +398,6 @@ const ShoppingCart = () => {
       >
         <p className="text-gray-600 py-4">Bạn cần đăng nhập để tiến hành thanh toán.</p>
       </Modal>
-
-      <style jsx global>{`
-        .modern-cart-table .ant-table-thead > tr > th {
-          background: linear-gradient(to right, #f0f9ff, #faf5ff);
-          font-weight: 600;
-          border-bottom: 2px solid #e5e7eb;
-        }
-        .modern-cart-table .ant-table-tbody > tr {
-          transition: all 0.3s;
-        }
-        .modern-cart-table .ant-table-tbody > tr:hover {
-          background: #f9fafb;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-      `}</style>
     </div>
   );
 };
