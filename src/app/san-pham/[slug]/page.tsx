@@ -222,6 +222,34 @@ export default function ProductDetailPage() {
     });
   });
 
+  // Tính giá sau khuyến mãi
+  const getDiscountedPrice = () => {
+    if (!currentProduct?.promotionProducts?.length) return null;
+
+    const promo = currentProduct.promotionProducts[0];
+
+    // Tính giá cơ bản của variant (nếu có), nếu không thì dùng giá cơ bản của sản phẩm
+    const basePrice = selectedVariant ? selectedVariant.priceDelta : currentProduct.basePrice;
+
+    // Nếu có chương trình khuyến mãi
+    if (promo.discountType === 'PERCENT') {
+      return basePrice * (1 - promo.discountValue / 100);
+    }
+    if (promo.discountType === 'FIXED') {
+      return Math.max(0, basePrice - promo.discountValue);
+    }
+
+    return null;
+  };
+
+  const discountedPrice = getDiscountedPrice();
+
+  // Tính giá cuối cùng sau khuyến mãi, nếu không có khuyến mãi thì dùng giá gốc của variant
+  const finalPrice = discountedPrice ?? (selectedVariant ? selectedVariant.priceDelta : currentProduct.basePrice);
+  console.log("Final Price:", finalPrice);
+
+  const originalPrice = selectedVariant ? selectedVariant.priceDelta : currentProduct.basePrice;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       <div className="container mx-auto px-2 py-3 md:px-3 lg:px-4 max-w-[1400px]">
@@ -281,24 +309,77 @@ export default function ProductDetailPage() {
                 {currentProduct.name}
               </Title>
             </div>
-
-            {/* Price Card */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-300">
-              <div className="flex items-baseline gap-3">
-                <span className="text-sm font-medium opacity-90">Giá bán:</span>
-                <span className="text-4xl font-bold">
-                  {selectedVariant 
-                    ? selectedVariant.priceDelta.toLocaleString() 
-                    : currentProduct.basePrice.toLocaleString()}
-                </span>
-                <span className="text-xl font-medium">VNĐ</span>
-              </div>
-              {selectedVariant && (
-                <div className="mt-2 text-sm opacity-75">
-                  💎 Đã chọn phiên bản
+            {/* Badge khuyến mãi nổi bật */}
+           {currentProduct.promotionProducts && currentProduct.promotionProducts.length > 0 ? (
+                <div className="mb-4 p-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl shadow-lg flex items-center gap-3 animate-pulse">
+                  <span className="text-2xl">Flash Sale</span>
+                  <div className="flex-1">
+                    <div className="font-bold text-lg">{currentProduct.promotionProducts[0].promotion.name}</div>
+                    <div className="text-sm opacity-90">
+                      Kết thúc: {new Date(currentProduct.promotionProducts[0].promotion.endTime).toLocaleString('vi-VN')}
+                    </div>
+                  </div>
+                  <div className="bg-white text-red-600 px-4 py-2 rounded-full font-bold text-lg">
+                    -{currentProduct.promotionProducts[0].discountType === 'PERCENT'
+                      ? `${currentProduct.promotionProducts[0].discountValue}%`
+                      : `${currentProduct.promotionProducts[0].discountValue.toLocaleString()}đ`}
+                  </div>
                 </div>
-              )}
-            </div>
+              ) : (
+                <div className="text-sm text-gray-500">Không có chương trình khuyến mãi</div>  
+              )
+            }
+
+            {/* Price Card với khuyến mãi */}
+            {currentProduct.promotionProducts && currentProduct.promotionProducts.length > 0 ? (
+              <div className="bg-gradient-to-r from-red-600 via-orange-600 to-pink-600 rounded-2xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-300 relative overflow-hidden">
+                {/* Badge chương trình khuyến mãi */}
+                <div className="absolute top-2 right-2 bg-yellow-400 text-red-800 text-xs font-bold px-3 py-1 rounded-full shadow-md animate-pulse">
+                  {currentProduct.promotionProducts[0].promotion.name}
+                </div>
+
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-sm font-medium opacity-90">Giá gốc:</span>
+                  <span className="text-lg line-through opacity-70">
+                    {originalPrice.toLocaleString()} VNĐ
+                  </span>
+                </div>
+
+                <div className="flex items-baseline gap-3">
+                  <span className="text-sm font-medium opacity-90">Giá khuyến mãi:</span>
+                  <span className="text-5xl font-black">
+                    {finalPrice.toLocaleString()}
+                  </span>
+                  <span className="text-xl font-bold">VNĐ</span>
+                </div>
+
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="bg-white/30 px-3 py-1 rounded-full text-sm font-bold">
+                    -
+                    {currentProduct.promotionProducts[0].discountType === 'PERCENT'
+                      ? `${currentProduct.promotionProducts[0].discountValue}%`
+                      : `${currentProduct.promotionProducts[0].discountValue.toLocaleString()}đ`}
+                  </span>
+                  <span className="text-sm opacity-80">Tiết kiệm: {(originalPrice - finalPrice).toLocaleString()}đ</span>
+                </div>
+              </div>
+            ) : (
+              /* Giá thường (không có khuyến mãi) */
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-300">
+                <div className="flex items-baseline gap-3">
+                  <span className="text-sm font-medium opacity-90">Giá bán:</span>
+                  <span className="text-4xl font-bold">
+                    {finalPrice.toLocaleString()}
+                  </span>
+                  <span className="text-xl font-medium">VNĐ</span>
+                </div>
+                {selectedVariant && (
+                  <div className="mt-2 text-sm opacity-75">
+                    Đã chọn phiên bản
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Attributes Section */}
             <div className="space-y-6">

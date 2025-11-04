@@ -66,6 +66,7 @@ const OrderForm: React.FC = () => {
   const { data: allAttributes } = useAllAttributes()
   const { data: allAttributeValues } = useAttributeValues()
 
+  console.log("items", items)
 
   useEffect(() => {
     setMounted(true)
@@ -236,30 +237,31 @@ const OrderForm: React.FC = () => {
       note: shippingInfo.note,
     }
 
-    const orderItems: OrderItemDto[] = cart.items
-      .filter(item => selectedItems.has(item.id))
-      .map(item => ({
-        sku: item.variant.sku,
-        productVariantId: item.variant.id,
-        quantity: item.quantity,
-        unitPrice: item.priceAtAdd,
-        warehouseId: Number(warehouseId)
-      }))
+  const orderItems: OrderItemDto[] = items
+    .filter(item => selectedItems.has(item.id)) // chỉ lấy các item đã chọn
+    .map(item => ({
+      sku: item.variant.sku,
+      productVariantId: item.variant.id,
+      quantity: item.quantity,
+      unitPrice: item.finalPrice, // Lấy giá cuối cùng từ item
+      warehouseId: Number(warehouseId),
+    }));
 
-    const totalAmount = orderItems.reduce((sum, item) => {
-      return sum + item.unitPrice * item.quantity + shippingFee!
-    }, 0)
+  
+
 
     const payload: CreateOrderDto = {
       shippingInfo: shippingPayload,
       items: orderItems,
-      totalAmount,
+      totalAmount: finalTotal,
       status: 'DRAFT',
       paymentStatus: 'PENDING',
       paymentMethodId: paymentMethod.id,
       shippingFee: shippingFee,
       deliveryMethod: deliveryMethod,
     }
+
+    console.log("payload", payload)
 
     createOrder(payload, {
       onSuccess: async (response) => {
@@ -303,6 +305,8 @@ const OrderForm: React.FC = () => {
       },
     })
   }
+
+  
 
   if (orderCompleted) {
     return (
@@ -511,7 +515,7 @@ const OrderForm: React.FC = () => {
                             {renderAttributes(item.variant.attrValues)}
                           </div>
                           <div className="flex items-center justify-between mt-2">
-                            <Text className="text-blue-600 font-semibold">{formatVND(item.priceAtAdd)}</Text>
+                            <Text className="text-blue-600 font-semibold">{formatVND(item.finalPrice)}</Text>
                             <Text type="secondary">x {item.quantity}</Text>
                           </div>
                         </div>

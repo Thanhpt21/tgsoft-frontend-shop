@@ -1,4 +1,3 @@
-// src/stores/cartStore.ts
 import { CartItem } from '@/types/cart.type';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
@@ -7,7 +6,7 @@ interface CartStore {
   items: CartItem[];
   selectedItems: Set<number>;
 
-  // Actions
+  // Các hành động
   syncFromServer: (serverItems: any[]) => void;
   addItemOptimistic: (item: Omit<CartItem, 'id'> & { id: number }) => void;
   updateQuantityOptimistic: (variantId: number, quantity: number) => void;
@@ -15,7 +14,7 @@ interface CartStore {
   getTotalPrice: () => number;
   replaceTempId: (tempId: number, realId: number) => void;
 
-  // Selected Items
+  // Các hành động với sản phẩm chọn
   setSelectedItems: (items: Set<number>) => void;
   toggleSelectItem: (id: number) => void;
   selectAll: (checked: boolean, itemIds: number[]) => void;
@@ -32,43 +31,95 @@ export const useCartStore = create<CartStore>()(
       items: [],
       selectedItems: new Set<number>(),
 
-      // === Sync từ server ===
       syncFromServer: (serverItems) => {
-        const mapped: CartItem[] = serverItems.map((item: any) => ({
-          id: item.id,
-          cartId: item.cartId,
-          productVariantId: item.productVariantId,
-          quantity: item.quantity,
-          priceAtAdd: item.priceAtAdd,
-          warehouseId: item.warehouseId || null,
-          variant: {
-            id: item.variant?.id || 0,
-            sku: item.variant?.sku || '',
-            priceDelta: item.variant?.priceDelta || 0,
-            attrValues: item.variant?.attrValues || {},
-            thumb: item.variant?.thumb || null,
-            warehouseId: item.variant?.warehouseId || null,
-            product: {
-              id: item.variant?.product?.id || 0,
-              name: item.variant?.product?.name || 'Sản phẩm',
-              basePrice: item.variant?.product?.basePrice || 0,
-              thumb: item.variant?.product?.thumb || '',
-              weight: item.variant?.product?.weight || 0,
-            },
-          },
-        }));
+  const mapped: CartItem[] = serverItems.map((item: any) => {
+    // Đảm bảo các trường của sản phẩm có giá trị mặc định nếu thiếu
+    const product = item.variant?.product || {
+      id: 0,
+      tenantId: 0,
+      name: 'Sản phẩm không xác định',
+      slug: '',
+      description: '',
+      basePrice: 0,
+      thumb: '',
+      images: [],
+      status: 'ACTIVE',
+      isPublished: false,
+      isFeatured: false,
+      totalRatings: 0,
+      totalReviews: 0,
+      numberSold: 0,
+      seoTitle: '',
+      seoDescription: '',
+      seoKeywords: '',
+      categoryId: 0,
+      brandId: 0,
+      createdById: 0,
+      weight: 0,
+      length: 0,
+      width: 0,
+      height: 0,
+      createdAt: '',
+      updatedAt: '',
+      promotionProducts: [],
+    };
 
-        const currentSelected = get().selectedItems;
-        const validSelected = new Set(
-          mapped
-            .filter((item) => currentSelected.has(item.id))
-            .map((item) => item.id)
-        );
+    // Tính giá giảm sau khi áp dụng khuyến mãi
+    const getDiscountedPrice = () => {
+      if (!product.promotionProducts?.length) return null;
 
-        set({ items: mapped, selectedItems: validSelected });
+      const promo = product.promotionProducts[0];
+      const basePrice = item.variant?.priceDelta || product.basePrice;
+
+      if (promo.discountType === 'PERCENT') {
+        return basePrice * (1 - promo.discountValue / 100);
+      }
+      if (promo.discountType === 'FIXED') {
+        return Math.max(0, basePrice - promo.discountValue);
+      }
+
+      return null;
+    };
+
+    const discountedPrice = getDiscountedPrice();
+    const finalPrice = discountedPrice ?? discountedPrice ?? item.variant?.priceDelta;
+
+    return {
+      id: item.id,
+      cartId: item.cartId,
+      productVariantId: item.productVariantId,
+      quantity: item.quantity,
+      priceAtAdd: item.priceAtAdd,
+      finalPrice: finalPrice,  // Tính toán finalPrice ngay tại đây
+      createdAt: item.createdAt || '',
+      updatedAt: item.updatedAt || '',
+      variant: {
+        id: item.variant?.id || 0,
+        productId: item.variant?.product?.id || 0,
+        sku: item.variant?.sku || '',
+        barcode: item.variant?.barcode || '',
+        priceDelta: item.variant?.priceDelta || 0,
+        price: item.variant?.price || null,
+        attrValues: item.variant?.attrValues || {},
+        thumb: item.variant?.thumb || null,
+        warehouseId: item.variant?.warehouseId || null,
+        product: product, // Sử dụng dữ liệu đã chuẩn hóa ở trên
       },
+    };
+  });
 
-      // === Thêm sản phẩm ===
+  const currentSelected = get().selectedItems;
+  const validSelected = new Set(
+    mapped
+      .filter((item) => currentSelected.has(item.id))
+      .map((item) => item.id)
+  );
+
+  set({ items: mapped, selectedItems: validSelected });
+}
+,
+
+      // === Thêm sản phẩm vào giỏ hàng (tạm thời) ===
       addItemOptimistic: (newItem) => {
         set((state) => {
           const newSelected = new Set(state.selectedItems);
@@ -80,15 +131,17 @@ export const useCartStore = create<CartStore>()(
         });
       },
 
-      // === Cập nhật số lượng ===
+      // === Cập nhật số lượng sản phẩm ===
       updateQuantityOptimistic: (variantId, quantity) =>
         set((state) => ({
           items: state.items.map((i) =>
-            i.productVariantId === variantId ? { ...i, quantity } : i
+            i.productVariantId === variantId
+              ? { ...i, quantity, finalPrice: i.priceAtAdd * quantity }
+              : i
           ),
         })),
 
-      // === Xóa sản phẩm ===
+      // === Xóa sản phẩm khỏi giỏ ===
       removeItemOptimistic: (id) =>
         set((state) => {
           const newSelected = new Set(state.selectedItems);
@@ -99,11 +152,14 @@ export const useCartStore = create<CartStore>()(
           };
         }),
 
-      // === Tổng tiền toàn bộ ===
+      // === Tính tổng tiền giỏ hàng (bao gồm khuyến mãi) ===
       getTotalPrice: () =>
-        get().items.reduce((sum, i) => sum + i.priceAtAdd * i.quantity, 0),
+        get().items.reduce(
+          (sum, i) => sum + i.finalPrice * i.quantity,
+          0
+        ),
 
-      // === Thay ID tạm bằng ID thật ===
+      // === Thay thế ID tạm thời bằng ID thật ===
       replaceTempId: (tempId, realId) =>
         set((state) => {
           const newSelected = new Set(state.selectedItems);
@@ -119,7 +175,7 @@ export const useCartStore = create<CartStore>()(
           };
         }),
 
-      // === Selected Items Actions ===
+      // === Các hành động với sản phẩm được chọn ===
       setSelectedItems: (items) => set({ selectedItems: items }),
 
       toggleSelectItem: (id) =>
@@ -140,7 +196,7 @@ export const useCartStore = create<CartStore>()(
 
       clearSelectedItems: () => set({ selectedItems: new Set() }),
 
-      // === Getters ===
+      // === Các getter ===
       isSelectAll: () => {
         const { items, selectedItems } = get();
         return items.length > 0 && items.every((item) => selectedItems.has(item.id));
@@ -150,7 +206,7 @@ export const useCartStore = create<CartStore>()(
         const { items, selectedItems } = get();
         return items
           .filter((item) => selectedItems.has(item.id))
-          .reduce((total, item) => total + item.priceAtAdd * item.quantity, 0);
+          .reduce((total, item) => total + item.finalPrice * item.quantity, 0);
       },
     }),
     {

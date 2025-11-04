@@ -168,15 +168,7 @@ const PurchaseHistory: React.FC = () => {
                         {statusConfig.icon}
                         {statusConfig.text}
                       </div>
-                      <Link href={`/san-pham/${item.productVariant?.product?.slug}`}>
-                        <Button
-                          type="primary"
-                          size="small"
-                          disabled={order.status !== 'DELIVERED'}
-                        >
-                          {order.status !== 'DELIVERED' ? 'Chưa giao' : 'Đánh giá'}
-                        </Button>
-                      </Link>
+                   
                     </div>
                   </div>
                 </div>

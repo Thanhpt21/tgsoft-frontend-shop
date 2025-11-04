@@ -22,6 +22,9 @@ export interface PromotionProduct {
   promotion: {
     id: number;
     name: string;
+    description: string;
+    endTime: string,
+    startTime: string
   };
   giftProduct?: {
     id: number;

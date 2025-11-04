@@ -46,7 +46,7 @@ const ShoppingCart = () => {
   const { data: allAttributeValues } = useAttributeValues();
 
   const { data: cartData, isLoading: cartLoading, error: cartError } = useMyCart();
-  console.log('Giỏ hàng data:', cartData);
+  console.log('Giỏ hàng items:', items);
 
   useEffect(() => {
     if (cartData?.items) {
@@ -98,8 +98,8 @@ console.log('🧺 items trong store:', items);
   // === TÍNH TỔNG CHỈ CÁC ITEM ĐƯỢC CHỌN ===
   const getSelectedTotal = () => {
     return items
-      .filter(item => selectedItems.has(item.id))
-      .reduce((total, item) => total + item.priceAtAdd * item.quantity, 0);
+      .filter(item => selectedItems.has(item.id)) // Chỉ chọn các item được chọn
+      .reduce((total, item) => total + item.finalPrice * item.quantity, 0); // Dùng finalPrice thay vì priceAtAdd
   };
 
   // === LOADING & ERROR STATES ===
@@ -234,14 +234,53 @@ console.log('🧺 items trong store:', items);
         );
       },
     },
-    {
-      title: 'Đơn giá',
-      key: 'price',
-      width: 150,
-      render: (_: any, r: any) => (
-        <span className="font-semibold text-gray-900">{formatVND(r.priceAtAdd)}</span>
-      ),
+     {
+    title: 'Giá gốc',
+    key: 'originalPrice',
+    width: 150,
+    render: (_: any, r: any) => (
+      <span className="font-semibold text-gray-900">{formatVND(r.priceAtAdd)}</span>
+    ),
+  },
+  {
+    title: 'Giảm giá',
+    key: 'discount',
+    width: 150,
+    render: (_: any, record: any) => {
+      const promotion = record.variant.product.promotionProducts?.[0];
+      if (!promotion) return <span>-</span>;
+
+      let discountText = '';
+      if (promotion.discountType === 'PERCENT') {
+        discountText = `${promotion.discountValue}%`;
+      } else if (promotion.discountType === 'FIXED') {
+        discountText = formatVND(promotion.discountValue);
+      }
+
+      return <span className="text-red-600">{discountText}</span>;
     },
+  },
+  {
+    title: 'Giá sau giảm',
+    key: 'discountedPrice',
+    width: 150,
+    render: (_: any, r: any) => {
+      const promotion = r.variant.product.promotionProducts?.[0];
+      const basePrice = r.priceAtAdd;
+      if (!promotion) {
+        return <span className="font-semibold text-gray-900">{formatVND(basePrice)}</span>;
+      }
+
+      let discountedPrice = basePrice;
+      if (promotion.discountType === 'PERCENT') {
+        discountedPrice = basePrice - (basePrice * promotion.discountValue) / 100;
+      } else if (promotion.discountType === 'FIXED') {
+        discountedPrice = basePrice - promotion.discountValue;
+      }
+
+      return <span className="font-semibold text-blue-600">{formatVND(discountedPrice)}</span>;
+    },
+  },
     {
       title: 'Số lượng',
       key: 'quantity',
@@ -273,13 +312,26 @@ console.log('🧺 items trong store:', items);
         </div>
       ),
     },
-    {
+   {
       title: 'Tổng',
       key: 'total',
       width: 150,
-      render: (_: any, r: any) => (
-        <span className="font-bold text-lg text-blue-600">{formatVND(r.priceAtAdd * r.quantity)}</span>
-      ),
+      render: (_: any, r: any) => {
+      const promotion = r.variant.product.promotionProducts?.[0];
+      const basePrice = r.priceAtAdd;
+      if (!promotion) {
+        return <span className="font-semibold text-gray-900">{formatVND(basePrice)}</span>;
+      }
+
+      let discountedPrice = basePrice;
+      if (promotion.discountType === 'PERCENT') {
+        discountedPrice = basePrice - (basePrice * promotion.discountValue) / 100;
+      } else if (promotion.discountType === 'FIXED') {
+        discountedPrice = basePrice - promotion.discountValue;
+      }
+
+      return <span className="font-semibold text-blue-600">{formatVND(discountedPrice * r.quantity)}</span>;
+    },
     },
     {
       title: '',
