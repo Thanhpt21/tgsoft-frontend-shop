@@ -45,13 +45,6 @@ export const BlogCard: React.FC<BlogCardProps> = ({ blog }) => {
             </div>
           </div>
 
-          {/* Reading Time Badge (Optional - if you have reading time data) */}
-          <div className="absolute top-4 right-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl px-3 py-1.5 shadow-lg">
-            <div className="flex items-center gap-1.5 text-xs font-semibold">
-              <ClockCircleOutlined />
-              <span>5 phút đọc</span>
-            </div>
-          </div>
         </div>
 
         {/* Content */}

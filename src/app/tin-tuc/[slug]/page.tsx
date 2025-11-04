@@ -117,23 +117,6 @@ export default function BlogDetailPage() {
 
                 {/* Meta Info */}
                 <div className="flex flex-wrap items-center gap-6 mb-8 pb-8 border-b border-gray-200">
-                  {/* Author */}
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Image
-                        src={getImageUrl(displayedBlog.createdBy?.avatar ?? '') || 'https://via.placeholder.com/48'}
-                        alt={displayedBlog.createdBy?.name || 'Tác giả'}
-                        className="w-12 h-12 rounded-full object-cover border-2 border-blue-200"
-                        preview={false}
-                      />
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Tác giả</p>
-                      <p className="font-semibold text-gray-900">{displayedBlog.createdBy?.name || 'Ẩn danh'}</p>
-                    </div>
-                  </div>
-
                   {/* Date */}
                   <div className="flex items-center gap-2 text-gray-600">
                     <CalendarOutlined className="text-blue-600" />
@@ -150,12 +133,6 @@ export default function BlogDetailPage() {
                   <div className="flex items-center gap-2 text-gray-600">
                     <EyeOutlined className="text-blue-600" />
                     <span className="text-sm font-medium">{displayedBlog.numberViews?.toLocaleString()} lượt xem</span>
-                  </div>
-
-                  {/* Reading Time */}
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <ClockCircleOutlined className="text-blue-600" />
-                    <span className="text-sm font-medium">5 phút đọc</span>
                   </div>
                 </div>
 
@@ -230,7 +207,13 @@ export default function BlogDetailPage() {
                               </div>
                               <div className="flex items-center gap-1">
                                 <CalendarOutlined />
-                                <span>{new Date(rb.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</span>
+                                <span>
+                                  {new Date(rb.createdAt).toLocaleDateString('vi-VN', { 
+                                    day: '2-digit', 
+                                    month: '2-digit',
+                                    year: 'numeric'
+                                  })}
+                                </span>
                               </div>
                             </div>
                           </div>
