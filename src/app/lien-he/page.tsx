@@ -17,7 +17,6 @@ import {
   ShopOutlined,
   SendOutlined,
 } from "@ant-design/icons";
-import Image from "next/image";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -169,7 +168,6 @@ export default function ContactPage() {
 
           {/* Quick Info */}
           <div className="space-y-6">
-
             {isLoadingConfig ? (
               <div className="flex justify-center items-center h-48">
                 <Spin size="large" />
@@ -196,7 +194,7 @@ export default function ContactPage() {
                     </div>
                   )}
 
-                  {config.address && (
+                  {config.showAddress && config.address && (
                     <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 p-6 group cursor-pointer">
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform flex-shrink-0">
@@ -210,7 +208,7 @@ export default function ContactPage() {
                     </div>
                   )}
 
-                  {config.mobile && (
+                  {config.showMobile && config.mobile && (
                     <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 p-6 group cursor-pointer">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform flex-shrink-0">
@@ -224,7 +222,7 @@ export default function ContactPage() {
                     </div>
                   )}
 
-                  {config.email && (
+                  {config.showEmail && config.email && (
                     <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 p-6 group cursor-pointer">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform flex-shrink-0">
@@ -248,7 +246,7 @@ export default function ContactPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <div className="lg:col-span-2">
               <div className="bg-white rounded-3xl border-2 border-gray-100 shadow-lg overflow-hidden h-full min-h-[400px]">
-                {config.googlemap ? (
+                {config.showGooglemap && config.googlemap ? (
                   <iframe
                     src={extractMapSrc(config.googlemap)}
                     className="w-full h-full min-h-[400px]"
@@ -279,7 +277,7 @@ export default function ContactPage() {
                 Kết nối với chúng tôi
               </Title>
               <div className="grid grid-cols-2 gap-5">
-                {config.facebook && (
+                {config.showFacebook && config.facebook && (
                   <a
                     href={config.facebook}
                     target="_blank"
@@ -290,7 +288,7 @@ export default function ContactPage() {
                     <Text className="text-sm font-semibold text-gray-600">Facebook</Text>
                   </a>
                 )}
-                {config.instagram && (
+                {config.showInstagram && config.instagram && (
                   <a
                     href={config.instagram}
                     target="_blank"
@@ -301,7 +299,7 @@ export default function ContactPage() {
                     <Text className="text-sm font-semibold text-gray-600">Instagram</Text>
                   </a>
                 )}
-                {config.youtube && (
+                {config.showYoutube && config.youtube && (
                   <a
                     href={config.youtube}
                     target="_blank"
@@ -312,7 +310,7 @@ export default function ContactPage() {
                     <Text className="text-sm font-semibold text-gray-600">YouTube</Text>
                   </a>
                 )}
-                {config.x && (
+                {config.showX && config.x && (
                   <a
                     href={config.x}
                     target="_blank"
@@ -323,7 +321,7 @@ export default function ContactPage() {
                     <Text className="text-sm font-semibold text-gray-600">Twitter</Text>
                   </a>
                 )}
-                {config.linkedin && (
+                {config.showLinkedin && config.linkedin && (
                   <a
                     href={config.linkedin}
                     target="_blank"
@@ -334,7 +332,7 @@ export default function ContactPage() {
                     <Text className="text-sm font-semibold text-gray-600">LinkedIn</Text>
                   </a>
                 )}
-                {config.tiktok && (
+                {config.showTiktok && config.tiktok && (
                   <a
                     href={config.tiktok}
                     target="_blank"
@@ -347,7 +345,7 @@ export default function ContactPage() {
                     <Text className="text-sm font-semibold text-gray-600">TikTok</Text>
                   </a>
                 )}
-                {config.zalo && (
+                {config.showZalo && config.zalo && (
                   <a
                     href={`https://zalo.me/${config.zalo}`}
                     target="_blank"
