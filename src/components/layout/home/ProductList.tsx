@@ -104,8 +104,20 @@ export default function ProductList() {
           </>
         ) : (
           <div className="text-center py-20">
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full mb-6">
-              <span className="text-5xl">Hộp</span>
+            <div className="mb-8 flex justify-center">
+              <svg
+                className="w-48 h-48 text-gray-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                />
+              </svg>
             </div>
             <p className="text-gray-600 text-lg font-medium">
               Không có sản phẩm nào
