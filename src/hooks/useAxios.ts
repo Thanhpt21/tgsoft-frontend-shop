@@ -20,7 +20,6 @@ const useAxios = () => {
         };
       }
 
-      console.log('Request Headers:', config.headers); // Log headers để kiểm tra
       return config;
     },
     (error) => {

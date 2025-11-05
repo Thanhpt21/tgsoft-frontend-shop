@@ -30,5 +30,6 @@ export interface PromotionProduct {
     id: number;
     name: string;
     thumb?: string | null;
+    basePrice: number
   } | null;
 }

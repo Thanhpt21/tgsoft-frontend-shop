@@ -30,6 +30,7 @@ const ShoppingCart = () => {
     syncFromServer,
     selectedItems,
     setSelectedItems,
+    clearCart
   } = useCartStore();
 
   const removeItemMutation = useRemoveCartItem();
@@ -46,7 +47,7 @@ const ShoppingCart = () => {
   const { data: allAttributeValues } = useAttributeValues();
 
   const { data: cartData, isLoading: cartLoading, error: cartError } = useMyCart();
-  console.log('Giỏ hàng items:', items);
+
 
   useEffect(() => {
     if (cartData?.items) {
@@ -56,7 +57,6 @@ const ShoppingCart = () => {
     }
   }, [cartData?.items, syncFromServer]);
   
-console.log('🧺 items trong store:', items);
 
   // Cập nhật selectAll khi selectedItems thay đổi
   useEffect(() => {
@@ -123,6 +123,11 @@ console.log('🧺 items trong store:', items);
       </div>
     );
   }
+
+  const handleClearCart = () => {
+    clearCart();
+    message.success('Đã xóa toàn bộ giỏ hàng');
+  };
 
   // === XỬ LÝ XÓA ===
   const handleRemoveItem = (item: any) => {
@@ -410,6 +415,9 @@ console.log('🧺 items trong store:', items);
             </h1>
             <p className="text-gray-600">Bạn có {items.length} sản phẩm trong giỏ hàng</p>
           </div>
+          <Button danger onClick={handleClearCart} className="!rounded-lg">
+            Xóa tất cả
+          </Button>
         </div>
          <Table
           rowKey="id"

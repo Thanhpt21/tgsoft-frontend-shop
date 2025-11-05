@@ -88,7 +88,6 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
       try {
         const res = await fetch('https://esgoo.net/api-tinhthanh/1/0.htm');
         const data = await res.json();
-        console.log('📍 Danh sách tỉnh/thành phố:', data);
         if (data.error === 0 && data.data) {
           const formatted = data.data.map((p: any) => ({
             code: p.id,
@@ -122,7 +121,6 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
           try {
             const distRes = await fetch(`https://esgoo.net/api-tinhthanh/2/${provId}.htm`);
             const distData = await distRes.json();
-            console.log('🏙️ Chi tiết quận/huyện:', distData);
             if (distData.error === 0 && distData.data) {
               const formattedDist = distData.data.map((d: any) => ({
                 code: d.id,
@@ -134,7 +132,6 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
             if (distId && distId !== '0') {
               const wardRes = await fetch(`https://esgoo.net/api-tinhthanh/3/${distId}.htm`);
               const wardData = await wardRes.json();
-              console.log('🏘️ Chi tiết phường/xã:', wardData);
               if (wardData.error === 0 && wardData.data) {
                 const formattedWard = wardData.data.map((w: any) => ({
                   code: w.id,
@@ -168,7 +165,6 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
 
   const handleProvinceChange = async (value: string) => {
     const province = provinces.find((p) => p.code === value);
-    console.log('🔄 Chọn tỉnh:', { code: value, province });
     if (!province) return;
 
     setSelectedProvince(value);
@@ -192,7 +188,6 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
     try {
       const res = await fetch(`https://esgoo.net/api-tinhthanh/2/${value}.htm`);
       const data = await res.json();
-      console.log('📦 API quận/huyện trả về:', data);
       if (data.error === 0 && data.data) {
         const formatted = data.data.map((d: any) => ({
           code: d.id,
@@ -208,7 +203,6 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
 
   const handleDistrictChange = async (value: string) => {
     const district = districts.find((d) => d.code === value);
-    console.log('🔄 Chọn quận/huyện:', { code: value, district });
     if (!district) return;
 
     setSelectedDistrict(value);
@@ -227,7 +221,6 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
     try {
       const res = await fetch(`https://esgoo.net/api-tinhthanh/3/${value}.htm`);
       const data = await res.json();
-      console.log('📦 API phường/xã trả về:', data);
       if (data.error === 0 && data.data) {
         const formatted = data.data.map((w: any) => ({
           code: w.id,
@@ -243,7 +236,6 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
 
   const handleWardChange = (value: string) => {
     const ward = wards.find((w) => w.code === value);
-    console.log('🔄 Chọn phường/xã:', { code: value, ward });
     if (!ward) return;
 
     setSelectedWard(value);
@@ -270,9 +262,6 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
 
   const handleSubmit = async () => {
     const { name, phone, address, province_id, district_id, ward_id } = formValues;
-
-    console.log('💾 Dữ liệu submit:', formValues);
-
     if (!name || !phone || !address || !province_id || !district_id || !ward_id) {
       message.warning('Vui lòng điền đầy đủ thông tin bắt buộc.');
       return;

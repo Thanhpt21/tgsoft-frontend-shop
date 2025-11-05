@@ -60,22 +60,18 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
       });
 
       socketInstance.on('connect', () => {
-        console.log('✅ Admin socket connected');
         setIsConnected(true);
         socketInstance.emit('admin-login', { adminId });
         if (conversationId) {
-          console.log('🚪 Admin joining conversation on connect:', conversationId);
           socketInstance.emit('join:conversation', conversationId);
         }
       });
 
       socketInstance.on('disconnect', () => {
-        console.log('❌ Admin socket disconnected');
         setIsConnected(false);
       });
 
       socketInstance.on('message', (msg: ChatMessage) => {
-        console.log('📨 Received message:', msg, 'Current conversationId:', conversationId);
         if (msg.conversationId === conversationId) {
           setConversationMessages((prev) => {
             const exists = prev.some(m => m.id.toString() === msg.id.toString() || m.id.toString().startsWith('temp-'));
@@ -88,15 +84,12 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
       });
 
       socketInstance.on('new-user-message', (data: any) => {
-        console.log('🔔 New user message:', data);
         if (data.userId === user?.id) {
-          console.log('🔄 Reloading conversation for user:', user?.id);
           loadConversation();
         }
       });
 
       socketInstance.on('reconnect', (attempt: any) => {
-        console.log(`✅ Admin socket reconnected after ${attempt} attempts`);
         if (conversationId) {
           socketInstance.emit('join:conversation', conversationId);
         }
@@ -104,7 +97,6 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
       });
 
       socketInstance.on('connect_error', (error: any) => {
-        console.log('❌ Socket connect error:', error);
       });
 
       setSocket(socketInstance);

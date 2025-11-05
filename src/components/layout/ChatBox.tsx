@@ -32,12 +32,6 @@ export default function ChatBox() {
   // Load messages khi mở chatbox
   useEffect(() => {
     if (isOpen) {
-      console.log('📥 Loading messages when opening chatbox', {
-        sessionId: localStorage.getItem('sessionId'),
-        userId: localStorage.getItem('userId'),
-        conversationId,
-        messagesLength: messages.length,
-      });
       loadMessages();
     }
   }, [isOpen, loadMessages, conversationId]);

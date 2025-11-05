@@ -13,7 +13,6 @@ interface AppContentProps {
   children: ReactNode;
 }
 
-// Giả lập dữ liệu cấu hình
 export const mockConfigData = {
   id: 1,
   tenantId: 2,
@@ -30,6 +29,17 @@ export const mockConfigData = {
   x: 'https://twitter.com/abc',
   linkedin: 'https://linkedin.com/abc',
   logo: 'https://example.com/logo.png',
+  showEmail: true,
+  showMobile: true,
+  showAddress: true,
+  showGooglemap: true,
+  showFacebook: true,
+  showZalo: true,
+  showInstagram: true,
+  showTiktok: true,
+  showYoutube: true,
+  showX: true,
+  showLinkedin: true,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };

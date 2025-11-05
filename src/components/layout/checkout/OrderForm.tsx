@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { Typography, Button, Spin, message, Modal, Result, Radio, Space, Checkbox, Card } from 'antd'
 import { CheckCircleOutlined, ShoppingCartOutlined, HomeOutlined, EnvironmentOutlined, TruckOutlined, CreditCardOutlined, ShopOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
@@ -24,6 +24,8 @@ import { getImageUrl } from '@/utils/getImageUrl'
 import { formatVND } from '@/utils/helpers'
 import { useAllAttributes } from '@/hooks/attribute/useAllAttributes'
 import { useAttributeValues } from '@/hooks/attribute-value/useAttributeValues'
+import { useProductOne } from '@/hooks/product/useProductOne' // Import hook mới
+import { GiftProductDisplay } from '../common/GiftProductDisplay'
 
 const { Title, Text } = Typography
 
@@ -61,12 +63,47 @@ const OrderForm: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [paymentUrl, setPaymentUrl] = useState('')
   
+  const [shippingInfo, setShippingInfo] = useState<ShippingAddress>({
+    id: 0,
+    tenantId: 1,
+    userId: null,
+    name: '',
+    phone: '',
+    address: '',
+    ward_id: undefined,
+    district_id: undefined,
+    province_id: undefined,
+    ward_name: '',
+    district_name: '',
+    province_name: '',
+    city_name: '',
+    province: '',
+    district: '',
+    ward: '',
+    is_default: false,
+    createdAt: '',
+    updatedAt: '',
+    note: '',
+  })
+
+  
   // ===== Order Summary State =====
-  const { items, syncFromServer, updateQuantityOptimistic, removeItemOptimistic, selectedItems, toggleSelectItem, selectAll,isSelectAll, getSelectedTotal, clearSelectedItems } = useCartStore()
+  const { 
+    items, 
+    syncFromServer, 
+    updateQuantityOptimistic, 
+    removeItemOptimistic, 
+    selectedItems, 
+    toggleSelectItem, 
+    selectAll,
+    isSelectAll, 
+    getSelectedTotal, 
+    clearSelectedItems 
+  } = useCartStore()
+
   const { data: allAttributes } = useAllAttributes()
   const { data: allAttributeValues } = useAttributeValues()
-
-  console.log("items", items)
+  
 
   useEffect(() => {
     setMounted(true)
@@ -81,7 +118,6 @@ const OrderForm: React.FC = () => {
     acc[val.id] = val.value
     return acc
   }, {} as Record<number, string>) ?? {}
-
 
   // Đồng bộ khi cart từ server thay đổi
   useEffect(() => {
@@ -111,23 +147,11 @@ const OrderForm: React.FC = () => {
     selectAll(isChecked, allItemIds);
   };
 
-  const handleQuantityChange = (itemId: number, quantity: number) => {
-    updateQuantityOptimistic(itemId, quantity)
-  }
-
-  const handleRemoveItem = (itemId: number) => {
-    removeItemOptimistic(itemId)
-  }
-
-
   // Tính toán
   const temporaryTotal = getSelectedTotal();
-
   const currentShippingFee = shippingFee || 0
   const finalTotal = temporaryTotal + currentShippingFee
   const isSelectAllDisabled = items.length > 10
-
-  // ===== End Order Summary =====
 
   const totalWeight = items
     .filter(item => selectedItems.has(item.id))
@@ -136,7 +160,6 @@ const OrderForm: React.FC = () => {
   const totalValue = items
     .filter(item => selectedItems.has(item.id))
     .reduce((sum, item) => sum + item.priceAtAdd * item.quantity, 0);
-
 
   useEffect(() => {
     if (shippingAddresses && shippingAddresses.length > 0) {
@@ -168,31 +191,6 @@ const OrderForm: React.FC = () => {
       })
     }
   }
-
-  const [shippingInfo, setShippingInfo] = useState<ShippingAddress>({
-    id: 0,
-    tenantId: 1,
-    userId: null,
-    name: '',
-    phone: '',
-    address: '',
-    ward_id: undefined,
-    district_id: undefined,
-    province_id: undefined,
-    ward_name: '',
-    district_name: '',
-    province_name: '',
-    city_name: '',
-    province: '',
-    district: '',
-    ward: '',
-    is_default: false,
-    createdAt: '',
-    updatedAt: '',
-    note: '',
-  })
-
-  if (isLoading) return <Spin tip="Đang tải giỏ hàng..." className="flex justify-center items-center min-h-screen" />
 
   const handleSelectShippingMethod = (methodId: number | null, fee: number | null) => {
     setShippingFee(fee)
@@ -237,18 +235,22 @@ const OrderForm: React.FC = () => {
       note: shippingInfo.note,
     }
 
-  const orderItems: OrderItemDto[] = items
-    .filter(item => selectedItems.has(item.id)) // chỉ lấy các item đã chọn
-    .map(item => ({
-      sku: item.variant.sku,
-      productVariantId: item.variant.id,
-      quantity: item.quantity,
-      unitPrice: item.finalPrice, // Lấy giá cuối cùng từ item
-      warehouseId: Number(warehouseId),
-    }));
-
-  
-
+    // Tạo order items + kèm quà tặng
+    const orderItems: OrderItemDto[] = items
+      .filter(item => selectedItems.has(item.id))
+      .map(item => {
+        const promotion = item.variant.product.promotionProducts?.[0];
+        return {
+          sku: item.variant.sku,
+          productVariantId: item.variant.id,
+          quantity: item.quantity,
+          unitPrice: item.finalPrice,
+          warehouseId: Number(warehouseId),
+          // Gửi quà tặng (nếu có)
+          giftProductId: promotion?.giftProductId ?? undefined,
+          giftQuantity: promotion?.giftQuantity ?? 0,
+        };
+      });
 
     const payload: CreateOrderDto = {
       shippingInfo: shippingPayload,
@@ -261,8 +263,6 @@ const OrderForm: React.FC = () => {
       deliveryMethod: deliveryMethod,
     }
 
-    console.log("payload", payload)
-
     createOrder(payload, {
       onSuccess: async (response) => {
         const orderId = response.id
@@ -273,9 +273,7 @@ const OrderForm: React.FC = () => {
           removeCartItem(itemId);
           removeItemOptimistic(itemId);
         });
-        // Xóa selectedItems sau khi đặt hàng
         clearSelectedItems();
-              
 
         if (paymentMethod.code === 'VNPAY') {
           const paymentUrl = `https://api.aiban.vn/payments/vnpay?orderId=${orderId}&amount=${totalAmount}&returnUrl=https://api.aiban.vn/payments/vnpay/callback`
@@ -306,7 +304,6 @@ const OrderForm: React.FC = () => {
     })
   }
 
-  
 
   if (orderCompleted) {
     return (
@@ -346,6 +343,9 @@ const OrderForm: React.FC = () => {
       </div>
     )
   }
+
+  if (isLoading) return <Spin tip="Đang tải giỏ hàng..." className="flex justify-center items-center min-h-screen" />
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8 md:py-12">
@@ -458,126 +458,136 @@ const OrderForm: React.FC = () => {
             </Card>
           </div>
 
-        {/* Cột phải - Order Summary (Đã gộp vào) */}
-        <div className="lg:col-span-4">
-          <div className="bg-white p-6 rounded-xl shadow-sm sticky top-6">
-            <Title level={4} className="mb-4">Tóm tắt đơn hàng</Title>
-            
-            {/* Order Summary Content */}
-            <Card>
-              {/* Chọn tất cả checkbox */}
-              <div className="flex items-center mb-4">
-                <Checkbox
-                  checked={isSelectAll()}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    if (checked && items.length > 10) {
-                      message.warning('Chỉ được chọn tối đa 10 sản phẩm');
-                      return;
-                    }
-                    const ids = items.slice(0, 10).map(i => i.id);
-                    selectAll(checked, ids);
-                  }}
-                  disabled={items.length > 10}
-                />
-                <Text className="ml-2">Chọn tất cả</Text>
-                {isSelectAllDisabled && <Text type="secondary" className="ml-2">(Tối đa 10 sản phẩm)</Text>}
-              </div>
+          {/* Right Column - Order Summary */}
+          <div className="lg:col-span-4">
+            <div className="bg-white p-6 rounded-xl shadow-sm sticky top-6">
+              <Title level={4} className="mb-4">Tóm tắt đơn hàng</Title>
+              
+              <Card>
+                {/* Select All */}
+                <div className="flex items-center mb-4">
+                  <Checkbox
+                    checked={isSelectAll()}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      if (checked && items.length > 10) {
+                        message.warning('Chỉ được chọn tối đa 10 sản phẩm');
+                        return;
+                      }
+                      const ids = items.slice(0, 10).map(i => i.id);
+                      selectAll(checked, ids);
+                    }}
+                    disabled={items.length > 10}
+                  />
+                  <Text className="ml-2">Chọn tất cả</Text>
+                  {isSelectAllDisabled && <Text type="secondary" className="ml-2">(Tối đa 10 sản phẩm)</Text>}
+                </div>
 
-              {/* Cart Items */}
-              <div className="max-h-96 overflow-y-auto mb-4 space-y-3">
-                {items.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">Giỏ hàng trống</div>
-                ) : (
-                  items.map((item) => {
-                    const thumbUrl = getImageUrl(
-                      item.variant.thumb || 
-                      item.variant.product.thumb || 
-                      '/no-image.png'
-                    )
+                {/* Cart Items */}
+                <div className="max-h-96 overflow-y-auto mb-4 space-y-3">
+                  {items.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">Giỏ hàng trống</div>
+                  ) : (
+                    items.map((item) => {
+                      const thumbUrl = getImageUrl(
+                        item.variant.thumb || 
+                        item.variant.product.thumb || 
+                        '/no-image.png'
+                      )
 
-                    return (
-                      <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all">
-                        <Checkbox
-                          checked={selectedItems.has(item.id)}
-                          onChange={() => handleCheckboxChange(item.id)}
-                        />
+                   const promotion = item.variant.product.promotionProducts?.[0];
 
-                        <img
-                          src={thumbUrl || '/placeholder.jpg'}
-                          alt={item.variant.product.name}
-                          className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
-                        />
+                      return (
+                        <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all">
+                          <Checkbox
+                            checked={selectedItems.has(item.id)}
+                            onChange={() => handleCheckboxChange(item.id)}
+                          />
 
-                        <div className="flex-1 min-w-0">
-                          <Text strong className="block truncate">{item.variant.product.name}</Text>
-                          <div className="text-xs text-gray-500 mt-1">
-                            {renderAttributes(item.variant.attrValues)}
-                          </div>
-                          <div className="flex items-center justify-between mt-2">
-                            <Text className="text-blue-600 font-semibold">{formatVND(item.finalPrice)}</Text>
-                            <Text type="secondary">x {item.quantity}</Text>
+                          <img
+                            src={thumbUrl || ''}
+                            alt={item.variant.product.name}
+                            className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                          />
+
+                          <div className="flex-1 min-w-0">
+                            <Text strong className="block truncate">{item.variant.product.name}</Text>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {renderAttributes(item.variant.attrValues)}
+                            </div>
+
+                            {/* Quà tặng */}
+                           {promotion && promotion.giftProductId && promotion.giftQuantity && ( 
+                              <GiftProductDisplay 
+                                giftProductId={promotion.giftProductId}
+                                giftQuantity={promotion.giftQuantity}
+                              />
+                            )}
+
+                            <div className="flex items-center justify-between mt-2">
+                              <Text className="text-blue-600 font-semibold">{formatVND(item.finalPrice)}</Text>
+                              <Text type="secondary">x {item.quantity}</Text>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
+                      )
+                    })
+                  )}
+                </div>
 
-              {/* Summary */}
-              <div className="border-t pt-4 space-y-3">
-                <div className="flex justify-between">
-                  <Text className="text-gray-600">Tạm tính:</Text>
-                  <Text className="font-semibold">{formatVND(temporaryTotal)}</Text>
+                {/* Summary */}
+                <div className="border-t pt-4 space-y-3">
+                  <div className="flex justify-between">
+                    <Text className="text-gray-600">Tạm tính:</Text>
+                    <Text className="font-semibold">{formatVND(temporaryTotal)}</Text>
+                  </div>
+                  <div className="flex justify-between">
+                    <Text className="text-gray-600">Phí vận chuyển:</Text>
+                    <Text className="font-semibold">{formatVND(currentShippingFee)}</Text>
+                  </div>
+                  <div className="flex justify-between items-center pt-3 border-t">
+                    <Text strong className="text-lg">Tổng cộng:</Text>
+                    <Text strong className="text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      {formatVND(finalTotal)}
+                    </Text>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <Text className="text-gray-600">Phí vận chuyển:</Text>
-                  <Text className="font-semibold">{formatVND(currentShippingFee)}</Text>
-                </div>
-                <div className="flex justify-between items-center pt-3 border-t">
-                  <Text strong className="text-lg">Tổng cộng:</Text>
-                  <Text strong className="text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    {formatVND(finalTotal)}
-                  </Text>
-                </div>
-              </div>
 
-              {/* Place Order Button */}
-              <Button
-                type="primary"
-                size="large"
-                block
-                onClick={handlePlaceOrder}
-                loading={isCreatingOrder}
-                disabled={!shippingInfo.name || !paymentMethod || !warehouseId || shippingFee === null || selectedItems.size === 0}
-                className="mt-6 !h-14 !rounded-xl !text-base font-bold !bg-gradient-to-r !from-blue-500 !to-purple-500 hover:!from-blue-600 hover:!to-purple-600 !border-0 shadow-lg hover:shadow-xl transition-all"
-              >
-                Đặt hàng ngay
-              </Button>
-            </Card>
+                {/* Place Order Button */}
+                <Button
+                  type="primary"
+                  size="large"
+                  block
+                  onClick={handlePlaceOrder}
+                  loading={isCreatingOrder}
+                  disabled={!shippingInfo.name || !paymentMethod || !warehouseId || shippingFee === null || selectedItems.size === 0}
+                  className="mt-6 !h-14 !rounded-xl !text-base font-bold !bg-gradient-to-r !from-blue-500 !to-purple-500 hover:!from-blue-600 hover:!to-purple-600 !border-0 shadow-lg hover:shadow-xl transition-all"
+                >
+                  Đặt hàng ngay
+                </Button>
+              </Card>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Modal VNPay */}
-      <Modal
-        title={<span className="text-xl font-bold">Thanh toán VNPay</span>}
-        open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
-        footer={null}
-        width="80%"
-        centered
-      >
-        <iframe
-          src={paymentUrl}
-          width="100%"
-          height="600"
-          title="VNPay Payment"
-          className="rounded-xl"
-        />
-      </Modal>
-    </div>
+        {/* Modal VNPay */}
+        <Modal
+          title={<span className="text-xl font-bold">Thanh toán VNPay</span>}
+          open={isModalVisible}
+          onCancel={() => setIsModalVisible(false)}
+          footer={null}
+          width="80%"
+          centered
+        >
+          <iframe
+            src={paymentUrl}
+            width="100%"
+            height="600"
+            title="VNPay Payment"
+            className="rounded-xl"
+          />
+        </Modal>
+      </div>
     </div>
   )
 }
