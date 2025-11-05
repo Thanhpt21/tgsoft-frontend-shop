@@ -87,7 +87,6 @@ const PurchaseHistory: React.FC = () => {
 
   const handleChatSupport = (order: Order) => {
   if (!isConnected) {
-    console.log('Chat chưa được kết nối');
     return;
   }
 

@@ -5,10 +5,12 @@ import type { ColumnsType } from 'antd/es/table'
 import { EditOutlined, DeleteOutlined, PictureOutlined, MessageOutlined } from '@ant-design/icons'
 import { useUsers } from '@/hooks/user/useUsers'
 import { useDeleteUser } from '@/hooks/user/useDeleteUser'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { UserCreateModal } from './UserCreateModal'
 import { UserUpdateModal } from './UserUpdateModal'
-import { UserChatModal } from './UserChatModal' // 🔥 NEW
+import { UserChatModal } from './UserChatModal'
+import ioClient from 'socket.io-client'
+import { useAuth } from '@/context/AuthContext'
 
 import type { User } from '@/types/user.type'
 import { getImageUrl } from '@/utils/getImageUrl'
@@ -19,11 +21,80 @@ export default function UserTable() {
   const [inputValue, setInputValue] = useState('')
   const [openCreate, setOpenCreate] = useState(false)
   const [openUpdate, setOpenUpdate] = useState(false)
-  const [openChat, setOpenChat] = useState(false) // 🔥 NEW
+  const [openChat, setOpenChat] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [unreadCounts, setUnreadCounts] = useState<Record<number, number>>({}) // conversationId -> count
+  const { currentUser } = useAuth()
 
   const { data, isLoading, refetch } = useUsers({ page, limit: 10, search })
   const { mutateAsync: deleteUser, isPending: isDeleting } = useDeleteUser()
+
+  // Socket để lắng nghe tin nhắn mới
+  useEffect(() => {
+    if (!currentUser?.id) return
+
+    const WS_URL = process.env.NEXT_PUBLIC_WS_URL
+    const socketInstance = ioClient(`${WS_URL}/chat`, {
+      auth: {
+        userId: currentUser?.id,
+        isAdmin: true,
+        tenantId: parseInt(process.env.NEXT_PUBLIC_TENANT_ID || '1', 10),
+      },
+      transports: ['websocket'],
+      reconnection: true,
+    })
+
+    socketInstance.on('connect', () => {
+      socketInstance.emit('admin-login', { adminId: currentUser?.id })
+    })
+
+    // Lắng nghe tin nhắn mới từ user
+    socketInstance.on('message', (msg: any) => {
+      
+      // Chỉ đếm tin nhắn từ USER hoặc GUEST (không phải ADMIN/BOT)
+      if ((msg.senderType === 'USER' || msg.senderType === 'GUEST') && msg.conversationId) {
+        setUnreadCounts(prev => {
+          const newCounts = {
+            ...prev,
+            [msg.conversationId]: (prev[msg.conversationId] || 0) + 1
+          }
+          return newCounts
+        })
+      }
+    })
+
+    // Lắng nghe event new-user-message (nếu server emit event này)
+    socketInstance.on('new-user-message', (data: any) => {
+      if (data.conversationId) {
+        setUnreadCounts(prev => ({
+          ...prev,
+          [data.conversationId]: (prev[data.conversationId] || 0) + 1
+        }))
+      }
+    })
+
+    socketInstance.on('disconnect', () => {
+    })
+
+    return () => {
+      socketInstance.disconnect()
+    }
+  }, [currentUser?.id])
+
+  // Reset unread count khi mở chat
+  const handleOpenChat = (user: User) => {
+    if (user?.conversationId) {
+      setSelectedUser(user)
+      setOpenChat(true)
+      // Reset count khi mở chat
+      setUnreadCounts(prev => ({
+        ...prev,
+        [user.conversationId!]: 0
+      }))
+    } else {
+      message.error('Người dùng này chưa có cuộc trò chuyện!')
+    }
+  }
 
   const columns: ColumnsType<User> = [
     {
@@ -82,32 +153,39 @@ export default function UserTable() {
         </Tag>
       ),
     },
-    // 🔥 NEW: Chat Column
-  {
+    {
       title: 'Tin nhắn',
       key: 'chat',
-      width: 100,
+      width: 120,
       align: 'center',
-      render: (_, record) => (
-        <Tooltip title="Xem tin nhắn">
-          <Badge dot={false}> {/* Có thể thêm dot nếu có unread messages */} 
-            <MessageOutlined
-              style={{ 
-                color: '#1890ff', 
-                cursor: 'pointer' 
-              }}
-              onClick={() => {
-                if (record?.conversationId) {
-                  setSelectedUser(record)
-                  setOpenChat(true)
-                } else {
-                  message.error('Người dùng này chưa có cuộc trò chuyện!')
-                }
-              }}
-            />
-          </Badge>
-        </Tooltip>
-      ),
+      render: (_, record) => {
+        const unreadCount = record.conversationId ? (unreadCounts[record.conversationId] || 0) : 0
+        
+        return (
+          <div className="flex justify-center items-center">
+            <Tooltip title={unreadCount > 0 ? `${unreadCount} tin nhắn mới` : 'Xem tin nhắn'}>
+              <div className="relative inline-block">
+                <MessageOutlined
+                  style={{ 
+                    color: '#1890ff', 
+                    cursor: 'pointer',
+                    fontSize: '20px'
+                  }}
+                  onClick={() => handleOpenChat(record)}
+                />
+                {unreadCount > 0 && (
+                  <span 
+                    className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+                    style={{ fontSize: '10px' }}
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </div>
+            </Tooltip>
+          </div>
+        )
+      },
     },
     {
       title: 'Hành động',
@@ -209,7 +287,7 @@ export default function UserTable() {
         refetch={refetch}
       />
 
-      {/* 🔥 NEW: Chat Modal */}
+      {/* Chat Modal */}
       <UserChatModal
         open={openChat}
         onClose={() => {
@@ -217,7 +295,7 @@ export default function UserTable() {
           setSelectedUser(null)
         }}
         user={selectedUser}
-         conversationId={selectedUser?.conversationId ?? null}
+        conversationId={selectedUser?.conversationId ?? null}
       />
     </div>
   )

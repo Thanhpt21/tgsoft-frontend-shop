@@ -278,6 +278,46 @@ export const ConfigCreateModal = ({ open, onClose, refetch }: ConfigCreateModalP
           </Col>
         </Row>
 
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="VNP_TMN_CODE" name="VNP_TMN_CODE">
+              <Input placeholder="Nhập VNP_TMN_CODE" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="VNP_SECRET" name="VNP_SECRET">
+              <Input placeholder="Nhập VNP_SECRET" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="VNP_API_URL" name="VNP_API_URL">
+              <Input placeholder="Nhập VNP_API_URL" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="EMAIL_USER" name="EMAIL_USER">
+              <Input placeholder="Nhập EMAIL_USER" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="EMAIL_PASS" name="EMAIL_PASS">
+              <Input.Password placeholder="Nhập EMAIL_PASS" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="EMAIL_FROM" name="EMAIL_FROM">
+              <Input placeholder="Nhập EMAIL_FROM" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+
         <Form.Item style={{ marginTop: 24 }}>
           <Button type="primary" htmlType="submit" loading={isPending} block size="large">
             Tạo mới

@@ -41,6 +41,13 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
         x: config.x || '',
         linkedin: config.linkedin || '',
 
+        VNP_TMN_CODE: config.VNP_TMN_CODE || '',
+        VNP_SECRET: config.VNP_SECRET || '',
+        VNP_API_URL: config.VNP_API_URL || '',
+        EMAIL_USER: config.EMAIL_USER || '',
+        EMAIL_PASS: config.EMAIL_PASS || '',
+        EMAIL_FROM: config.EMAIL_FROM || '',
+
         // Checkboxes
         showEmail: config.showEmail ?? true,
         showMobile: config.showMobile ?? true,
@@ -301,6 +308,45 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
           <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
             <Form.Item name="showLinkedin" valuePropName="checked" noStyle>
               <Checkbox>Hiển thị LinkedIn</Checkbox>
+            </Form.Item>
+          </Col>
+        </Row>
+
+         <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="VNP_TMN_CODE" name="VNP_TMN_CODE">
+              <Input placeholder="Nhập VNP_TMN_CODE" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="VNP_SECRET" name="VNP_SECRET">
+              <Input.Password placeholder="Nhập VNP_SECRET" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="VNP_API_URL" name="VNP_API_URL">
+              <Input placeholder="Nhập VNP_API_URL" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="EMAIL_USER" name="EMAIL_USER">
+              <Input placeholder="Nhập EMAIL_USER" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="EMAIL_PASS" name="EMAIL_PASS">
+              <Input.Password placeholder="Nhập EMAIL_PASS" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="EMAIL_FROM" name="EMAIL_FROM">
+              <Input placeholder="Nhập EMAIL_FROM" />
             </Form.Item>
           </Col>
         </Row>

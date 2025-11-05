@@ -28,11 +28,7 @@ export const useLogin = (): UseMutationResult<LoginResponse, Error, LoginBody> =
       if (data.user && data.user.id) {
         const tenantId = data.user.tenantId || 
         parseInt(process.env.NEXT_PUBLIC_TENANT_ID || '1')
-        
-        console.log('🔐 User logged in, emitting to socket:', {
-          userId: data.user.id,
-          tenantId
-        })
+      
 
         // Đợi một chút để socket connection ổn định
         setTimeout(() => {

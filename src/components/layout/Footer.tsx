@@ -29,7 +29,6 @@ const Footer = ({ config }: FooterProps) => {
   const [email, setEmail] = useState("");
 
   const handleSubscribe = () => {
-    console.log("Subscribed:", email);
     setEmail("");
   };
 

@@ -17,7 +17,9 @@ export default function ChatBox() {
   const { messages, sendMessage, isConnected, isTyping, loadMessages, conversationId } = useChat();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const previousMessagesLengthRef = useRef(0);
 
   // Tự động cuộn xuống dưới cùng khi có tin nhắn mới
   useEffect(() => {
@@ -33,8 +35,24 @@ export default function ChatBox() {
   useEffect(() => {
     if (isOpen) {
       loadMessages();
+      setUnreadCount(0); // Reset số tin nhắn chưa đọc khi mở chatbox
     }
   }, [isOpen, loadMessages, conversationId]);
+
+  // Đếm tin nhắn mới từ BOT hoặc ADMIN khi chatbox đóng
+  useEffect(() => {
+    if (!isOpen && messages.length > previousMessagesLengthRef.current) {
+      const newMessages = messages.slice(previousMessagesLengthRef.current);
+      const newUnreadCount = newMessages.filter(
+        msg => msg.senderType === 'BOT' || msg.senderType === 'ADMIN'
+      ).length;
+      
+      if (newUnreadCount > 0) {
+        setUnreadCount(prev => prev + newUnreadCount);
+      }
+    }
+    previousMessagesLengthRef.current = messages.length;
+  }, [messages, isOpen]);
 
   // Xử lý khi người dùng gửi tin nhắn
   const handleSend = () => {
@@ -67,15 +85,26 @@ export default function ChatBox() {
   return (
     <>
       {/* Nút chat nổi */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-5 right-5 z-[9999] bg-blue-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-blue-700 transition-all hover:scale-105 flex items-center gap-2"
-      >
-        💬 <span className="font-medium">Chat hỗ trợ</span>
+      <div className="fixed bottom-5 right-5 z-[9999]">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="relative bg-blue-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-blue-700 transition-all hover:scale-105 flex items-center gap-2"
+        >
+          💬 <span className="font-medium">Chat hỗ trợ</span>
+        </button>
+        
+        {/* Dot đỏ khi mất kết nối */}
         {!isConnected && (
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+          <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
         )}
-      </button>
+        
+        {/* Badge số lượng tin nhắn mới */}
+        {unreadCount > 0 && isConnected && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 shadow-md">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </div>
 
       {/* Cửa sổ chat */}
       {isOpen && (
