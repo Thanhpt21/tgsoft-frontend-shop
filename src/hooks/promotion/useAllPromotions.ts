@@ -10,3 +10,4 @@ export const useAllPromotions = (search?: string) => {
     },
   });
 };
+ 

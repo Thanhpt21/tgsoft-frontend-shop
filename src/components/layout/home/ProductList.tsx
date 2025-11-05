@@ -21,7 +21,7 @@ export default function ProductList() {
     limit: PRODUCTS_PER_PAGE,
   });
 
-  const filteredProducts = (productsResponse?.data as Product[] || []).filter(
+  const filteredProducts = ((productsResponse?.data as Product[]) || []).filter(
     (p) => p.isPublished && p.isFeatured
   );
 
@@ -29,10 +29,10 @@ export default function ProductList() {
 
   if (isLoading) {
     return (
-      <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      <section className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <Spin size="large" />
-          <p className="mt-4 text-gray-600 font-medium animate-pulse">Đang tải sản phẩm...</p>
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-gray-300 mb-4"></div>
+          <p className="text-gray-600 font-medium">Đang tải sản phẩm...</p>
         </div>
       </section>
     );
@@ -45,7 +45,9 @@ export default function ProductList() {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">Lỗi</span>
           </div>
-          <p className="text-red-600 font-semibold text-lg">Không thể tải sản phẩm</p>
+          <p className="text-red-600 font-semibold text-lg">
+            Không thể tải sản phẩm
+          </p>
           <p className="text-gray-500 mt-2">Vui lòng thử lại sau</p>
         </div>
       </div>
@@ -71,7 +73,8 @@ export default function ProductList() {
             Sản phẩm nổi bật
           </h2>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Khám phá những sản phẩm tuyệt vời được tuyển chọn đặc biệt dành cho bạn
+            Khám phá những sản phẩm tuyệt vời được tuyển chọn đặc biệt dành cho
+            bạn
           </p>
         </div>
 
@@ -104,7 +107,9 @@ export default function ProductList() {
             <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full mb-6">
               <span className="text-5xl">Hộp</span>
             </div>
-            <p className="text-gray-600 text-lg font-medium">Không có sản phẩm nào</p>
+            <p className="text-gray-600 text-lg font-medium">
+              Không có sản phẩm nào
+            </p>
             <p className="text-gray-400 mt-2">Hãy quay lại sau nhé!</p>
           </div>
         )}
