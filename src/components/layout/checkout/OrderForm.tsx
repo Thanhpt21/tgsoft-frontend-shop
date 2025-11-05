@@ -24,7 +24,7 @@ import { getImageUrl } from '@/utils/getImageUrl'
 import { formatVND } from '@/utils/helpers'
 import { useAllAttributes } from '@/hooks/attribute/useAllAttributes'
 import { useAttributeValues } from '@/hooks/attribute-value/useAttributeValues'
-import { useProductOne } from '@/hooks/product/useProductOne' // Import hook mới
+import { useProductOne } from '@/hooks/product/useProductOne'
 import { GiftProductDisplay } from '../common/GiftProductDisplay'
 
 const { Title, Text } = Typography
@@ -307,7 +307,7 @@ const OrderForm: React.FC = () => {
 
   if (orderCompleted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center py-12">
+      <div className="min-h-screen flex items-center justify-center py-12">
         <Card className="max-w-2xl w-full mx-4 !rounded-3xl !border-2 shadow-2xl">
           <Result
             status="success"
@@ -325,7 +325,7 @@ const OrderForm: React.FC = () => {
                 key="orders" 
                 size="large"
                 onClick={() => router.push('/tai-khoan?p=history')}
-                className="!h-12 !px-8 !rounded-xl !bg-gradient-to-r !from-blue-500 !to-purple-500 hover:!from-blue-600 hover:!to-purple-600"
+                className="mb-3 !h-12 !px-8 !rounded-xl !bg-gradient-to-r !from-blue-500 !to-purple-500 hover:!from-blue-600 hover:!to-purple-600"
               >
                 Xem đơn hàng
               </Button>,
@@ -348,10 +348,10 @@ const OrderForm: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8 md:py-12">
-      <div className="container mx-auto px-4 max-w-7xl">
+    <div className="min-h-screen py-8 md:py-12">
+      <div className="container mx-auto max-w-7xl px-2 md:px-4">
         {/* Breadcrumb */}
-        <div className="mb-8 flex items-center gap-2 text-gray-600">
+        <div className="mb-8 flex items-center gap-2 text-gray-600 px-2 md:px-0">
           <Link href="/gio-hang" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
             <ShoppingCartOutlined />
             <span>Giỏ hàng</span>
@@ -360,8 +360,8 @@ const OrderForm: React.FC = () => {
           <span className="text-gray-900 font-medium">Thanh toán</span>
         </div>
 
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
+        {/* Header - Desktop */}
+        <div className="hidden md:flex items-center gap-3 mb-8">
           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
             <CreditCardOutlined className="text-white text-2xl" />
           </div>
@@ -373,9 +373,17 @@ const OrderForm: React.FC = () => {
           </div>
         </div>
 
+        {/* Header - Mobile */}
+        <div className="md:hidden mb-4 px-2">
+          <h1 className="text-2xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+            Thanh toán
+          </h1>
+          <p className="text-gray-600 text-sm">Hoàn tất đơn hàng của bạn</p>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-7 space-y-6 md:px-0">
             {/* Shipping Address */}
             <Card className="!rounded-3xl !border-2 shadow-lg">
               <div className="flex items-center gap-3 mb-6">
@@ -459,8 +467,8 @@ const OrderForm: React.FC = () => {
           </div>
 
           {/* Right Column - Order Summary */}
-          <div className="lg:col-span-4">
-            <div className="bg-white p-6 rounded-xl shadow-sm sticky top-6">
+          <div className="lg:col-span-5  md:px-0">
+            <div className="bg-white  md:p-6 rounded-xl shadow-sm sticky top-6">
               <Title level={4} className="mb-4">Tóm tắt đơn hàng</Title>
               
               <Card>
@@ -480,11 +488,11 @@ const OrderForm: React.FC = () => {
                     disabled={items.length > 10}
                   />
                   <Text className="ml-2">Chọn tất cả</Text>
-                  {isSelectAllDisabled && <Text type="secondary" className="ml-2">(Tối đa 10 sản phẩm)</Text>}
+                  {isSelectAllDisabled && <Text type="secondary" className="ml-2 text-xs">(Tối đa 10)</Text>}
                 </div>
 
-                {/* Cart Items */}
-                <div className="max-h-96 overflow-y-auto mb-4 space-y-3">
+                {/* Cart Items - Desktop */}
+                <div className="hidden md:block max-h-96 overflow-y-auto mb-4 space-y-3">
                   {items.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">Giỏ hàng trống</div>
                   ) : (
@@ -495,7 +503,7 @@ const OrderForm: React.FC = () => {
                         '/no-image.png'
                       )
 
-                   const promotion = item.variant.product.promotionProducts?.[0];
+                      const promotion = item.variant.product.promotionProducts?.[0];
 
                       return (
                         <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all">
@@ -517,7 +525,7 @@ const OrderForm: React.FC = () => {
                             </div>
 
                             {/* Quà tặng */}
-                           {promotion && promotion.giftProductId && promotion.giftQuantity && ( 
+                            {promotion && promotion.giftProductId && promotion.giftQuantity && ( 
                               <GiftProductDisplay 
                                 giftProductId={promotion.giftProductId}
                                 giftQuantity={promotion.giftQuantity}
@@ -535,19 +543,75 @@ const OrderForm: React.FC = () => {
                   )}
                 </div>
 
+                {/* Cart Items - Mobile (giống layout giỏ hàng) */}
+                <div className="md:hidden max-h-96 overflow-y-auto mb-4 space-y-3">
+                  {items.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 text-sm">Giỏ hàng trống</div>
+                  ) : (
+                    items.map((item) => {
+                      const thumbUrl = getImageUrl(
+                        item.variant.thumb || 
+                        item.variant.product.thumb || 
+                        '/no-image.png'
+                      )
+                      const promotion = item.variant.product.promotionProducts?.[0];
+
+                      return (
+                        <div key={item.id} className="flex gap-2 p-2 bg-gray-50 rounded-xl">
+                          <Checkbox
+                            checked={selectedItems.has(item.id)}
+                            onChange={() => handleCheckboxChange(item.id)}
+                            className="mt-1"
+                          />
+                          
+                          <img
+                            src={thumbUrl || ''}
+                            alt={item.variant.product.name}
+                            className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                          />
+                          
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm text-gray-900 mb-1 line-clamp-2">
+                              {item.variant.product.name}
+                            </h3>
+                            <p className="text-xs text-gray-500 mb-1">
+                              {renderAttributes(item.variant.attrValues)}
+                            </p>
+                            
+                            {/* Quà tặng */}
+                            {promotion && promotion.giftProductId && promotion.giftQuantity && ( 
+                              <div className="mb-1">
+                                <GiftProductDisplay 
+                                  giftProductId={promotion.giftProductId}
+                                  giftQuantity={promotion.giftQuantity}
+                                />
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center justify-between">
+                              <Text className="text-blue-600 font-semibold text-sm">{formatVND(item.finalPrice)}</Text>
+                              <Text type="secondary" className="text-xs">x {item.quantity}</Text>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+
                 {/* Summary */}
                 <div className="border-t pt-4 space-y-3">
                   <div className="flex justify-between">
-                    <Text className="text-gray-600">Tạm tính:</Text>
-                    <Text className="font-semibold">{formatVND(temporaryTotal)}</Text>
+                    <Text className="text-gray-600 text-sm md:text-base">Tạm tính:</Text>
+                    <Text className="font-semibold text-sm md:text-base">{formatVND(temporaryTotal)}</Text>
                   </div>
                   <div className="flex justify-between">
-                    <Text className="text-gray-600">Phí vận chuyển:</Text>
-                    <Text className="font-semibold">{formatVND(currentShippingFee)}</Text>
+                    <Text className="text-gray-600 text-sm md:text-base">Phí vận chuyển:</Text>
+                    <Text className="font-semibold text-sm md:text-base">{formatVND(currentShippingFee)}</Text>
                   </div>
                   <div className="flex justify-between items-center pt-3 border-t">
-                    <Text strong className="text-lg">Tổng cộng:</Text>
-                    <Text strong className="text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    <Text strong className="text-base md:text-lg">Tổng cộng:</Text>
+                    <Text strong className="text-xl md:text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                       {formatVND(finalTotal)}
                     </Text>
                   </div>
@@ -561,9 +625,9 @@ const OrderForm: React.FC = () => {
                   onClick={handlePlaceOrder}
                   loading={isCreatingOrder}
                   disabled={!shippingInfo.name || !paymentMethod || !warehouseId || shippingFee === null || selectedItems.size === 0}
-                  className="mt-6 !h-14 !rounded-xl !text-base font-bold !bg-gradient-to-r !from-blue-500 !to-purple-500 hover:!from-blue-600 hover:!to-purple-600 !border-0 shadow-lg hover:shadow-xl transition-all"
+                  className="mt-6 !h-12 md:!h-14 !rounded-xl !text-sm md:!text-base font-bold !bg-gradient-to-r !from-blue-500 !to-purple-500 hover:!from-blue-600 hover:!to-purple-600 !border-0 shadow-lg hover:shadow-xl transition-all"
                 >
-                  Đặt hàng ngay
+                  Đặt hàng ngay ({selectedItems.size})
                 </Button>
               </Card>
             </div>

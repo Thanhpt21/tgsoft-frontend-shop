@@ -37,13 +37,9 @@ export default function AboutUsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 relative overflow-hidden">
-      {/* Background blur */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-200/20 to-purple-200/20 rounded-full blur-3xl -z-10"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-200/20 to-pink-200/20 rounded-full blur-3xl -z-10"></div>
-
-      {/* Main container — fixed width like “Liên hệ” */}
-      <div className="mx-auto max-w-[1400px] px-4 md:px-6 lg:px-8 py-16 md:py-24">
+    <div className="min-h-screen bg-white">
+      {/* Main container - giống width Header */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
         {/* Header */}
         <div className="text-center mb-20">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-full mb-4 backdrop-blur-sm border border-blue-200/50">
@@ -132,21 +128,23 @@ export default function AboutUsPage() {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
             {values.map((value, index) => (
               <div
                 key={index}
-                className="group bg-white rounded-3xl border-2 border-gray-100 p-8 hover:border-blue-300 hover:shadow-2xl transition-all duration-500"
+                className="group bg-white rounded-3xl border-2 border-gray-100 p-4 sm:p-8 hover:border-blue-300 hover:shadow-2xl transition-all duration-500"
               >
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl mb-4 group-hover:scale-110 transition-transform">
-                  {value.icon}
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-xl sm:text-2xl mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                    {value.icon}
+                  </div>
+                  <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-2">
+                    {value.title}
+                  </h3>
+                  <p className="text-gray-600 leading-relaxed text-xs sm:text-sm">
+                    {value.description}
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  {value.title}
-                </h3>
-                <p className="text-gray-600 leading-relaxed text-sm">
-                  {value.description}
-                </p>
               </div>
             ))}
           </div>

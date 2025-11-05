@@ -708,7 +708,7 @@ export default function ProductDetailPage() {
                 key: "policy",
                 label: <span className="font-semibold">📋 Chính sách</span>,
                 children: (
-                  <div className="space-y-6 p-6">
+                  <div className="space-y-6">
                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
                       <Title
                         level={4}
@@ -759,7 +759,7 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Rating Section */}
-        <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-white/50">
+        <div className="bg-white/80 backdrop-blur-md rounded-3xl p-5 shadow-2xl border border-white/50">
           <Title level={3} className="!mb-6 flex items-center gap-3">
             <span className="text-3xl">⭐</span>
             Đánh giá sản phẩm

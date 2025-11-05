@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Card, Button, Typography, Space, Input, Rate, Form, Avatar, message, Alert } from 'antd';
-import { UserOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { UserOutlined, ShoppingCartOutlined, StarFilled } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -27,7 +27,6 @@ export default function RatingComponent({ productId }: RatingComponentProps) {
   const pathname = usePathname();
   const messageShownRef = useRef(false);
 
-  // ✅ Check purchase status
   const {
     data: purchaseData,
     isLoading: isCheckingPurchase,
@@ -120,7 +119,6 @@ export default function RatingComponent({ productId }: RatingComponentProps) {
       return;
     }
 
-    // ✅ Kiểm tra đã mua sản phẩm chưa (trừ khi đã có review)
     if (!purchaseData?.hasPurchased && !userExistingReview) {
       message.error('Bạn cần mua sản phẩm này trước khi đánh giá!');
       return;
@@ -130,7 +128,6 @@ export default function RatingComponent({ productId }: RatingComponentProps) {
 
     try {
       if (userExistingReview) {
-        // Update existing review
         updateProductReview({
           id: userExistingReview.id,
           data: {
@@ -139,7 +136,6 @@ export default function RatingComponent({ productId }: RatingComponentProps) {
           },
         });
       } else {
-        // Create new review với orderId và orderItemId
         createProductReview({
           productId,
           userId: currentUserId,
@@ -156,13 +152,19 @@ export default function RatingComponent({ productId }: RatingComponentProps) {
   };
 
   if (isLoadingReviews || isLoadingAuth || isCheckingPurchase) {
-    return <div className="text-center py-4 text-gray-600">Đang tải đánh giá...</div>;
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+      </div>
+    );
   }
 
   if (isErrorReviews) {
     return (
-      <div className="text-center py-4 text-red-500">
-        Lỗi khi tải đánh giá: {reviewsError?.message}
+      <div className="text-center py-8 px-4">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 max-w-md mx-auto">
+          <p className="text-red-600 font-medium">Lỗi khi tải đánh giá: {reviewsError?.message}</p>
+        </div>
       </div>
     );
   }
@@ -173,125 +175,222 @@ export default function RatingComponent({ productId }: RatingComponentProps) {
 
   return (
     <div className="container mx-auto">
-      <Title level={4} className="mb-4">Đánh giá của bạn</Title>
+      {/* Your Review Section */}
+      <div className="mb-12">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-xl">
+            <StarFilled className="text-white text-xl" />
+          </div>
+          <Title level={3} className="!mb-0 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
+            Đánh giá của bạn
+          </Title>
+        </div>
       
-      {currentUserId ? (
-        <>
-          {/* ✅ Alert khi chưa mua sản phẩm */}
-          {!hasPurchased && !userExistingReview && (
-            <Alert
-              message="Chưa thể đánh giá"
-              description={
-                <div>
-                  <p className="mb-2">
-                    Bạn cần mua sản phẩm này trước khi có thể đánh giá.
-                  </p>
-                  <Link href="/tai-khoan?p=history" className="text-blue-500 hover:underline">
-                    <ShoppingCartOutlined className="mr-1" />
-                    Xem đơn hàng của tôi
-                  </Link>
+        {currentUserId ? (
+          <div className="max-w-3xl">
+            {/* Purchase Alert */}
+            {!hasPurchased && !userExistingReview && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 mb-6 shadow-sm hover:shadow-md transition-shadow duration-300">
+                <div className="flex items-start gap-4">
+                  <div className="bg-blue-100 p-3 rounded-full flex-shrink-0">
+                    <ShoppingCartOutlined className="text-blue-600 text-xl" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-800 mb-2">Chưa thể đánh giá</h4>
+                    <p className="text-gray-600 mb-3">
+                      Bạn cần mua sản phẩm này trước khi có thể đánh giá.
+                    </p>
+                    <Link 
+                      href="/tai-khoan?p=history" 
+                      className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors"
+                    >
+                      <ShoppingCartOutlined />
+                      Xem đơn hàng của tôi
+                    </Link>
+                  </div>
                 </div>
-              }
-              type="info"
-              showIcon
-              className="mb-4 max-w-2xl"
-            />
-          )}
+              </div>
+            )}
 
-          {/* ✅ Alert khi có lỗi check purchase */}
-          {isPurchaseError && !userExistingReview && (
-            <Alert
-              message="Không thể kiểm tra trạng thái mua hàng"
-              description="Vui lòng thử lại sau hoặc liên hệ hỗ trợ."
-              type="warning"
-              showIcon
-              className="mb-4 max-w-2xl"
-            />
-          )}
+            {/* Purchase Error Alert */}
+            {isPurchaseError && !userExistingReview && (
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6 mb-6 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="bg-amber-100 p-3 rounded-full flex-shrink-0">
+                    <span className="text-amber-600 text-xl">⚠️</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Không thể kiểm tra trạng thái mua hàng</h4>
+                    <p className="text-gray-600">Vui lòng thử lại sau hoặc liên hệ hỗ trợ.</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
-          {/* ✅ Form đánh giá - chỉ hiện khi đã mua HOẶC đã có review */}
-          {(hasPurchased || userExistingReview) && (
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleReviewSubmit}
-              className="max-w-2xl"
-            >
-              <Form.Item
-                label="Xếp hạng của bạn"
-                name="rating"
-                rules={[{ required: true, message: 'Vui lòng chọn số sao đánh giá!' }]}
-              >
-                <Rate disabled={isCreatingReview || isUpdatingReview} />
-              </Form.Item>
-              <Form.Item label="Bình luận của bạn" name="comment">
-                <TextArea
-                  rows={4}
-                  placeholder="Chia sẻ suy nghĩ của bạn về sản phẩm..."
-                  disabled={isCreatingReview || isUpdatingReview}
-                />
-              </Form.Item>
-              <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  loading={isCreatingReview || isUpdatingReview}
+            {/* Review Form */}
+            {(hasPurchased || userExistingReview) && (
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-2 hover:shadow-xl transition-shadow duration-300">
+                <Form
+                  form={form}
+                  layout="vertical"
+                  onFinish={handleReviewSubmit}
                 >
-                  {userExistingReview ? 'Cập nhật đánh giá' : 'Gửi đánh giá'}
-                </Button>
-              </Form.Item>
-            </Form>
-          )}
-        </>
-      ) : (
-        <p className="text-gray-600 max-w-2xl">
-          Đăng nhập để gửi đánh giá.{' '}
-          <Link href={loginUrl} className="text-blue-500 underline hover:no-underline font-medium">
-            Đăng nhập ngay
-          </Link>
-        </p>
-      )}
-
-      <div className="mt-8">
-        <Title level={4} className="mb-4">Đánh giá của khách hàng</Title>
-        {reviews.length === 0 ? (
-          <p className="text-gray-600">Chưa có đánh giá nào từ khách hàng.</p>
+                  <Form.Item
+                    label={<span className="text-gray-700 font-semibold text-base">Xếp hạng của bạn</span>}
+                    name="rating"
+                    rules={[{ required: true, message: 'Vui lòng chọn số sao đánh giá!' }]}
+                  >
+                    <Rate 
+                      disabled={isCreatingReview || isUpdatingReview}
+                      className="text-3xl"
+                      style={{ color: '#fbbf24' }}
+                    />
+                  </Form.Item>
+                  
+                  <Form.Item 
+                    label={<span className="text-gray-700 font-semibold text-base">Bình luận của bạn</span>}
+                    name="comment"
+                  >
+                    <TextArea
+                      rows={5}
+                      placeholder="Chia sẻ suy nghĩ của bạn về sản phẩm..."
+                      disabled={isCreatingReview || isUpdatingReview}
+                      className="rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    />
+                  </Form.Item>
+                  
+                  <Form.Item className="mb-0">
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      loading={isCreatingReview || isUpdatingReview}
+                      className="h-12 px-8 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 border-0 rounded-xl font-semibold text-base shadow-md hover:shadow-lg transition-all duration-300"
+                    >
+                      {userExistingReview ? '✨ Cập nhật đánh giá' : '🚀 Gửi đánh giá'}
+                    </Button>
+                  </Form.Item>
+                </Form>
+              </div>
+            )}
+          </div>
         ) : (
-          <Space direction="vertical" size="middle" className="w-full">
-            {reviews.map((review) => (
-              <Card
-                key={review.id}
-                className="w-full shadow-sm border border-gray-200"
+          <div className="bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 rounded-2xl p-8 max-w-3xl shadow-sm">
+            <p className="text-gray-700 text-lg">
+              Đăng nhập để gửi đánh giá.{' '}
+              <Link 
+                href={loginUrl} 
+                className="text-blue-600 hover:text-blue-700 font-semibold underline hover:no-underline transition-colors"
               >
-                <div className="flex items-start mb-2">
+                Đăng nhập ngay →
+              </Link>
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Customer Reviews Section */}
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="bg-gradient-to-br from-purple-500 to-pink-600 p-2 rounded-xl">
+            <UserOutlined className="text-white text-xl" />
+          </div>
+          <Title level={3} className="!mb-0 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-bold">
+            Đánh giá của khách hàng
+          </Title>
+          {reviews.length > 0 && (
+            <span className="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 px-4 py-1 rounded-full text-sm font-semibold whitespace-nowrap">
+              {reviews.length} đánh giá
+            </span>
+          )}
+        </div>
+
+        {reviews.length === 0 ? (
+          <div className="bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 rounded-2xl p-12 text-center">
+            <div className="text-6xl mb-4">💭</div>
+            <p className="text-gray-600 text-lg">Chưa có đánh giá nào từ khách hàng.</p>
+            <p className="text-gray-500 text-sm mt-2">Hãy là người đầu tiên đánh giá sản phẩm này!</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {reviews.map((review, index) => (
+              <div
+                key={review.id}
+                className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 hover:shadow-xl hover:scale-[1.01] transition-all duration-300"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4 mb-4">
                   {review.user && (
-                    <div className="flex items-center mr-4">
+                    <div className="flex items-center gap-3">
                       <Avatar
-                        size="small"
+                        size={48}
                         icon={<UserOutlined />}
-                        className="bg-gray-300"
+                        className="bg-gradient-to-br from-blue-400 to-purple-500 flex-shrink-0"
                       />
-                      <Text strong className="ml-2">{review.user.name}</Text>
+                      <div>
+                        <Text strong className="text-gray-800 text-base block">{review.user.name}</Text>
+                        <Text className="text-gray-500 text-sm">
+                          {new Date(review.createdAt).toLocaleDateString('vi-VN', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </Text>
+                      </div>
                     </div>
                   )}
-                  <div>
+                  <div className="sm:ml-auto">
                     <Rate
                       disabled
                       value={review.rating}
-                      className="text-yellow-500 text-base"
+                      className="text-xl"
+                      style={{ color: '#fbbf24' }}
                     />
-                    <Text className="ml-2 text-sm text-gray-500 block sm:inline-block">
-                      {new Date(review.createdAt).toLocaleDateString()}{' '}
-                      {new Date(review.createdAt).toLocaleTimeString()}
-                    </Text>
                   </div>
                 </div>
-                <Paragraph className="mb-0">{review.comment || 'Không có bình luận.'}</Paragraph>
-              </Card>
+                
+                <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-4 border-l-4 border-blue-500">
+                  <Paragraph className="mb-0 text-gray-700 leading-relaxed">
+                    {review.comment || <span className="text-gray-400 italic">Không có bình luận.</span>}
+                  </Paragraph>
+                </div>
+              </div>
             ))}
-          </Space>
+          </div>
         )}
       </div>
+
+      <style jsx global>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .ant-rate-star {
+          transition: all 0.3s ease;
+        }
+
+        .ant-rate-star:hover {
+          transform: scale(1.1);
+        }
+
+        .ant-form-item-label > label {
+          font-size: 15px;
+        }
+
+        .ant-input-textarea textarea {
+          font-size: 15px;
+        }
+
+        .ant-input-textarea textarea:focus {
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+      `}</style>
     </div>
   );
 }

@@ -7,6 +7,8 @@ import PersonalInfo from '@/components/layout/account/PersonalInfo';
 import PurchaseHistory from '@/components/layout/account/PurchaseHistory';
 import AddressShipping from '@/components/layout/account/AddressShipping';
 import { useAuth } from '@/context/AuthContext';
+import { HomeOutlined } from '@ant-design/icons';
+import Link from 'next/link';
 
 type AccountMenuKey = 'personal' | 'address' | 'history';
 
@@ -36,7 +38,7 @@ const AccountPage = () => {
 
   if (isLoadingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
           <p className="text-gray-600 font-medium">Đang tải thông tin người dùng...</p>
@@ -47,7 +49,7 @@ const AccountPage = () => {
 
   if (!userId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,27 +64,23 @@ const AccountPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 w-full">
-      {/* Header with breadcrumb */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="container mx-auto px-4 py-6 md:px-8 lg:px-12">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Thông tin tài khoản</h1>
-            <div className="text-sm text-gray-500">
-              <span className="hover:text-blue-600 cursor-pointer transition-colors">Home</span>
-              <span className="mx-2">/</span>
-              <span className="text-blue-600 font-medium">Thông tin tài khoản</span>
-            </div>
-          </div>
+    <div className="min-h-screen py-8 md:py-12 w-full">
+      <div className="container mx-auto max-w-7xl px-2 md:px-4">
+        {/* Breadcrumb */}
+        <div className="mb-8 flex items-center gap-2 text-gray-600 px-2 md:px-0">
+          <Link href="/" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
+            <HomeOutlined />
+            <span>Trang chủ</span>
+          </Link>
+          <span>/</span>
+          <span className="text-gray-900 font-medium">Tài khoản</span>
         </div>
-      </div>
 
-      <div className="container mx-auto px-4 py-8 md:px-8 lg:px-12 max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 w-full">
-          {/* Sidebar */}
-          <div className="lg:col-span-3 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 px-2 md:px-0">
+         
+          <div className="lg:col-span-3">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              {/* User Profile Header */}
+              
               <div className="p-6 bg-gradient-to-br from-blue-600 to-blue-700">
                 <div className="flex items-center space-x-4">
                   <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
@@ -101,17 +99,17 @@ const AccountPage = () => {
                 </div>
               </div>
 
-              {/* Sidebar Menu */}
+              
               <div className="p-4">
                 <AccountSidebar onMenuClick={handleMenuClick} selected={selectedMenu} />
               </div>
             </div>
           </div>
 
-          {/* Main Content Area */}
-          <div className="lg:col-span-9 w-full">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 min-h-[600px] w-full">
-              {/* Welcome Message */}
+          
+          <div className="lg:col-span-9">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 md:p-6 min-h-[600px]">
+              
               {selectedMenu === 'personal' && (
                 <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-gray-700">
@@ -124,23 +122,11 @@ const AccountPage = () => {
                 </div>
               )}
 
-              {/* Content with smooth transition */}
-              <div className="animate-fadeIn w-full overflow-x-hidden" key={selectedMenu}>
-                {selectedMenu === 'personal' && (
-                  <div className="w-full max-w-full">
-                    <PersonalInfo />
-                  </div>
-                )}
-                {selectedMenu === 'address' && (
-                  <div className="w-full max-w-full">
-                    <AddressShipping userId={userId} />
-                  </div>
-                )}
-                {selectedMenu === 'history' && (
-                  <div className="w-full max-w-full">
-                    <PurchaseHistory />
-                  </div>
-                )}
+              
+              <div className="animate-fadeIn" key={selectedMenu}>
+                {selectedMenu === 'personal' && <PersonalInfo />}
+                {selectedMenu === 'address' && <AddressShipping userId={userId} />}
+                {selectedMenu === 'history' && <PurchaseHistory />}
               </div>
             </div>
           </div>

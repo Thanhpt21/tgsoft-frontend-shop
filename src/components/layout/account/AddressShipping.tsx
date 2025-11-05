@@ -356,7 +356,7 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
   return (
     <div className="w-full">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             Địa chỉ giao hàng
@@ -374,7 +374,7 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
               : openAddModal()
           }
           disabled={isAddButtonDisabled}
-          className="h-12 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-0 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+          className="w-full md:w-auto h-12 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-0 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
         >
           Thêm địa chỉ mới
         </Button>
@@ -413,10 +413,10 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
                 }
               `}
             >
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                 <div className="flex-1">
                   {/* Header */}
-                  <div className="flex items-center gap-3 mb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
                     <div className="flex items-center gap-2">
                       <UserOutlined className="text-gray-500" />
                       <span className="text-lg font-bold text-gray-900">
@@ -428,7 +428,7 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
                       <span className="text-gray-600">{address.phone}</span>
                     </div>
                     {address.is_default && (
-                      <span className="px-3 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-semibold rounded-full shadow-md">
+                      <span className="w-fit px-3 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-semibold rounded-full shadow-md">
                         Mặc định
                       </span>
                     )}
@@ -453,14 +453,14 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-col gap-2 ml-4">
+                <div className="flex flex-row lg:flex-col gap-2 w-full lg:w-auto">
                   <Button
                     icon={<CheckCircleOutlined />}
                     type={address.is_default ? "primary" : "default"}
                     onClick={() => handleSetDefault(address.id)}
                     disabled={address.is_default}
                     className={`
-                      h-10 rounded-lg font-medium transition-all duration-300
+                      flex-1 lg:flex-none lg:w-auto h-10 rounded-lg font-medium transition-all duration-300
                       ${
                         address.is_default
                           ? "bg-gradient-to-r from-blue-600 to-indigo-600 border-0"
@@ -474,7 +474,7 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
                     icon={<DeleteOutlined />}
                     danger
                     onClick={() => handleDelete(address.id)}
-                    className="h-10 rounded-lg font-medium hover:shadow-md transition-all duration-300"
+                    className="flex-1 lg:flex-none lg:w-auto h-10 rounded-lg font-medium hover:shadow-md transition-all duration-300"
                   >
                     Xóa
                   </Button>
@@ -545,7 +545,7 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
             <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
               <EnvironmentOutlined /> Địa chỉ giao hàng
             </h3>
-            <Row gutter={16} className="mb-4">
+            <Row gutter={[16, 16]}>
               <Col xs={24} md={8}>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Tỉnh/Thành phố <span className="text-red-500">*</span>
@@ -622,7 +622,7 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
               </Col>
             </Row>
 
-            <Row>
+            <Row className="mt-4">
               <Col span={24}>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Địa chỉ chi tiết <span className="text-red-500">*</span>

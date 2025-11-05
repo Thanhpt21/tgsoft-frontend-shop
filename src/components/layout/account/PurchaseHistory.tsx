@@ -20,7 +20,6 @@ import { Order } from '@/types/order.type';
 import { getImageUrl } from '@/utils/getImageUrl';
 import Link from 'next/link';
 import { useChat } from '@/context/ChatContext';
-import { GiftProductDisplay } from '../common/GiftProductDisplay';
 
 const PurchaseHistory: React.FC = () => {
   const { data: currentUser } = useCurrent();
@@ -175,7 +174,15 @@ const PurchaseHistory: React.FC = () => {
                         {statusConfig.icon}
                         {statusConfig.text}
                       </div>
-                   
+                      <Button
+                        type="default"
+                        icon={<MessageOutlined />}
+                        onClick={() => handleChatSupport(order)}
+                        disabled={!isConnected}
+                        className="h-10 rounded-lg font-medium hover:border-blue-500 hover:text-blue-600"
+                      >
+                        Chat hỗ trợ
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -221,15 +228,7 @@ const PurchaseHistory: React.FC = () => {
                               </Button>
                             </Link>
                           )}
-                           {item.giftProductId && item.giftQuantity && (
-                            <div className="ml-20 mt-2"> {/* Thụt vào để thấy rõ là quà kèm */}
-                              <GiftProductDisplay 
-                                giftProductId={item.giftProductId}
-                                giftQuantity={item.giftQuantity}
-                              />
-                            </div>
-                          )}
-                                          </div>
+                        </div>
                       );
                     })}
                     {order.items && order.items.length > 3 && (
@@ -378,14 +377,6 @@ const PurchaseHistory: React.FC = () => {
                           {(item.quantity * (item.unitPrice || 0))?.toLocaleString('vi-VN')}₫
                         </div>
                       </div>
-                       {item.giftProductId && item.giftQuantity && (
-                          <div className="ml-24 mt-2"> {/* Thụt vào để thấy rõ là quà kèm */}
-                            <GiftProductDisplay 
-                              giftProductId={item.giftProductId}
-                              giftQuantity={item.giftQuantity}
-                            />
-                          </div>
-                        )}
                     </div>
                   );
                 })}

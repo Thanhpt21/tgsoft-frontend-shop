@@ -50,13 +50,9 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 relative overflow-hidden">
-      {/* Decorative elements */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-200/20 to-purple-200/20 rounded-full blur-3xl -z-10"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-200/20 to-pink-200/20 rounded-full blur-3xl -z-10"></div>
-
-      {/* Main container */}
-      <div className="mx-auto max-w-[1400px] px-4 md:px-6 lg:px-8 py-16 md:py-24">
+    <div className="min-h-screen bg-white">
+      {/* Main container - giống width Header */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
         {/* Header Section */}
         <div className="text-center mb-20">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-full mb-4 backdrop-blur-sm border border-blue-200/50">
@@ -74,10 +70,10 @@ export default function ContactPage() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-24">
           {/* Contact Form */}
           <div className="group">
-            <div className="bg-white rounded-3xl border-2 border-gray-100 hover:border-blue-200 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden p-8 md:p-10 relative">
+            <div className="bg-white rounded-3xl border-2 border-gray-100 hover:border-blue-200 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden p-6 md:p-10 relative">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-pink-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-pink-500/5 transition-all duration-500 pointer-events-none"></div>
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-6">
@@ -108,7 +104,7 @@ export default function ContactPage() {
                   >
                     <Input
                       placeholder="Nguyễn Văn A"
-                      className="!h-12 !rounded-xl !border-2 hover:!border-blue-400 focus:!border-blue-500"
+                      className="!h-12 sm:!h-14 !rounded-xl !border-2 hover:!border-blue-400 focus:!border-blue-500 !text-base"
                     />
                   </Form.Item>
 
@@ -119,7 +115,7 @@ export default function ContactPage() {
                   >
                     <Input
                       placeholder="example@gmail.com"
-                      className="!h-12 !rounded-xl !border-2 hover:!border-blue-400 focus:!border-blue-500"
+                      className="!h-12 sm:!h-14 !rounded-xl !border-2 hover:!border-blue-400 focus:!border-blue-500 !text-base"
                     />
                   </Form.Item>
 
@@ -133,7 +129,7 @@ export default function ContactPage() {
                   >
                     <Input
                       placeholder="090 123 4567"
-                      className="!h-12 !rounded-xl !border-2 hover:!border-blue-400 focus:!border-blue-500"
+                      className="!h-12 sm:!h-14 !rounded-xl !border-2 hover:!border-blue-400 focus:!border-blue-500 !text-base"
                     />
                   </Form.Item>
 
@@ -143,9 +139,9 @@ export default function ContactPage() {
                     rules={[{ required: true, message: "Vui lòng nhập nội dung tin nhắn!" }]}
                   >
                     <TextArea
-                      rows={5}
+                      rows={6}
                       placeholder="Nhập nội dung bạn muốn liên hệ..."
-                      className="!rounded-xl !border-2 hover:!border-blue-400 focus:!border-blue-500"
+                      className="!rounded-xl !border-2 hover:!border-blue-400 focus:!border-blue-500 !text-base"
                     />
                   </Form.Item>
 
@@ -155,7 +151,7 @@ export default function ContactPage() {
                       htmlType="submit"
                       loading={createContactMutation.isPending}
                       block
-                      className="!h-14 !rounded-xl !text-base font-bold !bg-gradient-to-r !from-blue-500 !to-purple-500 hover:!from-blue-600 hover:!to-purple-600 !border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+                      className="!h-14 sm:!h-16 !rounded-xl !text-base sm:!text-lg font-bold !bg-gradient-to-r !from-blue-500 !to-purple-500 hover:!from-blue-600 hover:!to-purple-600 !border-0 shadow-lg hover:shadow-xl transition-all duration-300"
                       icon={<SendOutlined />}
                     >
                       Gửi liên hệ ngay
@@ -175,62 +171,62 @@ export default function ContactPage() {
             ) : (
               config && (
                 <div className="space-y-4">
-                  <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-8 mb-6">
-                    <Title level={4} className="!mb-0 !text-2xl font-bold text-center">
+                  <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-6 lg:p-8 mb-6">
+                    <Title level={4} className="!mb-0 !text-xl sm:!text-2xl font-bold text-center">
                       Thông tin liên hệ
                     </Title>
                   </div>
                   {config.name && (
-                    <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 p-6 group cursor-pointer">
+                    <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 p-5 sm:p-6 group cursor-pointer">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform flex-shrink-0">
                           <ShopOutlined className="text-white text-lg" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <Text className="text-gray-500 text-xs font-semibold block">Tên công ty</Text>
-                          <Text className="text-gray-900 font-bold text-sm truncate block">{config.name}</Text>
+                          <Text className="text-gray-900 font-bold text-sm sm:text-base truncate block">{config.name}</Text>
                         </div>
                       </div>
                     </div>
                   )}
 
                   {config.showAddress && config.address && (
-                    <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 p-6 group cursor-pointer">
+                    <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 p-5 sm:p-6 group cursor-pointer">
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform flex-shrink-0">
                           <EnvironmentOutlined className="text-white text-lg" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <Text className="text-gray-500 text-xs font-semibold block">Địa chỉ</Text>
-                          <Text className="text-gray-900 font-bold text-sm leading-relaxed">{config.address}</Text>
+                          <Text className="text-gray-900 font-bold text-sm sm:text-base leading-relaxed">{config.address}</Text>
                         </div>
                       </div>
                     </div>
                   )}
 
                   {config.showMobile && config.mobile && (
-                    <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 p-6 group cursor-pointer">
+                    <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 p-5 sm:p-6 group cursor-pointer">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform flex-shrink-0">
                           <PhoneOutlined className="text-white text-lg" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <Text className="text-gray-500 text-xs font-semibold block">Điện thoại</Text>
-                          <Text className="text-gray-900 font-bold text-sm">{config.mobile}</Text>
+                          <Text className="text-gray-900 font-bold text-sm sm:text-base">{config.mobile}</Text>
                         </div>
                       </div>
                     </div>
                   )}
 
                   {config.showEmail && config.email && (
-                    <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 p-6 group cursor-pointer">
+                    <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 p-5 sm:p-6 group cursor-pointer">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform flex-shrink-0">
                           <MailOutlined className="text-white text-lg" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <Text className="text-gray-500 text-xs font-semibold block">Email</Text>
-                          <Text className="text-gray-900 font-bold text-sm truncate block">{config.email}</Text>
+                          <Text className="text-gray-900 font-bold text-sm sm:text-base truncate block">{config.email}</Text>
                         </div>
                       </div>
                     </div>
@@ -272,20 +268,20 @@ export default function ContactPage() {
             </div>
 
             {/* Social Links */}
-            <div className="bg-white rounded-3xl border-2 border-gray-100 shadow-lg p-10">
-              <Title level={4} className="!mb-8 !text-2xl font-bold text-center">
+            <div className="bg-white rounded-3xl border-2 border-gray-100 shadow-lg p-6 lg:p-10">
+              <Title level={4} className="!mb-6 lg:!mb-8 !text-xl sm:!text-2xl font-bold text-center">
                 Kết nối với chúng tôi
               </Title>
-              <div className="grid grid-cols-2 gap-5">
+              <div className="grid grid-cols-2 gap-4 lg:gap-5">
                 {config.showFacebook && config.facebook && (
                   <a
                     href={config.facebook}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center p-8 bg-blue-50 hover:bg-blue-100 rounded-2xl transition-all duration-300 group hover:scale-105 hover:shadow-lg"
+                    className="flex flex-col items-center justify-center p-6 sm:p-8 bg-blue-50 hover:bg-blue-100 rounded-2xl transition-all duration-300 group hover:scale-105 hover:shadow-lg"
                   >
-                    <FacebookOutlined className="text-5xl text-blue-600 mb-3 group-hover:scale-110 transition-transform" />
-                    <Text className="text-sm font-semibold text-gray-600">Facebook</Text>
+                    <FacebookOutlined className="text-4xl sm:text-5xl text-blue-600 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+                    <Text className="text-xs sm:text-sm font-semibold text-gray-600">Facebook</Text>
                   </a>
                 )}
                 {config.showInstagram && config.instagram && (
@@ -293,10 +289,10 @@ export default function ContactPage() {
                     href={config.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center p-8 bg-pink-50 hover:bg-pink-100 rounded-2xl transition-all duration-300 group hover:scale-105 hover:shadow-lg"
+                    className="flex flex-col items-center justify-center p-6 sm:p-8 bg-pink-50 hover:bg-pink-100 rounded-2xl transition-all duration-300 group hover:scale-105 hover:shadow-lg"
                   >
-                    <InstagramOutlined className="text-5xl text-pink-600 mb-3 group-hover:scale-110 transition-transform" />
-                    <Text className="text-sm font-semibold text-gray-600">Instagram</Text>
+                    <InstagramOutlined className="text-4xl sm:text-5xl text-pink-600 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+                    <Text className="text-xs sm:text-sm font-semibold text-gray-600">Instagram</Text>
                   </a>
                 )}
                 {config.showYoutube && config.youtube && (
@@ -304,10 +300,10 @@ export default function ContactPage() {
                     href={config.youtube}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center p-8 bg-red-50 hover:bg-red-100 rounded-2xl transition-all duration-300 group hover:scale-105 hover:shadow-lg"
+                    className="flex flex-col items-center justify-center p-6 sm:p-8 bg-red-50 hover:bg-red-100 rounded-2xl transition-all duration-300 group hover:scale-105 hover:shadow-lg"
                   >
-                    <YoutubeOutlined className="text-5xl text-red-600 mb-3 group-hover:scale-110 transition-transform" />
-                    <Text className="text-sm font-semibold text-gray-600">YouTube</Text>
+                    <YoutubeOutlined className="text-4xl sm:text-5xl text-red-600 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+                    <Text className="text-xs sm:text-sm font-semibold text-gray-600">YouTube</Text>
                   </a>
                 )}
                 {config.showX && config.x && (
@@ -315,10 +311,10 @@ export default function ContactPage() {
                     href={config.x}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center p-8 bg-sky-50 hover:bg-sky-100 rounded-2xl transition-all duration-300 group hover:scale-105 hover:shadow-lg"
+                    className="flex flex-col items-center justify-center p-6 sm:p-8 bg-sky-50 hover:bg-sky-100 rounded-2xl transition-all duration-300 group hover:scale-105 hover:shadow-lg"
                   >
-                    <TwitterOutlined className="text-5xl text-sky-600 mb-3 group-hover:scale-110 transition-transform" />
-                    <Text className="text-sm font-semibold text-gray-600">Twitter</Text>
+                    <TwitterOutlined className="text-4xl sm:text-5xl text-sky-600 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+                    <Text className="text-xs sm:text-sm font-semibold text-gray-600">Twitter</Text>
                   </a>
                 )}
                 {config.showLinkedin && config.linkedin && (
@@ -326,10 +322,10 @@ export default function ContactPage() {
                     href={config.linkedin}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center p-8 bg-blue-50 hover:bg-blue-100 rounded-2xl transition-all duration-300 group hover:scale-105 hover:shadow-lg"
+                    className="flex flex-col items-center justify-center p-6 sm:p-8 bg-blue-50 hover:bg-blue-100 rounded-2xl transition-all duration-300 group hover:scale-105 hover:shadow-lg"
                   >
-                    <LinkedinOutlined className="text-5xl text-blue-700 mb-3 group-hover:scale-110 transition-transform" />
-                    <Text className="text-sm font-semibold text-gray-600">LinkedIn</Text>
+                    <LinkedinOutlined className="text-4xl sm:text-5xl text-blue-700 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+                    <Text className="text-xs sm:text-sm font-semibold text-gray-600">LinkedIn</Text>
                   </a>
                 )}
                 {config.showTiktok && config.tiktok && (
@@ -337,12 +333,12 @@ export default function ContactPage() {
                     href={config.tiktok}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center p-8 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all duration-300 group hover:scale-105 hover:shadow-lg"
+                    className="flex flex-col items-center justify-center p-6 sm:p-8 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all duration-300 group hover:scale-105 hover:shadow-lg"
                   >
-                    <svg className="w-12 h-12 mb-3 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="w-10 h-10 sm:w-12 sm:h-12 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
                     </svg>
-                    <Text className="text-sm font-semibold text-gray-600">TikTok</Text>
+                    <Text className="text-xs sm:text-sm font-semibold text-gray-600">TikTok</Text>
                   </a>
                 )}
                 {config.showZalo && config.zalo && (
@@ -350,12 +346,12 @@ export default function ContactPage() {
                     href={`https://zalo.me/${config.zalo}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center p-8 bg-blue-50 hover:bg-blue-100 rounded-2xl transition-all duration-300 group hover:scale-105 hover:shadow-lg"
+                    className="flex flex-col items-center justify-center p-6 sm:p-8 bg-blue-50 hover:bg-blue-100 rounded-2xl transition-all duration-300 group hover:scale-105 hover:shadow-lg"
                   >
-                    <svg className="w-12 h-12 mb-3 text-blue-500 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="w-10 h-10 sm:w-12 sm:h-12 mb-2 sm:mb-3 text-blue-500 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 2C6.48 2 2 6.48 2 12c0 5.52 4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
                     </svg>
-                    <Text className="text-sm font-semibold text-gray-600">Zalo</Text>
+                    <Text className="text-xs sm:text-sm font-semibold text-gray-600">Zalo</Text>
                   </a>
                 )}
               </div>

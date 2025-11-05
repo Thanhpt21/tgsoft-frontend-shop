@@ -40,7 +40,7 @@ const ShippingAddressSelection: React.FC<ShippingAddressSelectionProps> = ({
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm">
+    <div className="bg-white md:p-6 rounded-xl shadow-sm">
       <Typography.Title level={5} className="mb-4">
         Chọn địa chỉ giao hàng
       </Typography.Title>

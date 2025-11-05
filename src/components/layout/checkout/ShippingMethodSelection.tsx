@@ -155,7 +155,7 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
       <div className="mb-4">
         <Row gutter={16} justify="start">
           {/* Giao hàng tiết kiệm */}
-          <Col >
+          <Col className="mb-3">
             <Button
               type={localSelectedMethod === 'standard' ? 'primary' : 'default'}
               onClick={() => handleSelectMethod('standard')}

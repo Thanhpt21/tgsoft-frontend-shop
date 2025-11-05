@@ -121,23 +121,25 @@ const PersonalInfo = ({}: PersonalInfoProps) => {
               )}
             </div>
 
-            <Upload
-              listType="picture"
-              fileList={fileList}
-              onChange={handleImageChange}
-              beforeUpload={createImageUploadValidator(MAX_IMAGE_SIZE_MB)}
-              maxCount={1}
-              accept={ACCEPTED_IMAGE_TYPES}
-              showUploadList={false}
-              className="w-full"
-            >
-              <Button
-                icon={<UploadOutlined />}
-                className="bg-white hover:bg-blue-50 border-2 border-blue-200 text-blue-700 font-medium px-6 py-2 h-auto rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
+            <div className="flex justify-center w-full">
+              <Upload
+                listType="picture"
+                fileList={fileList}
+                onChange={handleImageChange}
+                beforeUpload={createImageUploadValidator(MAX_IMAGE_SIZE_MB)}
+                maxCount={1}
+                accept={ACCEPTED_IMAGE_TYPES}
+                showUploadList={false}
               >
-                {fileList.length > 0 ? 'Thay đổi ảnh đại diện' : 'Tải lên ảnh đại diện'}
-              </Button>
-            </Upload>
+                <Button
+                  icon={<UploadOutlined />}
+                  className="bg-white hover:bg-blue-50 border-2 border-blue-200 text-blue-700 font-medium px-6 py-2 h-auto rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
+                >
+                  {fileList.length > 0 ? 'Thay đổi ảnh đại diện' : 'Tải lên ảnh đại diện'}
+                </Button>
+              </Upload>
+            </div>
+
             <p className="text-sm text-gray-500 text-center">
               JPG, PNG hoặc GIF (tối đa {MAX_IMAGE_SIZE_MB}MB)
             </p>
