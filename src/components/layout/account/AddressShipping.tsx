@@ -494,19 +494,10 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
         }
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
-        onOk={handleSubmit}
+        footer={null}
         width={900}
-        okText="Lưu địa chỉ"
-        cancelText="Hủy"
-        okButtonProps={{
-          className:
-            "h-11 px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-0 rounded-lg font-semibold",
-        }}
-        cancelButtonProps={{
-          className: "h-11 px-8 rounded-lg font-semibold",
-        }}
       >
-        <div className="space-y-6 py-4">
+        <div className="space-y-4 py-4">
           {/* Personal Info */}
           <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
             <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
@@ -639,7 +630,7 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
           </div>
 
           {/* Note */}
-          <div>
+          <div className="mb-0">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Ghi chú (tùy chọn)
             </label>
@@ -648,8 +639,25 @@ const AddressShipping: React.FC<{ userId: number | string }> = ({ userId }) => {
               rows={2}
               value={formValues.note}
               onChange={(e) => handleInputChange("note", e.target.value)}
-              className="rounded-lg"
+              className="rounded-lg mb-0"
             />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 justify-end -mt-2">
+            <Button
+              onClick={() => setIsModalOpen(false)}
+              className="h-11 px-8 rounded-lg font-semibold"
+            >
+              Hủy
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleSubmit}
+              className="h-11 px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-0 rounded-lg font-semibold"
+            >
+              Lưu địa chỉ
+            </Button>
           </div>
         </div>
       </Modal>

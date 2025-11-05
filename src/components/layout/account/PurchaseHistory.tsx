@@ -254,15 +254,7 @@ const PurchaseHistory: React.FC = () => {
                       >
                         Xem chi tiết
                       </Button>
-                     <Button
-                        type="default"
-                        onClick={() => handleChatSupport(order)}
-                        icon={<MessageOutlined />}
-                        className="h-11 px-6 border-0 rounded-lg font-semibold bg-green-500 text-white hover:bg-green-600 shadow-lg"
-                        disabled={chatClickedOrders.includes(order.id)}
-                      >
-                        Chat hỗ trợ
-                      </Button>
+                     
                     </div>
                   </div>
                 </div>
@@ -298,6 +290,7 @@ const PurchaseHistory: React.FC = () => {
           </div>
         }
         onCancel={handleCloseModal}
+        closeIcon={<span className="text-gray-400 hover:text-gray-600 text-xl">×</span>}
         footer={[
           <Button
             key="close"
@@ -397,6 +390,16 @@ const PurchaseHistory: React.FC = () => {
                   {selectedOrder.totalAmount?.toLocaleString('vi-VN')}₫
                 </span>
               </div>
+            </div>
+
+            {/* Close Button at Bottom */}
+            <div className="flex justify-center pt-2">
+              <Button
+                onClick={handleCloseModal}
+                className="h-11 px-8 rounded-lg font-semibold"
+              >
+                Đóng
+              </Button>
             </div>
           </div>
         )}

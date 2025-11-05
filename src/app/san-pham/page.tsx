@@ -649,23 +649,7 @@ export default function ProductsPage() {
                         className="w-48 md:w-64 h-auto mx-auto"
                       />
                     </div>
-                    <p className="text-gray-600 text-base md:text-lg mb-6 md:mb-8 leading-relaxed px-4">
-                      {searchQuery
-                        ? `Không có sản phẩm nào phù hợp với "${searchQuery}"`
-                        : selectedCategory
-                        ? `Không có sản phẩm nào trong danh mục "${selectedCategory.name}"`
-                        : selectedBrand
-                        ? `Không có sản phẩm nào của thương hiệu "${selectedBrand.name}"`
-                        : "Không có sản phẩm nào."}
-                    </p>
-                    <Button
-                      type="primary"
-                      size="large"
-                      onClick={() => router.push("/san-pham")}
-                      className="!h-12 md:!h-14 !px-8 md:!px-10 !rounded-xl !text-base md:!text-lg font-semibold !bg-gradient-to-r !from-blue-600 !to-purple-600 !border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-                    >
-                      🛍️ Xem tất cả sản phẩm
-                    </Button>
+                  
                   </div>
                 </div>
               </div>
