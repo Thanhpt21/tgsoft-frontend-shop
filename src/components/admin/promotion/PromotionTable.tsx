@@ -2,7 +2,7 @@
 
 import { Table, Tag, Space, Tooltip, Input, Button, Modal, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
+import { EditOutlined, DeleteOutlined, EyeOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import { Promotion } from '@/types/promotion.type'
 import { usePromotions } from '@/hooks/promotion/usePromotions'
@@ -53,6 +53,16 @@ export default function PromotionTable() {
       dataIndex: 'endTime',
       key: 'endTime',
       render: (date: string) => new Date(date).toLocaleDateString('vi-VN'),
+    },
+    {
+      title: 'Flash Sale',
+      dataIndex: 'isFlashSale',
+      key: 'isFlashSale',
+      align: 'center',
+      render: (isFlashSale: boolean) =>
+        isFlashSale
+          ? <CheckOutlined style={{ color: 'green', fontSize: 18 }} />
+          : <CloseOutlined style={{ color: 'gray', fontSize: 18 }} />,
     },
     {
       title: 'Trạng thái',

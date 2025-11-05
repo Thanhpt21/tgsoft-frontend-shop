@@ -129,7 +129,7 @@ export default function PromotionProductTable({ promotionId }: Props) {
       },
     },
     {
-      title: 'Số lượng',
+      title: 'SL còn lại',
       dataIndex: 'saleQuantity',
       key: 'saleQuantity',
       align: 'center',

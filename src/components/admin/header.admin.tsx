@@ -31,7 +31,6 @@ export default function HeaderAdmin({ collapsed, onCollapse }: HeaderAdminProps)
       label: 'Cài đặt',
       icon: <SettingOutlined />,
       onClick: () => {
-        console.log('Go to settings');
       },
     },
     {

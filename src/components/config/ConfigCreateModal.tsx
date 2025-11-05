@@ -20,6 +20,7 @@ interface ConfigCreateModalProps {
 export const ConfigCreateModal = ({ open, onClose, refetch }: ConfigCreateModalProps) => {
   const [form] = Form.useForm()
   const [fileList, setFileList] = useState<UploadFile[]>([])
+  const [bannerFile, setBannerFile] = useState<UploadFile[]>([])
   const { mutateAsync, isPending } = useCreateConfig()
 
   // Reset form khi mở/đóng modal
@@ -27,6 +28,7 @@ export const ConfigCreateModal = ({ open, onClose, refetch }: ConfigCreateModalP
     if (open) {
       form.resetFields()
       setFileList([])
+      setBannerFile([])
       // Set default cho checkbox
       form.setFieldsValue({
         showEmail: true,
@@ -55,10 +57,13 @@ export const ConfigCreateModal = ({ open, onClose, refetch }: ConfigCreateModalP
 
       const file = fileList?.[0]?.originFileObj
       if (file) formData.append('logo', file)
+      bannerFile.forEach(file => { if (file.originFileObj) formData.append('banner', file.originFileObj) })
 
       await mutateAsync(formData)
       message.success('Tạo cấu hình thành công')
       onClose()
+      setFileList([])
+      setBannerFile([])
       refetch?.()
     } catch (err: any) {
       message.error(err?.response?.data?.message || 'Lỗi tạo cấu hình')
@@ -77,15 +82,6 @@ export const ConfigCreateModal = ({ open, onClose, refetch }: ConfigCreateModalP
       <Form form={form} layout="vertical" onFinish={onFinish}>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item 
-              label="Tên website" 
-              name="name" 
-              rules={[{ required: true, message: 'Vui lòng nhập tên website' }]}
-            >
-              <Input placeholder="Ví dụ: My Shop" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
             <Form.Item label="Logo" tooltip="Chấp nhận JPEG, PNG, JPG, WEBP. Tối đa 5MB">
               <Upload
                 listType="picture"
@@ -99,7 +95,34 @@ export const ConfigCreateModal = ({ open, onClose, refetch }: ConfigCreateModalP
               </Upload>
             </Form.Item>
           </Col>
+           <Col span={12}>
+            <Form.Item label="Ảnh banner" tooltip="Chấp nhận JPEG, PNG, JPG, WEBP. Tối đa 5MB">
+              <Upload
+                listType="picture"
+                fileList={bannerFile}
+                onChange={({ fileList }) => setBannerFile(fileList)}
+                beforeUpload={createImageUploadValidator(MAX_IMAGE_SIZE_MB)}
+                multiple
+                accept={ACCEPTED_IMAGE_TYPES}
+              >
+                <Button icon={<UploadOutlined />}>Chọn banner</Button>
+              </Upload>
+            </Form.Item>
+          </Col>
         </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item 
+              label="Tên website" 
+              name="name" 
+              rules={[{ required: true, message: 'Vui lòng nhập tên website' }]}
+            >
+              <Input placeholder="Ví dụ: My Shop" />
+            </Form.Item>
+          </Col>
+          
+        </Row>
+
 
         {/* Email */}
         <Row gutter={16} align="middle">
@@ -254,6 +277,46 @@ export const ConfigCreateModal = ({ open, onClose, refetch }: ConfigCreateModalP
             </Form.Item>
           </Col>
         </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="VNP_TMN_CODE" name="VNP_TMN_CODE">
+              <Input placeholder="Nhập VNP_TMN_CODE" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="VNP_SECRET" name="VNP_SECRET">
+              <Input placeholder="Nhập VNP_SECRET" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="VNP_API_URL" name="VNP_API_URL">
+              <Input placeholder="Nhập VNP_API_URL" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="EMAIL_USER" name="EMAIL_USER">
+              <Input placeholder="Nhập EMAIL_USER" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="EMAIL_PASS" name="EMAIL_PASS">
+              <Input.Password placeholder="Nhập EMAIL_PASS" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="EMAIL_FROM" name="EMAIL_FROM">
+              <Input placeholder="Nhập EMAIL_FROM" />
+            </Form.Item>
+          </Col>
+        </Row>
+
 
         <Form.Item style={{ marginTop: 24 }}>
           <Button type="primary" htmlType="submit" loading={isPending} block size="large">

@@ -129,12 +129,9 @@ export default function ProductCardPromoted({
               disabled
               allowHalf
               value={avgRating}
-              style={{ fontSize: "10px" }}
+              style={{ fontSize: "15px" }}
               className="text-yellow-400 sm:text-[13px]"
             />
-            <span className="text-gray-600 font-semibold text-[10px] sm:text-sm">
-              {avgRating.toFixed(1)}
-            </span>
             <span className="text-gray-400 text-[9px] sm:text-xs">
               ({p.totalReviews})
             </span>

@@ -12,6 +12,7 @@ import {
   message,
   Modal,
   Tag,
+  Rate,
 } from "antd";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -282,6 +283,7 @@ export default function ProductDetailPage() {
     ? selectedVariant.priceDelta
     : currentProduct.basePrice;
 
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       <div className="container mx-auto px-2 py-3 md:px-3 lg:px-4 max-w-[1400px]">
@@ -361,11 +363,23 @@ export default function ProductDetailPage() {
                 {currentProduct.name}
               </Title>
             </div>
+            <div className="flex items-center gap-1 sm:gap-2 mb-3 sm:mb-4">
+            <Rate
+              disabled
+              allowHalf
+              value={currentProduct.totalRatings}
+              style={{ fontSize: "15px" }}
+              className="text-yellow-400 sm:text-[13px]"
+            />
+            <span className="text-gray-400 text-[9px] sm:text-xs">
+              ({currentProduct.totalReviews} đánh giá)
+            </span>
+          </div>
             {/* Badge khuyến mãi nổi bật */}
             {currentProduct.promotionProducts &&
             currentProduct.promotionProducts.length > 0 ? (
               <div className="mb-4 p-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl shadow-lg flex items-center gap-3 animate-pulse">
-                <span className="text-2xl">Flash Sale</span>
+                <span className="text-2xl">{currentProduct.promotionProducts[0].promotion.isFlashSale === true ? 'FlashSale' : ''}</span>
                 <div className="flex-1">
                   <div className="font-bold text-lg">
                     {currentProduct.promotionProducts[0].promotion.name}

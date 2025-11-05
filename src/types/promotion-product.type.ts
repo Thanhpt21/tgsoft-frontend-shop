@@ -25,6 +25,7 @@ export interface PromotionProduct {
     description: string;
     endTime: string,
     startTime: string
+    isFlashSale: boolean
   };
   giftProduct?: {
     id: number;

@@ -19,8 +19,13 @@ export default function FlashDeals() {
   });
 
   const products = ((productsResponse?.data as Product[]) || []).filter(
-    (p) => p.isPublished
+    (p) =>
+      p.isPublished &&
+      p.promotionProducts?.some(
+        (pp) => pp.promotion?.isFlashSale === true
+      )
   );
+
 
   return (
     <section className="py-20 bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 relative overflow-hidden">

@@ -22,6 +22,7 @@ interface ConfigUpdateModalProps {
 export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpdateModalProps) => {
   const [form] = Form.useForm()
   const [fileList, setFileList] = useState<UploadFile[]>([])
+  const [bannerFile, setBannerFile] = useState<UploadFile[]>([])
   const { mutateAsync, isPending } = useUpdateConfig()
 
   useEffect(() => {
@@ -39,6 +40,13 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
         youtube: config.youtube || '',
         x: config.x || '',
         linkedin: config.linkedin || '',
+
+        VNP_TMN_CODE: config.VNP_TMN_CODE || '',
+        VNP_SECRET: config.VNP_SECRET || '',
+        VNP_API_URL: config.VNP_API_URL || '',
+        EMAIL_USER: config.EMAIL_USER || '',
+        EMAIL_PASS: config.EMAIL_PASS || '',
+        EMAIL_FROM: config.EMAIL_FROM || '',
 
         // Checkboxes
         showEmail: config.showEmail ?? true,
@@ -64,6 +72,9 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
           },
         ])
       }
+       if (config.banner?.length) {
+        setBannerFile(config.banner.map((url: any, idx: any) => ({ uid: idx.toString(), name: `img${idx}.png`, status: 'done', url: getImageUrl(url) })))
+      }
     }
   }, [config, open, form])
 
@@ -78,11 +89,13 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
 
       const file = fileList?.[0]?.originFileObj
       if (file) formData.append('logo', file)
+      bannerFile.forEach(file => { if (file.originFileObj) formData.append('banner', file.originFileObj) })
       await mutateAsync({ id: config.id, data: formData })
       message.success('Cập nhật cấu hình thành công')
       onClose()
       form.resetFields()
       setFileList([])
+      setBannerFile([])
       refetch?.()
     } catch (err: any) {
       message.error(err?.response?.data?.message || 'Lỗi cập nhật cấu hình')
@@ -107,12 +120,7 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
     >
       <Form form={form} layout="vertical" onFinish={onFinish}>
         <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item label="Tên website" name="name" rules={[{ required: true, message: 'Vui lòng nhập tên website' }]}>
-              <Input placeholder="Ví dụ: My Shop" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
+ <Col span={12}>
             <Form.Item label="Logo" tooltip="Chấp nhận JPEG, PNG, JPG, WEBP. Tối đa 5MB">
               <Upload
                 listType="picture"
@@ -126,6 +134,28 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
               </Upload>
             </Form.Item>
           </Col>
+           <Col span={12}>
+            <Form.Item label="Ảnh banner">
+              <Upload
+                listType="picture"
+                fileList={bannerFile}
+                onChange={({ fileList }) => setBannerFile(fileList)}
+                beforeUpload={createImageUploadValidator(MAX_IMAGE_SIZE_MB)}
+                multiple
+                accept={ACCEPTED_IMAGE_TYPES}
+              >
+                <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
+              </Upload>
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="Tên website" name="name" rules={[{ required: true, message: 'Vui lòng nhập tên website' }]}>
+              <Input placeholder="Ví dụ: My Shop" />
+            </Form.Item>
+          </Col>
+         
         </Row>
 
         {/* Email */}
@@ -278,6 +308,45 @@ export const ConfigUpdateModal = ({ open, onClose, config, refetch }: ConfigUpda
           <Col span={12} style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
             <Form.Item name="showLinkedin" valuePropName="checked" noStyle>
               <Checkbox>Hiển thị LinkedIn</Checkbox>
+            </Form.Item>
+          </Col>
+        </Row>
+
+         <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="VNP_TMN_CODE" name="VNP_TMN_CODE">
+              <Input placeholder="Nhập VNP_TMN_CODE" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="VNP_SECRET" name="VNP_SECRET">
+              <Input.Password placeholder="Nhập VNP_SECRET" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="VNP_API_URL" name="VNP_API_URL">
+              <Input placeholder="Nhập VNP_API_URL" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="EMAIL_USER" name="EMAIL_USER">
+              <Input placeholder="Nhập EMAIL_USER" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="EMAIL_PASS" name="EMAIL_PASS">
+              <Input.Password placeholder="Nhập EMAIL_PASS" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="EMAIL_FROM" name="EMAIL_FROM">
+              <Input placeholder="Nhập EMAIL_FROM" />
             </Form.Item>
           </Col>
         </Row>

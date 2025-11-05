@@ -10,6 +10,7 @@ import { ChatProvider } from '@/context/ChatContext'; // import ChatProvider
 
 const queryClient = new QueryClient();
 
+
 export default function RootLayout({
   children,
 }: {

@@ -26,7 +26,6 @@ export const useUseCoupon = () => {
     onSuccess: (data) => {
       // Invalidate relevant queries if needed, e.g., to refetch order summary
       queryClient.invalidateQueries({ queryKey: ['orderSummary'] });
-      console.log('Coupon usage successful:', data.message);
     },
     onError: (error) => {
       console.error('Failed to use coupon:', error.message);

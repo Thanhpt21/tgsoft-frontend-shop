@@ -25,8 +25,9 @@ const PurchaseHistory: React.FC = () => {
   const { data: currentUser } = useCurrent();
   const userId = currentUser?.id;
   const { data: ordersData, isLoading, isError, error } = useOrdersByUser({ userId });
-  const { sendMessage, isConnected, conversationId, joinConversation } = useChat();
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const { sendMessage, isConnected, conversationId, joinConversation, setIsChatOpen } = useChat();
+  const [chatClickedOrders, setChatClickedOrders] = useState<number[]>([]);
+ 
 
   const orders = ordersData?.data ?? [];
 
@@ -84,28 +85,33 @@ const PurchaseHistory: React.FC = () => {
   };
 
   const handleChatSupport = (order: Order) => {
-    if (!isConnected) {
-      console.log('Chat chưa được kết nối');
-      return;
-    }
+  if (!isConnected) {
+    return;
+  }
 
-    setIsChatOpen(true);
+  // Mở khung chat
+  setIsChatOpen(true);
 
-    if (!conversationId) {
-      joinConversation(order.id);
-    }
+  // Tham gia cuộc hội thoại cho đơn hàng này nếu chưa có
+  if (!conversationId) {
+    joinConversation(order.id);
+  }
 
-    const productNames = order.items
-      ?.map((item) => item.productVariant?.product?.name)
-      .filter((name) => name)
-      .join(', ');
-    const message = `Hỗ trợ đơn hàng ID: ${order.id}. Sản phẩm: ${productNames || 'Không có sản phẩm'}.`;
+  const productNames = order.items
+    ?.map((item) => item.productVariant?.product?.name)
+    .filter((name) => name)
+    .join(', ');
 
-    setTimeout(() => {
-      sendMessage(message, { orderId: order.id });
-    }, 500);
-  };
+  const message = `Hỗ trợ đơn hàng ID: ${order.id}. Sản phẩm: ${productNames || 'Không có sản phẩm'}.`;
 
+  // Gửi tin nhắn đầu tiên sau khi mở chat
+  setTimeout(() => {
+    sendMessage(message, { orderId: order.id });
+  }, 500);
+
+  // Disable nút chat cho đơn hàng này
+  setChatClickedOrders((prev) => [...prev, order.id]);
+};
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -247,6 +253,15 @@ const PurchaseHistory: React.FC = () => {
                         className="h-11 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-0 rounded-lg font-semibold shadow-lg"
                       >
                         Xem chi tiết
+                      </Button>
+                     <Button
+                        type="default"
+                        onClick={() => handleChatSupport(order)}
+                        icon={<MessageOutlined />}
+                        className="h-11 px-6 border-0 rounded-lg font-semibold bg-green-500 text-white hover:bg-green-600 shadow-lg"
+                        disabled={chatClickedOrders.includes(order.id)}
+                      >
+                        Chat hỗ trợ
                       </Button>
                     </div>
                   </div>
