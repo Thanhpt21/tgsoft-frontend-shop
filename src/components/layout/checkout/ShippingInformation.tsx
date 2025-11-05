@@ -142,7 +142,7 @@ const ShippingInformation: React.FC<ShippingInformationProps> = ({
   }
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm space-y-4">
+    <div className="bg-white md:p-6 rounded-xl shadow-sm space-y-4">
       <Title level={4}>Thông tin giao hàng</Title>
 
       <Form layout="vertical" onFinish={handleUpdate}>

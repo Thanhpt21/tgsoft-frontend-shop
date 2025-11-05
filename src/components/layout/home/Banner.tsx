@@ -64,7 +64,7 @@ export default function Banner() {
   // 🖱️ Click slide → sang trang /san-pham
   const handleClick = (slide: any) => {
     if (moved.current || !slide.clickable) return
-    router.push("/san-pham") // 👉 chuyển trang ở đây
+    router.push("/san-pham")
   }
 
   return (
@@ -92,7 +92,7 @@ export default function Banner() {
             <img
               src={s.img}
               alt={`Slide ${s.id}`}
-              className="w-full h-[250px] sm:h-[350px] md:h-[500px] object-cover"
+              className="w-full h-[200px] sm:h-[350px] md:h-[500px] sm:object-cover bg-gray-100"
             />
           </div>
         ))}
@@ -104,7 +104,7 @@ export default function Banner() {
           stopAutoPlay()
           setIndex((i) => (i - 1 + slides.length) % slides.length)
         }}
-        className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 hover:bg-black/70 transition"
+        className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 hover:bg-black/70 transition z-10"
       >
         ‹
       </button>
@@ -113,13 +113,13 @@ export default function Banner() {
           stopAutoPlay()
           setIndex((i) => (i + 1) % slides.length)
         }}
-        className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 hover:bg-black/70 transition"
+        className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 hover:bg-black/70 transition z-10"
       >
         ›
       </button>
 
       {/* Chấm chỉ báo */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
         {slides.map((_, i) => (
           <div
             key={i}

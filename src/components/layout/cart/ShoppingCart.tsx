@@ -48,7 +48,6 @@ const ShoppingCart = () => {
 
   const { data: cartData, isLoading: cartLoading, error: cartError } = useMyCart();
 
-
   useEffect(() => {
     if (cartData?.items) {
       startTransition(() => {
@@ -56,7 +55,6 @@ const ShoppingCart = () => {
       });
     }
   }, [cartData?.items, syncFromServer]);
-  
 
   // Cập nhật selectAll khi selectedItems thay đổi
   useEffect(() => {
@@ -98,14 +96,14 @@ const ShoppingCart = () => {
   // === TÍNH TỔNG CHỈ CÁC ITEM ĐƯỢC CHỌN ===
   const getSelectedTotal = () => {
     return items
-      .filter(item => selectedItems.has(item.id)) // Chỉ chọn các item được chọn
-      .reduce((total, item) => total + item.finalPrice * item.quantity, 0); // Dùng finalPrice thay vì priceAtAdd
+      .filter(item => selectedItems.has(item.id))
+      .reduce((total, item) => total + item.finalPrice * item.quantity, 0);
   };
 
   // === LOADING & ERROR STATES ===
   if (!mounted || authLoading || cartLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Đang tải giỏ hàng...</p>
@@ -116,7 +114,7 @@ const ShoppingCart = () => {
 
   if (cartError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-red-500">
           <p className="text-xl">Lỗi tải giỏ hàng: {(cartError as any).message}</p>
         </div>
@@ -133,7 +131,6 @@ const ShoppingCart = () => {
   const handleRemoveItem = (item: any) => {
     startTransition(() => {
       removeItemOptimistic(item.id);
-      // Xóa khỏi selectedItems nếu có
       const newSelected = new Set(selectedItems);
       newSelected.delete(item.id);
       setSelectedItems(newSelected);
@@ -212,7 +209,6 @@ const ShoppingCart = () => {
     {
       title: 'Hình ảnh',
       key: 'thumb',
-      width: 80,
       render: (_: any, record: any) => {
         const thumb = record.variant?.thumb || record.variant?.product?.thumb;
         return (
@@ -220,8 +216,8 @@ const ShoppingCart = () => {
             <Image
               src={getImageUrl(thumb) || '/placeholder.png'}
               alt={record.variant?.product?.name || 'Sản phẩm'}
-              width={80}
-              height={80}
+              width={100}
+              height={100}
               style={{ objectFit: 'cover', borderRadius: 12 }}
               preview={false}
               fallback="/placeholder.png"
@@ -239,61 +235,61 @@ const ShoppingCart = () => {
         );
       },
     },
-     {
-    title: 'Giá gốc',
-    key: 'originalPrice',
-    width: 150,
-    render: (_: any, r: any) => (
-      <span className="font-semibold text-gray-900">{formatVND(r.priceAtAdd)}</span>
-    ),
-  },
-  {
-    title: 'Giảm giá',
-    key: 'discount',
-    width: 150,
-    render: (_: any, record: any) => {
-      const promotion = record.variant.product.promotionProducts?.[0];
-      if (!promotion) return <span>-</span>;
-
-      let discountText = '';
-      if (promotion.discountType === 'PERCENT') {
-        discountText = `${promotion.discountValue}%`;
-      } else if (promotion.discountType === 'FIXED') {
-        discountText = formatVND(promotion.discountValue);
-      }
-
-      return <span className="text-red-600">{discountText}</span>;
+    {
+      title: 'Giá gốc',
+      key: 'originalPrice',
+      width: 120,
+      render: (_: any, r: any) => (
+        <span className="font-semibold text-gray-900">{formatVND(r.priceAtAdd)}</span>
+      ),
     },
-  },
-  {
-    title: 'Giá sau giảm',
-    key: 'discountedPrice',
-    width: 150,
-    render: (_: any, r: any) => {
-      const promotion = r.variant.product.promotionProducts?.[0];
-      const basePrice = r.priceAtAdd;
-      if (!promotion) {
-        return <span className="font-semibold text-gray-900">{formatVND(basePrice)}</span>;
-      }
+    {
+      title: 'Giảm giá',
+      key: 'discount',
+      width: 80,
+      render: (_: any, record: any) => {
+        const promotion = record.variant.product.promotionProducts?.[0];
+        if (!promotion) return <span>-</span>;
 
-      let discountedPrice = basePrice;
-      if (promotion.discountType === 'PERCENT') {
-        discountedPrice = basePrice - (basePrice * promotion.discountValue) / 100;
-      } else if (promotion.discountType === 'FIXED') {
-        discountedPrice = basePrice - promotion.discountValue;
-      }
+        let discountText = '';
+        if (promotion.discountType === 'PERCENT') {
+          discountText = `${promotion.discountValue}%`;
+        } else if (promotion.discountType === 'FIXED') {
+          discountText = formatVND(promotion.discountValue);
+        }
 
-      return <span className="font-semibold text-blue-600">{formatVND(discountedPrice)}</span>;
+        return <span className="text-red-600 font-medium">{discountText}</span>;
+      },
     },
-  },
+    {
+      title: 'Giá sau giảm',
+      key: 'discountedPrice',
+      width: 130,
+      render: (_: any, r: any) => {
+        const promotion = r.variant.product.promotionProducts?.[0];
+        const basePrice = r.priceAtAdd;
+        if (!promotion) {
+          return <span className="font-semibold text-gray-900">{formatVND(basePrice)}</span>;
+        }
+
+        let discountedPrice = basePrice;
+        if (promotion.discountType === 'PERCENT') {
+          discountedPrice = basePrice - (basePrice * promotion.discountValue) / 100;
+        } else if (promotion.discountType === 'FIXED') {
+          discountedPrice = basePrice - promotion.discountValue;
+        }
+
+        return <span className="font-semibold text-blue-600">{formatVND(discountedPrice)}</span>;
+      },
+    },
     {
       title: 'Số lượng',
       key: 'quantity',
-      width: 180,
+      width: 150,
       render: (_: any, record: any) => (
         <div className="flex items-center gap-2">
           <Button
-            size="middle"
+            size="small"
             icon={<MinusOutlined />}
             disabled={record.quantity <= 1 || isPending}
             onClick={() => onChangeQuantity(record.quantity - 1, record)}
@@ -303,12 +299,12 @@ const ShoppingCart = () => {
             min={1}
             value={record.quantity}
             onChange={(v) => typeof v === 'number' && onChangeQuantity(v, record)}
-            className="!w-16 text-center !rounded-lg"
+            className="!w-14 text-center !rounded-lg"
             controls={false}
             disabled={isPending}
           />
           <Button
-            size="middle"
+            size="small"
             icon={<PlusOutlined />}
             disabled={isPending}
             onClick={() => onChangeQuantity(record.quantity + 1, record)}
@@ -317,36 +313,36 @@ const ShoppingCart = () => {
         </div>
       ),
     },
-   {
+    {
       title: 'Tổng',
       key: 'total',
-      width: 150,
+      width: 100,
       render: (_: any, r: any) => {
-      const promotion = r.variant.product.promotionProducts?.[0];
-      const basePrice = r.priceAtAdd;
-      if (!promotion) {
-        return <span className="font-semibold text-gray-900">{formatVND(basePrice)}</span>;
-      }
+        const promotion = r.variant.product.promotionProducts?.[0];
+        const basePrice = r.priceAtAdd;
+        if (!promotion) {
+          return <span className="font-semibold text-gray-900">{formatVND(basePrice * r.quantity)}</span>;
+        }
 
-      let discountedPrice = basePrice;
-      if (promotion.discountType === 'PERCENT') {
-        discountedPrice = basePrice - (basePrice * promotion.discountValue) / 100;
-      } else if (promotion.discountType === 'FIXED') {
-        discountedPrice = basePrice - promotion.discountValue;
-      }
+        let discountedPrice = basePrice;
+        if (promotion.discountType === 'PERCENT') {
+          discountedPrice = basePrice - (basePrice * promotion.discountValue) / 100;
+        } else if (promotion.discountType === 'FIXED') {
+          discountedPrice = basePrice - promotion.discountValue;
+        }
 
-      return <span className="font-semibold text-blue-600">{formatVND(discountedPrice * r.quantity)}</span>;
-    },
+        return <span className="font-semibold text-blue-600">{formatVND(discountedPrice * r.quantity)}</span>;
+      },
     },
     {
       title: '',
       key: 'action',
-      width: 80,
+      width: 50,
       render: (_: any, record: any) => (
         <Button
           danger
           type="text"
-          size="large"
+          size="small"
           icon={<DeleteOutlined />}
           onClick={() => handleRemoveItem(record)}
           loading={isPending}
@@ -359,7 +355,7 @@ const ShoppingCart = () => {
   // === GIỎ HÀNG TRỐNG ===
   if (!items || items.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12">
+      <div className="min-h-screen py-12">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="mb-8 flex items-center gap-2 text-gray-600">
             <Link href="/" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
@@ -392,8 +388,8 @@ const ShoppingCart = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8 md:py-12">
-      <div className="container mx-auto px-4 max-w-7xl">
+    <div className="min-h-screen py-8 md:py-12">
+      <div className="container mx-auto max-w-7xl md:px-4">
         {/* Breadcrumb */}
         <div className="mb-8 flex items-center gap-2 text-gray-600">
           <Link href="/" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
@@ -404,8 +400,8 @@ const ShoppingCart = () => {
           <span className="text-gray-900 font-medium">Giỏ hàng</span>
         </div>
 
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
+        {/* Header - Desktop only */}
+        <div className="hidden md:flex items-center gap-3 mb-8">
           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
             <ShoppingCartOutlined className="text-white text-2xl" />
           </div>
@@ -415,36 +411,186 @@ const ShoppingCart = () => {
             </h1>
             <p className="text-gray-600">Bạn có {items.length} sản phẩm trong giỏ hàng</p>
           </div>
-          <Button danger onClick={handleClearCart} className="!rounded-lg">
+          <Button danger onClick={handleClearCart} className="!rounded-lg ml-auto">
             Xóa tất cả
           </Button>
         </div>
-         <Table
-          rowKey="id"
-          dataSource={items}
-          columns={columns}
-          pagination={false}
-          className="!rounded-2xl !overflow-hidden shadow-md"
-        />
 
-      <div className="mt-8 flex justify-between items-center">
-        <div className="text-sm text-gray-600">
-          Đã chọn: <span className="font-semibold">{selectedItems.size}</span> / {items.length} sản phẩm
+        {/* Header - Mobile */}
+        <div className="md:hidden mb-4">
+          <h1 className="text-2xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+            Giỏ hàng của bạn
+          </h1>
+          <div className="flex items-center justify-between">
+            <p className="text-gray-600 text-sm">Bạn có {items.length} sản phẩm</p>
+            <Button danger size="small" onClick={handleClearCart} className="!rounded-lg">
+              Xóa tất cả
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-6">
-          <div className="text-2xl font-bold">Tổng: {formatVND(getSelectedTotal())}</div>
-          <Button
-            type="primary"
-            size="large"
-            onClick={handleCheckoutClick}
-            disabled={isPending || selectedItems.size === 0}
-            className="min-w-40"
-          >
-            Đặt hàng ({selectedItems.size})
-          </Button>
+
+        {/* Desktop Table */}
+        <div className="hidden md:block">
+          <Table
+            rowKey="id"
+            dataSource={items}
+            columns={columns}
+            pagination={false}
+            className="!rounded-2xl !overflow-hidden shadow-md"
+          />
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden space-y-3">
+          <div className="flex items-center gap-2 p-2 bg-white rounded-xl shadow-sm">
+            <Checkbox
+              checked={selectAll}
+              onChange={(e) => handleSelectAll(e.target.checked)}
+            />
+            <span className="text-sm font-medium">Chọn tất cả</span>
+          </div>
+          
+          {items.map((item) => {
+            const thumb = item.variant?.thumb || item.variant?.product?.thumb;
+            const promotion = item.variant.product.promotionProducts?.[0];
+            const basePrice = item.priceAtAdd;
+            let discountedPrice = basePrice;
+            let discountText = '';
+
+            if (promotion) {
+              if (promotion.discountType === 'PERCENT') {
+                discountedPrice = basePrice - (basePrice * promotion.discountValue) / 100;
+                discountText = `${promotion.discountValue}%`;
+              } else if (promotion.discountType === 'FIXED') {
+                discountedPrice = basePrice - promotion.discountValue;
+                discountText = formatVND(promotion.discountValue);
+              }
+            }
+
+            return (
+              <Card key={item.id} className="!rounded-xl shadow-sm !p-2">
+                <div className="flex gap-2">
+                  <Checkbox
+                    checked={selectedItems.has(item.id)}
+                    onChange={() => handleCheckboxChange(item.id)}
+                    className="mt-1"
+                  />
+                  
+                  <Image
+                    src={getImageUrl(thumb) || '/placeholder.png'}
+                    alt={item.variant?.product?.name || 'Sản phẩm'}
+                    width={70}
+                    height={70}
+                    style={{ objectFit: 'cover', borderRadius: 8 }}
+                    preview={false}
+                    fallback="/placeholder.png"
+                    className="flex-shrink-0"
+                  />
+                  
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm text-gray-900 mb-1 line-clamp-2">
+                      {item.variant?.product?.name || 'Sản phẩm không xác định'}
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-2">
+                      {renderAttributes(item.variant?.attrValues)}
+                    </p>
+                    
+                    <div className="space-y-0.5 text-xs mb-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Giá gốc:</span>
+                        <span className="font-medium">{formatVND(basePrice)}</span>
+                      </div>
+                      {promotion && (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Giảm giá:</span>
+                            <span className="text-red-600 font-medium">{discountText}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Giá sau giảm:</span>
+                            <span className="text-blue-600 font-semibold">{formatVND(discountedPrice)}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="small"
+                          icon={<MinusOutlined />}
+                          disabled={item.quantity <= 1 || isPending}
+                          onClick={() => onChangeQuantity(item.quantity - 1, item)}
+                          className="!rounded-lg !h-7 !w-7 !p-0"
+                        />
+                        <InputNumber
+                          min={1}
+                          value={item.quantity}
+                          onChange={(v) => typeof v === 'number' && onChangeQuantity(v, item)}
+                          className="!w-10 text-center !rounded-lg"
+                          size="small"
+                          controls={false}
+                          disabled={isPending}
+                        />
+                        <Button
+                          size="small"
+                          icon={<PlusOutlined />}
+                          disabled={isPending}
+                          onClick={() => onChangeQuantity(item.quantity + 1, item)}
+                          className="!rounded-lg !h-7 !w-7 !p-0"
+                        />
+                      </div>
+                      
+                      <Button
+                        danger
+                        type="text"
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleRemoveItem(item)}
+                        loading={isPending}
+                        className="!rounded-lg"
+                      />
+                    </div>
+                    
+                    <div className="mt-1.5 pt-1.5 border-t flex justify-between items-center">
+                      <span className="text-xs text-gray-600">Tổng:</span>
+                      <span className="text-blue-600 font-bold text-sm">
+                        {formatVND(discountedPrice * item.quantity)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Summary */}
+        <div className="mt-6 md:mt-8">
+          <div className="bg-white rounded-2xl shadow-md p-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+              <div className="text-sm text-gray-600">
+                Đã chọn: <span className="font-semibold">{selectedItems.size}</span> / {items.length} sản phẩm
+              </div>
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <div className="text-xl md:text-2xl font-bold">
+                  Tổng: {formatVND(getSelectedTotal())}
+                </div>
+                <Button
+                  type="primary"
+                  size="large"
+                  onClick={handleCheckoutClick}
+                  disabled={isPending || selectedItems.size === 0}
+                  className="w-full md:w-auto md:min-w-40 !rounded-xl"
+                >
+                  Đặt hàng ({selectedItems.size})
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
- </div>
+
       {/* Modal đăng nhập */}
       <Modal
         title={<span className="text-xl font-bold">Yêu cầu đăng nhập</span>}
