@@ -33,7 +33,6 @@ export const PromotionProductUpdateModal: React.FC<Props> = ({
   const { data: giftProducts = [], isLoading: loadingGifts } = useAllProducts(giftSearch)
   const { mutateAsync: updatePromotionProduct, isPending } = useUpdatePromotionProduct()
 
-  console.log("promotionProduct",promotionProduct)
 
   // Set form khi có data
     useEffect(() => {

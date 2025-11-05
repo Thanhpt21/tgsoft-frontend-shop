@@ -82,7 +82,6 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   // CẬP NHẬT TỪ CACHE (nếu có thay đổi)
   useEffect(() => {
     if (latestConversationId && latestConversationId !== conversationId) {
-      console.log('Conversation ID updated from cache:', latestConversationId);
       setConversationId(latestConversationId);
       setTimeout(() => {
         joinConversation(latestConversationId); // <-- ĐÃ FIX!
@@ -94,7 +93,6 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   // CẬP NHẬT SESSION ID CHO GUEST
   useEffect(() => {
     if (localSessionId && !sessionId) {
-      console.log('Session ID from localStorage:', localSessionId);
       setSessionId(localSessionId);
     }
   }, [localSessionId, sessionId]);
@@ -105,7 +103,6 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
       const currentSessionId = sessionId || localStorage.getItem('sessionId');
 
       if (!userIdNumber && !currentSessionId && !conversationId) {
-        console.log('No identifiers, skip loading messages');
         return;
       }
 
@@ -117,7 +114,6 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
 
       if (!url) return;
 
-      console.log('Loading messages from:', url);
       const response = await fetch(url, {
         headers: { 'x-tenant-id': tenantId.toString() },
       });
@@ -128,7 +124,6 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
       }
 
       const data = await response.json();
-      console.log('Loaded data:', data);
 
       let loadedMessages: ChatMessage[] = [];
       if (data.messages && Array.isArray(data.messages)) {
@@ -144,7 +139,6 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
       }
 
       if (loadedMessages.length > 0) {
-        console.log('Loaded messages:', loadedMessages.length);
         setMessages(loadedMessages);
         setMessagesLoaded(true);
       }
@@ -166,25 +160,21 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     setSocket(socketInstance);
 
     socketInstance.on('connect', () => {
-      console.log('Socket connected:', socketInstance.id);
       setIsConnected(true);
       if (!messagesLoaded) loadMessages();
     });
 
     socketInstance.on('disconnect', () => {
-      console.log('Chat disconnected');
       setIsConnected(false);
     });
 
     socketInstance.on('session-initialized', (data: { sessionId: string }) => {
-      console.log('Session initialized:', data.sessionId);
       setSessionId(data.sessionId);
       localStorage.setItem('sessionId', data.sessionId);
       if (!messagesLoaded) setTimeout(() => loadMessages(), 500);
     });
 
     socketInstance.on('conversation-updated', (data: any) => {
-      console.log('Conversation updated:', data);
       const convId = data.conversationId || data.id;
       if (convId && convId !== conversationId) {
         setConversationId(convId);
@@ -195,7 +185,6 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     });
 
     socketInstance.on('message', (msg: ChatMessage) => {
-      console.log('Received message:', msg);
       setMessages((prev) => {
         const exists = prev.some(m => m.id.toString() === msg.id.toString());
         return exists ? prev : [...prev, msg];
@@ -236,7 +225,6 @@ const handleUserLogin = useCallback(
     try {
       // 🔥 ĐỢI SOCKET CONNECT TRƯỚC!
       if (!socket.connected) {
-        console.log('⏳ Waiting for socket to connect...');
         
         // Đợi tối đa 5 giây
         await new Promise<void>((resolve, reject) => {
@@ -252,7 +240,6 @@ const handleUserLogin = useCallback(
 
           socket.once('connect', () => {
             clearTimeout(timeout);
-            console.log('✅ Socket connected, proceeding with login...');
             resolve();
           });
 
@@ -263,7 +250,6 @@ const handleUserLogin = useCallback(
         });
       }
 
-      console.log('🔐 Socket is connected, emitting user-login:', { userId });
       socket.emit('user-login', { userId });
 
       // Lưu userId
@@ -291,13 +277,11 @@ const handleUserLogin = useCallback(
 
         const latestConversationId = conversationIds[0] ?? null;
         if (latestConversationId && latestConversationId !== conversationId) {
-          console.log('💬 Conversation ID fetched immediately:', latestConversationId);
           setConversationId(latestConversationId);
           
           // Join conversation sau khi có ID
           if (socket.connected) {
             socket.emit('join:conversation', latestConversationId);
-            console.log('🚪 Joined conversation:', latestConversationId);
           }
           
           setTimeout(() => loadMessages(), 300);

@@ -19,7 +19,6 @@ export const getCurrentUser = async (): Promise<CurrentUser | null> => {
       { cache: 'no-store' }
     );
 
-    console.log('🔍 getCurrentUser response.status:', response.status);
 
     if (response.status === 401) return null;
 
@@ -30,7 +29,6 @@ export const getCurrentUser = async (): Promise<CurrentUser | null> => {
     }
 
     const { success, data } = await response.json();
-    console.log('🔍 getCurrentUser data:', data);
 
     return success && data ? data : null;
   } catch (error: any) {

@@ -65,6 +65,8 @@ export interface OrderItem {
   quantity: number
   unitPrice: number
   createdAt?: string
+  giftProductId?: number | null
+  giftQuantity?: number
   updatedAt?: string
   productVariant?: ProductVariant
 }
@@ -111,6 +113,8 @@ export interface OrderItemDto {
   quantity: number
   unitPrice: number
   warehouseId: number
+  giftProductId?: number | null
+  giftQuantity?: number
 }
 
 // ✅ CreateOrderDto

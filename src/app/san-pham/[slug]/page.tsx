@@ -103,6 +103,7 @@ export default function ProductDetailPage() {
     }
   };
 
+
   const handleAddToCart = useCallback(() => {
     if (!selectedVariant || !product) return;
 
@@ -246,7 +247,6 @@ export default function ProductDetailPage() {
 
   // Tính giá cuối cùng sau khuyến mãi, nếu không có khuyến mãi thì dùng giá gốc của variant
   const finalPrice = discountedPrice ?? (selectedVariant ? selectedVariant.priceDelta : currentProduct.basePrice);
-  console.log("Final Price:", finalPrice);
 
   const originalPrice = selectedVariant ? selectedVariant.priceDelta : currentProduct.basePrice;
 
@@ -329,6 +329,51 @@ export default function ProductDetailPage() {
                 <div className="text-sm text-gray-500">Không có chương trình khuyến mãi</div>  
               )
             }
+
+            {/* Quà tặng kèm */}
+            {currentProduct.promotionProducts && 
+             currentProduct.promotionProducts.length > 0 && 
+             currentProduct.promotionProducts[0].giftProduct && (
+              <div className="mb-4 bg-gradient-to-r from-pink-50 via-purple-50 to-blue-50 rounded-2xl p-5 border-2 border-pink-200 shadow-md">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-2xl">🎁</span>
+                  <span className="font-bold text-lg bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                    Quà tặng kèm
+                  </span>
+                  <span className="ml-auto bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    MIỄN PHÍ
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 bg-white rounded-xl p-3 shadow-sm">
+                  <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border-2 border-pink-200 shadow-sm">
+                    <img 
+                      src={getImageUrl(currentProduct.promotionProducts[0].giftProduct.thumb) || ''}
+                      alt={currentProduct.promotionProducts[0].giftProduct.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-bl-lg">
+                      x{currentProduct.promotionProducts[0].giftQuantity}
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-800 mb-1">
+                      {currentProduct.promotionProducts[0].giftProduct.name}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-500 line-through">
+                        {currentProduct.promotionProducts[0].giftProduct.basePrice.toLocaleString()}đ
+                      </span>
+                      <span className="text-sm font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                        Tặng {currentProduct.promotionProducts[0].giftQuantity} sản phẩm
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 text-center text-sm text-gray-600 bg-white/50 rounded-lg py-2 px-3">
+                  💝 Tự động thêm vào đơn hàng khi mua sản phẩm này
+                </div>
+              </div>
+            )}
 
             {/* Price Card với khuyến mãi */}
             {currentProduct.promotionProducts && currentProduct.promotionProducts.length > 0 ? (

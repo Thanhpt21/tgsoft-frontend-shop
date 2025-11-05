@@ -19,7 +19,6 @@ export const getSocket = (options: SocketOptions = {}): SocketType | null => {
     if (!sessionId) {
       sessionId = uuidv4();
       localStorage.setItem('sessionId', sessionId);
-      console.log('🔑 Created new sessionId:', sessionId);
     }
     // 🔥 Lấy userId nếu đã đăng nhập
     const userIdStr = localStorage.getItem('userId');
@@ -54,12 +53,10 @@ export const getSocket = (options: SocketOptions = {}): SocketType | null => {
 
     // Connection events
     socket.on('connect', () => {
-      console.log('✅ Socket connected:', socket?.id);
   
     });
 
     socket.on('disconnect', (reason: string) => {
-      console.log('❌ Socket disconnected:', reason);
     });
 
     socket.on('connect_error', (error: Error) => {
@@ -67,7 +64,6 @@ export const getSocket = (options: SocketOptions = {}): SocketType | null => {
     });
 
     socket.on('reconnect_attempt', (attemptNumber: number) => {
-      console.log(`🔄 Attempting to reconnect: #${attemptNumber}`);
     });
 
     socket.on('reconnect_failed', () => {
@@ -93,7 +89,6 @@ export const isSocketConnected = (): boolean => {
 // 🔥 Thêm function để force reconnect
 export const reconnectSocket = () => {
   if (socket && !socket.connected) {
-    console.log('🔄 Force reconnecting...');
     socket.connect();
   }
 };

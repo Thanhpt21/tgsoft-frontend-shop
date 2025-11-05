@@ -7,6 +7,7 @@ import { Order, OrderItem } from '@/types/order.type';
 import { getImageUrl } from '@/utils/getImageUrl';
 import { useAllAttributes } from '@/hooks/attribute/useAllAttributes';
 import { useAttributeValues } from '@/hooks/attribute-value/useAttributeValues';
+import { GiftProductDisplay } from '@/components/layout/common/GiftProductDisplay';
 
 interface OrderDetailModalProps {
   open: boolean;
@@ -143,7 +144,22 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ open, onClose, orde
               const attrs = variant?.attrValues
                 ? renderAttributes(variant.attrValues)
                 : 'Không có thuộc tính';
-              return `${productName} ${attrs}`;
+              return (
+                <div>
+                  <div>{productName}</div>
+                  <div className="text-sm text-gray-500">{attrs}</div>
+                  
+                  {/* 👇 Hiển thị quà tặng */}
+                  {item.giftProductId && item.giftQuantity && (
+                    <div className="mt-2">
+                      <GiftProductDisplay 
+                        giftProductId={item.giftProductId}
+                        giftQuantity={item.giftQuantity}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
             },
           },
           {
