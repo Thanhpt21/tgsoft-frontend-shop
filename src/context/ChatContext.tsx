@@ -36,6 +36,8 @@ interface ChatContextType {
   handleUserLogin: (userId: number, tenantId?: number) => Promise<void>;
   loadMessages: () => Promise<void>;
   errorMessage: string | null;
+  isChatOpen: boolean;  
+  setIsChatOpen: (open: boolean) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -55,6 +57,7 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   const [socket, setSocket] = useState<SocketType | null>(null);
   const [messagesLoaded, setMessagesLoaded] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Lấy tenantId từ env
   const tenantId = Number(process.env.NEXT_PUBLIC_TENANT_ID || '1');
@@ -355,6 +358,8 @@ const handleUserLogin = useCallback(
         handleUserLogin,
         loadMessages,
         errorMessage,
+        isChatOpen,        
+        setIsChatOpen,    
       }}
     >
       {children}

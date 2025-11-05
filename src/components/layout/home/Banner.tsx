@@ -2,12 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-
-const slides = [
-  { id: 1, img: "/image/slider1.jpg", clickable: true },
-  { id: 2, img: "/image/slider2.jpg", clickable: true },
-  { id: 3, img: "/image/slider3.jpg", clickable: false },
-]
+import { useConfigByTenant } from "@/hooks/config/useConfigByTenant"
 
 export default function Banner() {
   const [index, setIndex] = useState(0)
@@ -17,6 +12,19 @@ export default function Banner() {
   const moved = useRef(false)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const router = useRouter()
+  const { data: config, isLoading, isError } = useConfigByTenant();
+
+  // Nếu data chưa có thì chưa render
+  if (isLoading || isError || !config) {
+    return <div className="w-full h-[250px] sm:h-[350px] md:h-[500px] bg-gray-200" />
+  }
+
+  // Lấy banner từ config
+  const slides = config.banner.map((url: any, idx: any) => ({
+    id: idx + 1,
+    img: url,
+    clickable: true, // nếu muốn từng banner khác nhau có thể lưu thêm trong config
+  }))
 
   // ⚙️ Hàm tự chạy
   const startAutoPlay = () => {
@@ -64,7 +72,7 @@ export default function Banner() {
   // 🖱️ Click slide → sang trang /san-pham
   const handleClick = (slide: any) => {
     if (moved.current || !slide.clickable) return
-    router.push("/san-pham") // 👉 chuyển trang ở đây
+    router.push("/san-pham")
   }
 
   return (
@@ -81,7 +89,7 @@ export default function Banner() {
         className="flex transition-transform duration-700 ease-in-out"
         style={{ transform: `translateX(-${index * 100}%)` }}
       >
-        {slides.map((s) => (
+        {slides.map((s: any) => (
           <div
             key={s.id}
             className={`w-full flex-shrink-0 relative ${
@@ -120,7 +128,7 @@ export default function Banner() {
 
       {/* Chấm chỉ báo */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-        {slides.map((_, i) => (
+        {slides.map((_: any, i: any) => (
           <div
             key={i}
             onClick={() => {

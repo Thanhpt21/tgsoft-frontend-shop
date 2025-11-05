@@ -17,6 +17,7 @@ import {
   ShopOutlined,
   SendOutlined,
 } from "@ant-design/icons";
+import { useConfigByTenant } from "@/hooks/config/useConfigByTenant";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -24,8 +25,7 @@ const { TextArea } = Input;
 export default function ContactPage() {
   const [form] = Form.useForm();
   const createContactMutation = useCreateContact();
-  const { data: config, isLoading: isLoadingConfig } = useConfigOne(1);
-
+  const { data: config, isLoading, isError } = useConfigByTenant();
   const onFinish = async (values: CreateContactPayload) => {
     try {
       await createContactMutation.mutateAsync(values);
@@ -168,7 +168,7 @@ export default function ContactPage() {
 
           {/* Quick Info */}
           <div className="space-y-6">
-            {isLoadingConfig ? (
+            {isLoading ? (
               <div className="flex justify-center items-center h-48">
                 <Spin size="large" />
               </div>
@@ -242,7 +242,7 @@ export default function ContactPage() {
         </div>
 
         {/* Map & Social Section */}
-        {!isLoadingConfig && config && (
+        {!isLoading && config && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <div className="lg:col-span-2">
               <div className="bg-white rounded-3xl border-2 border-gray-100 shadow-lg overflow-hidden h-full min-h-[400px]">

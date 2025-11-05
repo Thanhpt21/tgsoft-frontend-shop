@@ -59,12 +59,6 @@ const Footer = ({ config }: FooterProps) => {
       color: "bg-red-600 hover:bg-red-700",
       label: "Youtube",
     },
-    {
-      icon: <GlobalOutlined />,
-      url: config.zalo,
-      color: "bg-blue-500 hover:bg-blue-600",
-      label: "Zalo",
-    },
   ].filter((link) => link.url);
 
   const features = [
