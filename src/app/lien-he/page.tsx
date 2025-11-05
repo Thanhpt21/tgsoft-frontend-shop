@@ -163,13 +163,8 @@ export default function ContactPage() {
           </div>
 
           {/* Quick Info */}
-<<<<<<< HEAD
-          <div className="space-y-4 lg:space-y-6">
-            {isLoadingConfig ? (
-=======
           <div className="space-y-6">
             {isLoading ? (
->>>>>>> 1d0fff015a08a4f694dbecb1bda51a629ec00392
               <div className="flex justify-center items-center h-48">
                 <Spin size="large" />
               </div>
@@ -243,13 +238,8 @@ export default function ContactPage() {
         </div>
 
         {/* Map & Social Section */}
-<<<<<<< HEAD
-        {!isLoadingConfig && config && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10">
-=======
         {!isLoading && config && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
->>>>>>> 1d0fff015a08a4f694dbecb1bda51a629ec00392
             <div className="lg:col-span-2">
               <div className="bg-white rounded-3xl border-2 border-gray-100 shadow-lg overflow-hidden h-full min-h-[400px]">
                 {config.showGooglemap && config.googlemap ? (
