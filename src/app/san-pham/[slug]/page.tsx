@@ -1,25 +1,35 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter  } from 'next/navigation';
-import { Card, Button, Typography, Space, Breadcrumb, Tabs, message, Modal, Tag } from 'antd';
-import Link from 'next/link';
-import { useAuth } from '@/context/AuthContext';
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
+import {
+  Card,
+  Button,
+  Typography,
+  Space,
+  Breadcrumb,
+  Tabs,
+  message,
+  Modal,
+  Tag,
+} from "antd";
+import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
-import ProductImageGallery from '@/components/layout/product/ProductImageGallery';
-import { useProductBySlug } from '@/hooks/product/useProductBySlug';
-import { useProductVariants } from '@/hooks/product-variant/useProductVariants';
-import { useAddCartItem } from '@/hooks/cart/useAddCartItem';
-import { getImageUrl } from '@/utils/getImageUrl';
-import { Product } from '@/types/product.type';
-import { ProductVariant } from '@/types/product-variant.type';
-import { useAllAttributes } from '@/hooks/attribute/useAllAttributes';
-import { useAttributeValues } from '@/hooks/attribute-value/useAttributeValues';
-import { Attribute } from '@/types/attribute.type';
-import { useAllCategories } from '@/hooks/category/useAllCategories';
-import { useAllBrands } from '@/hooks/brand/useAllBrands';
-import RatingComponent from '@/components/layout/rating/RatingComponent';
-import { useAddCartItemWithOptimistic } from '@/hooks/cart/useAddCartItemWithOptimistic';
+import ProductImageGallery from "@/components/layout/product/ProductImageGallery";
+import { useProductBySlug } from "@/hooks/product/useProductBySlug";
+import { useProductVariants } from "@/hooks/product-variant/useProductVariants";
+import { useAddCartItem } from "@/hooks/cart/useAddCartItem";
+import { getImageUrl } from "@/utils/getImageUrl";
+import { Product } from "@/types/product.type";
+import { ProductVariant } from "@/types/product-variant.type";
+import { useAllAttributes } from "@/hooks/attribute/useAllAttributes";
+import { useAttributeValues } from "@/hooks/attribute-value/useAttributeValues";
+import { Attribute } from "@/types/attribute.type";
+import { useAllCategories } from "@/hooks/category/useAllCategories";
+import { useAllBrands } from "@/hooks/brand/useAllBrands";
+import RatingComponent from "@/components/layout/rating/RatingComponent";
+import { useAddCartItemWithOptimistic } from "@/hooks/cart/useAddCartItemWithOptimistic";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -29,7 +39,11 @@ export default function ProductDetailPage() {
 
   const { isAuthenticated } = useAuth();
 
-  const { data: product, isLoading: loadingProduct, isError } = useProductBySlug({ slug: slug as string });
+  const {
+    data: product,
+    isLoading: loadingProduct,
+    isError,
+  } = useProductBySlug({ slug: slug as string });
   const productId = product?.id;
   const { data: variants } = useProductVariants(productId);
   const addCartItemMutation = useAddCartItem();
@@ -40,26 +54,36 @@ export default function ProductDetailPage() {
 
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [mainImage, setMainImage] = useState<string | null>(null);
-  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, number>>({});
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [selectedAttributes, setSelectedAttributes] = useState<
+    Record<string, number>
+  >({});
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
+    null
+  );
 
   const { data: allAttributes } = useAllAttributes();
   const { data: allAttributeValues } = useAttributeValues();
   const { data: allCategories } = useAllCategories();
   const { data: allBrands } = useAllBrands();
 
-  const attributeMap = allAttributes?.reduce((acc: Record<number, string>, attr: Attribute) => {
-    acc[attr.id] = attr.name;
-    return acc;
-  }, {} as Record<number, string>) ?? {}
+  const attributeMap =
+    allAttributes?.reduce((acc: Record<number, string>, attr: Attribute) => {
+      acc[attr.id] = attr.name;
+      return acc;
+    }, {} as Record<number, string>) ?? {};
 
-  const attributeValueMap = allAttributeValues?.data.reduce((acc: Record<number, string>, val) => {
-    acc[val.id] = val.value;
-    return acc;
-  }, {} as Record<number, string>) ?? {};
+  const attributeValueMap =
+    allAttributeValues?.data.reduce((acc: Record<number, string>, val) => {
+      acc[val.id] = val.value;
+      return acc;
+    }, {} as Record<number, string>) ?? {};
 
-  const categoryName = allCategories?.find((cat: any) => cat.id === currentProduct?.categoryId)?.name;
-  const brandName = allBrands?.find((brand: any) => brand.id === currentProduct?.brandId)?.name;
+  const categoryName = allCategories?.find(
+    (cat: any) => cat.id === currentProduct?.categoryId
+  )?.name;
+  const brandName = allBrands?.find(
+    (brand: any) => brand.id === currentProduct?.brandId
+  )?.name;
 
   useEffect(() => {
     if (product && !currentProduct) {
@@ -81,7 +105,7 @@ export default function ProductDetailPage() {
     });
 
     setSelectedVariant(matched ?? null);
-    
+
     if (matched && matched.thumb) {
       setMainImage(getImageUrl(matched.thumb));
     } else if (product) {
@@ -126,7 +150,7 @@ export default function ProductDetailPage() {
       { productVariantId: selectedVariant.id, quantity: 1 },
       {
         onOptimisticSuccess: () => {
-          message.success('Đã thêm vào giỏ hàng!');
+          message.success("Đã thêm vào giỏ hàng!");
           setTimeout(() => setIsAdding(false), 300);
         },
         onError: () => {
@@ -162,8 +186,8 @@ export default function ProductDetailPage() {
       { productVariantId: selectedVariant.id, quantity: 1 },
       {
         onOptimisticSuccess: () => {
-          message.success('Đã thêm vào giỏ!');
-          router.push('/dat-hang');
+          message.success("Đã thêm vào giỏ!");
+          router.push("/dat-hang");
         },
       }
     );
@@ -189,10 +213,12 @@ export default function ProductDetailPage() {
 
   if (loadingProduct || !currentProduct || !mainImage) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-          <p className="text-lg text-gray-600 font-medium">Đang tải sản phẩm...</p>
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-gray-300 mb-4"></div>
+          <p className="text-lg text-gray-600 font-medium">
+            Đang tải sản phẩm...
+          </p>
         </div>
       </div>
     );
@@ -203,7 +229,9 @@ export default function ProductDetailPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50">
         <div className="text-center p-8 bg-white rounded-2xl shadow-xl">
           <div className="text-6xl mb-4">❌</div>
-          <p className="text-xl text-red-600 font-semibold">Lỗi khi tải sản phẩm</p>
+          <p className="text-xl text-red-600 font-semibold">
+            Lỗi khi tải sản phẩm
+          </p>
         </div>
       </div>
     );
@@ -229,13 +257,15 @@ export default function ProductDetailPage() {
     const promo = currentProduct.promotionProducts[0];
 
     // Tính giá cơ bản của variant (nếu có), nếu không thì dùng giá cơ bản của sản phẩm
-    const basePrice = selectedVariant ? selectedVariant.priceDelta : currentProduct.basePrice;
+    const basePrice = selectedVariant
+      ? selectedVariant.priceDelta
+      : currentProduct.basePrice;
 
     // Nếu có chương trình khuyến mãi
-    if (promo.discountType === 'PERCENT') {
+    if (promo.discountType === "PERCENT") {
       return basePrice * (1 - promo.discountValue / 100);
     }
-    if (promo.discountType === 'FIXED') {
+    if (promo.discountType === "FIXED") {
       return Math.max(0, basePrice - promo.discountValue);
     }
 
@@ -245,10 +275,14 @@ export default function ProductDetailPage() {
   const discountedPrice = getDiscountedPrice();
 
   // Tính giá cuối cùng sau khuyến mãi, nếu không có khuyến mãi thì dùng giá gốc của variant
-  const finalPrice = discountedPrice ?? (selectedVariant ? selectedVariant.priceDelta : currentProduct.basePrice);
+  const finalPrice =
+    discountedPrice ??
+    (selectedVariant ? selectedVariant.priceDelta : currentProduct.basePrice);
   console.log("Final Price:", finalPrice);
 
-  const originalPrice = selectedVariant ? selectedVariant.priceDelta : currentProduct.basePrice;
+  const originalPrice = selectedVariant
+    ? selectedVariant.priceDelta
+    : currentProduct.basePrice;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
@@ -257,17 +291,25 @@ export default function ProductDetailPage() {
         <div className="mb-8 bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/50">
           <Breadcrumb className="text-sm">
             <Breadcrumb.Item>
-              <Link href="/" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
+              <Link
+                href="/"
+                className="text-gray-600 hover:text-blue-600 transition-colors font-medium"
+              >
                 🏠 Trang chủ
               </Link>
             </Breadcrumb.Item>
             <Breadcrumb.Item>
-              <Link href="/san-pham" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
+              <Link
+                href="/san-pham"
+                className="text-gray-600 hover:text-blue-600 transition-colors font-medium"
+              >
                 🛍️ Sản phẩm
               </Link>
             </Breadcrumb.Item>
             <Breadcrumb.Item>
-              <span className="text-blue-600 font-semibold">{currentProduct.name}</span>
+              <span className="text-blue-600 font-semibold">
+                {currentProduct.name}
+              </span>
             </Breadcrumb.Item>
           </Breadcrumb>
         </div>
@@ -289,49 +331,71 @@ export default function ProductDetailPage() {
             {/* Tags */}
             <div className="flex flex-wrap gap-2 mb-4">
               {brandName && (
-                <Tag color="blue" className="px-4 py-1 text-sm font-medium rounded-full">
+                <Tag
+                  color="blue"
+                  className="px-4 py-1 text-sm font-medium rounded-full"
+                >
                   🏷️ {brandName}
                 </Tag>
               )}
               {categoryName && (
-                <Tag color="purple" className="px-4 py-1 text-sm font-medium rounded-full">
+                <Tag
+                  color="purple"
+                  className="px-4 py-1 text-sm font-medium rounded-full"
+                >
                   📁 {categoryName}
                 </Tag>
               )}
-              <Tag color="green" className="px-4 py-1 text-sm font-medium rounded-full">
+              <Tag
+                color="green"
+                className="px-4 py-1 text-sm font-medium rounded-full"
+              >
                 ✨ Mới
               </Tag>
             </div>
 
             {/* Product Name */}
             <div>
-              <Title level={2} className="!mb-2 !text-3xl !font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <Title
+                level={2}
+                className="!mb-2 !text-3xl !font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+              >
                 {currentProduct.name}
               </Title>
             </div>
             {/* Badge khuyến mãi nổi bật */}
-           {currentProduct.promotionProducts && currentProduct.promotionProducts.length > 0 ? (
-                <div className="mb-4 p-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl shadow-lg flex items-center gap-3 animate-pulse">
-                  <span className="text-2xl">Flash Sale</span>
-                  <div className="flex-1">
-                    <div className="font-bold text-lg">{currentProduct.promotionProducts[0].promotion.name}</div>
-                    <div className="text-sm opacity-90">
-                      Kết thúc: {new Date(currentProduct.promotionProducts[0].promotion.endTime).toLocaleString('vi-VN')}
-                    </div>
+            {currentProduct.promotionProducts &&
+            currentProduct.promotionProducts.length > 0 ? (
+              <div className="mb-4 p-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl shadow-lg flex items-center gap-3 animate-pulse">
+                <span className="text-2xl">Flash Sale</span>
+                <div className="flex-1">
+                  <div className="font-bold text-lg">
+                    {currentProduct.promotionProducts[0].promotion.name}
                   </div>
-                  <div className="bg-white text-red-600 px-4 py-2 rounded-full font-bold text-lg">
-                    -{currentProduct.promotionProducts[0].discountType === 'PERCENT'
-                      ? `${currentProduct.promotionProducts[0].discountValue}%`
-                      : `${currentProduct.promotionProducts[0].discountValue.toLocaleString()}đ`}
+                  <div className="text-sm opacity-90">
+                    Kết thúc:{" "}
+                    {new Date(
+                      currentProduct.promotionProducts[0].promotion.endTime
+                    ).toLocaleString("vi-VN")}
                   </div>
                 </div>
-              ) : (
-                <div className="text-sm text-gray-500">Không có chương trình khuyến mãi</div>  
-              )
-            }
+                <div className="bg-white text-red-600 px-4 py-2 rounded-full font-bold text-lg">
+                  -
+                  {currentProduct.promotionProducts[0].discountType ===
+                  "PERCENT"
+                    ? `${currentProduct.promotionProducts[0].discountValue}%`
+                    : `${currentProduct.promotionProducts[0].discountValue.toLocaleString()}đ`}
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500">
+                Không có chương trình khuyến mãi
+              </div>
+            )}
 
             {/* Price Card với khuyến mãi */}
-            {currentProduct.promotionProducts && currentProduct.promotionProducts.length > 0 ? (
+            {currentProduct.promotionProducts &&
+            currentProduct.promotionProducts.length > 0 ? (
               <div className="bg-gradient-to-r from-red-600 via-orange-600 to-pink-600 rounded-2xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-300 relative overflow-hidden">
                 {/* Badge chương trình khuyến mãi */}
                 <div className="absolute top-2 right-2 bg-yellow-400 text-red-800 text-xs font-bold px-3 py-1 rounded-full shadow-md animate-pulse">
@@ -339,14 +403,18 @@ export default function ProductDetailPage() {
                 </div>
 
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-sm font-medium opacity-90">Giá gốc:</span>
+                  <span className="text-sm font-medium opacity-90">
+                    Giá gốc:
+                  </span>
                   <span className="text-lg line-through opacity-70">
                     {originalPrice.toLocaleString()} VNĐ
                   </span>
                 </div>
 
                 <div className="flex items-baseline gap-3">
-                  <span className="text-sm font-medium opacity-90">Giá khuyến mãi:</span>
+                  <span className="text-sm font-medium opacity-90">
+                    Giá khuyến mãi:
+                  </span>
                   <span className="text-5xl font-black">
                     {finalPrice.toLocaleString()}
                   </span>
@@ -356,18 +424,23 @@ export default function ProductDetailPage() {
                 <div className="mt-3 flex items-center gap-2">
                   <span className="bg-white/30 px-3 py-1 rounded-full text-sm font-bold">
                     -
-                    {currentProduct.promotionProducts[0].discountType === 'PERCENT'
+                    {currentProduct.promotionProducts[0].discountType ===
+                    "PERCENT"
                       ? `${currentProduct.promotionProducts[0].discountValue}%`
                       : `${currentProduct.promotionProducts[0].discountValue.toLocaleString()}đ`}
                   </span>
-                  <span className="text-sm opacity-80">Tiết kiệm: {(originalPrice - finalPrice).toLocaleString()}đ</span>
+                  <span className="text-sm opacity-80">
+                    Tiết kiệm: {(originalPrice - finalPrice).toLocaleString()}đ
+                  </span>
                 </div>
               </div>
             ) : (
               /* Giá thường (không có khuyến mãi) */
               <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-300">
                 <div className="flex items-baseline gap-3">
-                  <span className="text-sm font-medium opacity-90">Giá bán:</span>
+                  <span className="text-sm font-medium opacity-90">
+                    Giá bán:
+                  </span>
                   <span className="text-4xl font-bold">
                     {finalPrice.toLocaleString()}
                   </span>
@@ -384,49 +457,69 @@ export default function ProductDetailPage() {
             {/* Attributes Section */}
             <div className="space-y-6">
               {Object.entries(attributeOptions).map(([attrId, valueSet]) => {
-                const attrName = attributeMap[Number(attrId)] ?? `Thuộc tính ${attrId}`;
-                
-                const allValuesForAttr = allAttributeValues?.data.filter(
-                  av => av.attributeId === Number(attrId)
-                ) ?? [];
-                
+                const attrName =
+                  attributeMap[Number(attrId)] ?? `Thuộc tính ${attrId}`;
+
+                const allValuesForAttr =
+                  allAttributeValues?.data.filter(
+                    (av) => av.attributeId === Number(attrId)
+                  ) ?? [];
+
                 return (
                   <div key={attrId} className="space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="w-1 h-6 bg-gradient-to-b from-blue-600 to-purple-600 rounded-full"></div>
-                      <Text strong className="text-lg text-gray-800">{attrName}</Text>
+                      <Text strong className="text-lg text-gray-800">
+                        {attrName}
+                      </Text>
                     </div>
                     <div className="flex flex-wrap gap-3">
                       {allValuesForAttr.map((av) => {
                         const isInVariants = valueSet.has(av.id);
-                        
-                        const isAvailable = variants?.some((v) => {
-                          if (v.attrValues[attrId] !== av.id) return false;
-                          return Object.entries(selectedAttributes).every(([selectedAttrId, selectedValueId]) => {
-                            if (selectedAttrId === attrId) return true;
-                            return v.attrValues[selectedAttrId] === selectedValueId;
-                          });
-                        }) ?? false;
-                        
+
+                        const isAvailable =
+                          variants?.some((v) => {
+                            if (v.attrValues[attrId] !== av.id) return false;
+                            return Object.entries(selectedAttributes).every(
+                              ([selectedAttrId, selectedValueId]) => {
+                                if (selectedAttrId === attrId) return true;
+                                return (
+                                  v.attrValues[selectedAttrId] ===
+                                  selectedValueId
+                                );
+                              }
+                            );
+                          }) ?? false;
+
                         const isSelected = selectedAttributes[attrId] === av.id;
-                        
+
                         return (
                           <button
                             key={av.id}
-                            onClick={() => isAvailable && handleAttributeChange(attrId, av.id)}
+                            onClick={() =>
+                              isAvailable &&
+                              handleAttributeChange(attrId, av.id)
+                            }
                             disabled={!isAvailable}
                             className={`
                               relative px-6 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105
-                              ${isSelected 
-                                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg scale-105' 
-                                : isAvailable
-                                  ? 'bg-white border-2 border-gray-300 text-gray-700 hover:border-blue-500 hover:shadow-md'
-                                  : 'bg-gray-100 border-2 border-gray-200 text-gray-400 cursor-not-allowed opacity-50'
+                              ${
+                                isSelected
+                                  ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg scale-105"
+                                  : isAvailable
+                                  ? "bg-white border-2 border-gray-300 text-gray-700 hover:border-blue-500 hover:shadow-md"
+                                  : "bg-gray-100 border-2 border-gray-200 text-gray-400 cursor-not-allowed opacity-50"
                               }
                             `}
                           >
-                            {!isAvailable && <span className="absolute inset-0 flex items-center justify-center text-red-500 text-xl font-bold">×</span>}
-                            <span className={!isAvailable ? 'opacity-30' : ''}>{av.value}</span>
+                            {!isAvailable && (
+                              <span className="absolute inset-0 flex items-center justify-center text-red-500 text-xl font-bold">
+                                ×
+                              </span>
+                            )}
+                            <span className={!isAvailable ? "opacity-30" : ""}>
+                              {av.value}
+                            </span>
                           </button>
                         );
                       })}
@@ -439,7 +532,7 @@ export default function ProductDetailPage() {
             {/* Reset Button */}
             {Object.keys(selectedAttributes).length > 0 && (
               <div className="pt-2">
-                <Button 
+                <Button
                   onClick={handleResetAttributes}
                   className="!bg-gray-100 hover:!bg-gray-200 !border-0 !text-gray-700 !rounded-xl !px-6 !py-2 !h-auto font-medium transition-all duration-300 hover:scale-105"
                 >
@@ -450,8 +543,8 @@ export default function ProductDetailPage() {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 size="large"
                 onClick={handleAddToCart}
                 disabled={!selectedVariant || isAdding}
@@ -463,10 +556,10 @@ export default function ProductDetailPage() {
                     Đang thêm...
                   </span>
                 ) : (
-                  '🛒 Thêm vào giỏ hàng'
+                  "🛒 Thêm vào giỏ hàng"
                 )}
               </Button>
-              <Button 
+              <Button
                 size="large"
                 onClick={handleBuyNow}
                 disabled={!selectedVariant}
@@ -480,15 +573,21 @@ export default function ProductDetailPage() {
             <div className="grid grid-cols-3 gap-2 pt-4 border-t border-gray-200">
               <div className="text-center p-3 bg-green-50 rounded-xl">
                 <div className="text-2xl mb-1">✅</div>
-                <div className="text-xs font-medium text-gray-700">Hàng chính hãng</div>
+                <div className="text-xs font-medium text-gray-700">
+                  Hàng chính hãng
+                </div>
               </div>
               <div className="text-center p-3 bg-blue-50 rounded-xl">
                 <div className="text-2xl mb-1">🚚</div>
-                <div className="text-xs font-medium text-gray-700">Giao hàng nhanh</div>
+                <div className="text-xs font-medium text-gray-700">
+                  Giao hàng nhanh
+                </div>
               </div>
               <div className="text-center p-3 bg-purple-50 rounded-xl">
                 <div className="text-2xl mb-1">🔄</div>
-                <div className="text-xs font-medium text-gray-700">Đổi trả 7 ngày</div>
+                <div className="text-xs font-medium text-gray-700">
+                  Đổi trả 7 ngày
+                </div>
               </div>
             </div>
           </div>
@@ -505,15 +604,22 @@ export default function ProductDetailPage() {
         >
           <div className="text-center py-6">
             <div className="text-6xl mb-4">🔐</div>
-            <Title level={3} className="!mb-4">Đăng nhập để tiếp tục</Title>
+            <Title level={3} className="!mb-4">
+              Đăng nhập để tiếp tục
+            </Title>
             <p className="text-lg mb-6 text-gray-600">
               Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng
             </p>
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
               <p className="text-sm text-gray-600 mb-2">Sản phẩm đã chọn:</p>
-              <p className="font-bold text-lg text-gray-800 mb-2">{product?.name}</p>
+              <p className="font-bold text-lg text-gray-800 mb-2">
+                {product?.name}
+              </p>
               <p className="text-2xl font-bold text-blue-600">
-                {(selectedVariant?.priceDelta || product?.basePrice)?.toLocaleString()} VNĐ
+                {(
+                  selectedVariant?.priceDelta || product?.basePrice
+                )?.toLocaleString()}{" "}
+                VNĐ
               </p>
             </div>
           </div>
@@ -521,59 +627,76 @@ export default function ProductDetailPage() {
 
         {/* Details Section */}
         <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-white/50 mb-4">
-          <Tabs 
-            defaultActiveKey="description" 
+          <Tabs
+            defaultActiveKey="description"
             size="large"
             items={[
               {
-                key: 'description',
+                key: "description",
                 label: <span className="font-semibold">📝 Mô tả sản phẩm</span>,
                 children: (
                   <div className="prose max-w-none p-6">
-                    <div 
-                      dangerouslySetInnerHTML={{ __html: currentProduct.description || '<p class="text-gray-500 text-center py-8">Chưa có mô tả chi tiết cho sản phẩm này.</p>' }} 
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html:
+                          currentProduct.description ||
+                          '<p class="text-gray-500 text-center py-8">Chưa có mô tả chi tiết cho sản phẩm này.</p>',
+                      }}
                       className="text-gray-700 leading-relaxed"
                     />
                   </div>
-                )
+                ),
               },
               {
-                key: 'policy',
+                key: "policy",
                 label: <span className="font-semibold">📋 Chính sách</span>,
                 children: (
                   <div className="space-y-6 p-6">
                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
-                      <Title level={4} className="!mb-3 flex items-center gap-2">
+                      <Title
+                        level={4}
+                        className="!mb-3 flex items-center gap-2"
+                      >
                         <span className="text-2xl">🚚</span>
                         Chính sách vận chuyển
                       </Title>
                       <Paragraph className="!mb-0 text-gray-700">
-                        Giao hàng nhanh chóng và an toàn, từ 2-5 ngày làm việc. Miễn phí vận chuyển cho đơn hàng trên 500.000đ.
+                        Giao hàng nhanh chóng và an toàn, từ 2-5 ngày làm việc.
+                        Miễn phí vận chuyển cho đơn hàng trên 500.000đ.
                       </Paragraph>
                     </div>
 
                     <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200">
-                      <Title level={4} className="!mb-3 flex items-center gap-2">
+                      <Title
+                        level={4}
+                        className="!mb-3 flex items-center gap-2"
+                      >
                         <span className="text-2xl">🔄</span>
                         Chính sách đổi trả
                       </Title>
                       <Paragraph className="!mb-0 text-gray-700">
-                        Hỗ trợ đổi trả trong vòng 7 ngày nếu sản phẩm lỗi hoặc không đúng mô tả. Sản phẩm phải còn nguyên vẹn và chưa qua sử dụng.
+                        Hỗ trợ đổi trả trong vòng 7 ngày nếu sản phẩm lỗi hoặc
+                        không đúng mô tả. Sản phẩm phải còn nguyên vẹn và chưa
+                        qua sử dụng.
                       </Paragraph>
                     </div>
 
                     <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-200">
-                      <Title level={4} className="!mb-3 flex items-center gap-2">
+                      <Title
+                        level={4}
+                        className="!mb-3 flex items-center gap-2"
+                      >
                         <span className="text-2xl">🛡️</span>
                         Chính sách bảo hành
                       </Title>
                       <Paragraph className="!mb-0 text-gray-700">
-                        Sản phẩm được bảo hành chính hãng theo quy định của nhà sản xuất. Chi tiết vui lòng liên hệ CSKH để được hỗ trợ.
+                        Sản phẩm được bảo hành chính hãng theo quy định của nhà
+                        sản xuất. Chi tiết vui lòng liên hệ CSKH để được hỗ trợ.
                       </Paragraph>
                     </div>
                   </div>
-                )
-              }
+                ),
+              },
             ]}
           />
         </div>

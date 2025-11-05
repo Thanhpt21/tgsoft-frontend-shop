@@ -166,10 +166,6 @@ export default function ContactPage() {
             </div>
           </div>
 
-<<<<<<< HEAD
-          {/* Quick Info */}
-          <div className="space-y-6">
-=======
           {/* Image & Quick Info */}
           <div className="space-y-10">
             {/* Banner Image */}
@@ -186,7 +182,6 @@ export default function ContactPage() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
             </div>
 
->>>>>>> c382e8b975d71647dd2926f43c3f557d49b9ba2b
             {isLoadingConfig ? (
               <div className="flex justify-center items-center h-48">
                 <Spin size="large" />
