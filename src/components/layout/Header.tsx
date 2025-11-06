@@ -15,6 +15,7 @@ import { useCartStore } from '@/stores/cartStore';
 import SearchBar from './common/SearchBar';
 import { useAllCategories } from '@/hooks/category/useAllCategories';
 import { useConfigOne } from '@/hooks/config/useConfigOne';
+import { useConfigByTenant } from '@/hooks/config/useConfigByTenant';
 
 const { Panel } = Collapse;
 
@@ -56,9 +57,6 @@ const Header = ({ config }: HeaderProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-
-  // Lấy cấu hình để hiển thị logo
-  const { data: configData, isLoading: isConfigLoading } = useConfigOne(1);
   
   // Lấy danh sách categories từ API
   const { data: categories, isLoading: isCategoriesLoading } = useAllCategories();
@@ -189,25 +187,27 @@ const Header = ({ config }: HeaderProps) => {
           {/* Hàng header chính */}
           <div className="flex items-center justify-between h-16 sm:h-[70px]">
             {/* Phần Logo */}
-            <Link href="/" className="flex items-center flex-shrink-0 hover:opacity-80 transition-opacity">
-              {isConfigLoading ? (
-                // Loading skeleton cho logo
-                <div className="w-32 h-10 bg-gray-200 animate-pulse rounded"></div>
-              ) : configData?.logo ? (
-                // Hiển thị logo ảnh - SỬA LỖI: dùng Next.js Image với unoptimized
+             <Link
+              href="/"
+              className="flex items-center flex-shrink-0 hover:opacity-80 transition-opacity"
+            >
+              {config?.logo ? (
+                // Hiển thị logo ảnh
                 <div className="relative h-10 sm:h-12 w-32">
                   <Image
-                    src={getImageUrl(configData.logo) || ''}
-                    alt={configData?.name || 'Logo'}
+                    src={getImageUrl(config.logo) || "/default-logo.png"} // fallback tránh crash
+                    alt={config?.name || "Logo"}
                     fill
                     className="object-contain"
                     unoptimized
+                    sizes="(max-width: 768px) 100px, 150px"
+                    priority
                   />
                 </div>
               ) : (
-                // Fallback về text logo
-                <span className="text-xl sm:text-2xl font-black text-gray-900">
-                  {configData?.name || config.name || 'eBazaar'}
+                // Fallback: hiển thị tên nếu không có logo
+                <span className="text-xl font-semibold">
+                  {config?.name || "My Website"}
                 </span>
               )}
             </Link>

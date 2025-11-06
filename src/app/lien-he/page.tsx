@@ -51,8 +51,24 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Main container - giống width Header */}
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+    {/* Breadcrumb */}
+      <div className="border-b border-gray-200">
+        <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-4">
+          <div className="flex items-center gap-2 text-sm">
+            <a
+              href="/"
+              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            >
+              Trang chủ
+            </a>
+            <span className="text-gray-400">/</span>
+            <span className="text-gray-600">Liên hệ</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main container - giống width với About Us */}
+      <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-16 md:py-24">
         {/* Header Section */}
         <div className="text-center mb-20">
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-full mb-4 backdrop-blur-sm border border-blue-200/50">
