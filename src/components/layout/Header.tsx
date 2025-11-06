@@ -1,7 +1,7 @@
 'use client';
 
 // Import các thư viện và components cần thiết
-import { Button, Menu, Dropdown, Badge, Spin, Avatar, Drawer, Collapse } from 'antd';
+import { Menu, Dropdown, Badge, Spin, Avatar, Drawer, Collapse } from 'antd';
 import { ShoppingCartOutlined, UserOutlined, LoadingOutlined, MenuOutlined, CloseOutlined, SearchOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -14,7 +14,6 @@ import { getImageUrl } from '@/utils/getImageUrl';
 import { useCartStore } from '@/stores/cartStore';
 import SearchBar from './common/SearchBar';
 import { useAllCategories } from '@/hooks/category/useAllCategories';
-import { useConfigOne } from '@/hooks/config/useConfigOne';
 
 const { Panel } = Collapse;
 
