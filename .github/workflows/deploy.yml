@@ -16,6 +16,18 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
           script: |
+            set -x
+            echo "📂 Navigate to project folder..."
+            mkdir -p /root/tgsoft-frontend-shop
             cd /root/tgsoft-frontend-shop
-            git pull origin main
+
+            echo "🔄 Sync code from main..."
+            git fetch origin main
+            git reset --hard origin/main
+            git status
+
+            echo "🐳 Rebuild Docker containers..."
+            docker-compose down || true
             docker-compose up -d --build
+
+            echo "✅ Deployment finished!"
