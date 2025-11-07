@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 
 const getSenderName = (senderType: string) => {
@@ -20,22 +20,21 @@ export default function ChatBox() {
   const [unreadCount, setUnreadCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousMessagesLengthRef = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Tự động cuộn xuống dưới cùng khi có tin nhắn mới
-  useEffect(() => {
+  const scrollToBottom = () => {
     if (messagesEndRef.current) {
-      const isAtBottom = messagesEndRef.current.getBoundingClientRect().top <= window.innerHeight;
-      if (isAtBottom) {
-        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-      }
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  };
 
   // Load messages khi mở chatbox
   useEffect(() => {
     if (isOpen) {
       loadMessages();
       setUnreadCount(0); // Reset số tin nhắn chưa đọc khi mở chatbox
+      scrollToBottom(); // Cuộn xuống ngay khi mở chatbox
     }
   }, [isOpen, loadMessages, conversationId]);
 
@@ -46,7 +45,7 @@ export default function ChatBox() {
       const newUnreadCount = newMessages.filter(
         msg => msg.senderType === 'BOT' || msg.senderType === 'ADMIN'
       ).length;
-      
+
       if (newUnreadCount > 0) {
         setUnreadCount(prev => prev + newUnreadCount);
       }
@@ -82,6 +81,10 @@ export default function ChatBox() {
     return msg.senderType === 'USER' || msg.senderType === 'GUEST';
   };
 
+  useLayoutEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
   return (
     <>
       {/* Nút chat nổi */}
@@ -92,12 +95,12 @@ export default function ChatBox() {
         >
           💬 <span className="font-medium">Chat hỗ trợ</span>
         </button>
-        
+
         {/* Dot đỏ khi mất kết nối */}
         {!isConnected && (
           <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
         )}
-        
+
         {/* Badge số lượng tin nhắn mới */}
         {unreadCount > 0 && isConnected && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 shadow-md">
@@ -129,7 +132,10 @@ export default function ChatBox() {
           </div>
 
           {/* Danh sách tin nhắn */}
-          <div className="flex-1 p-3 overflow-y-auto bg-gray-50 space-y-2">
+          <div
+            className="flex-1 p-3 overflow-y-auto bg-gray-50 space-y-2"
+            ref={containerRef}
+          >
             {messages.length === 0 && (
               <div className="text-center text-gray-500 mt-6">
                 <div className="text-4xl mb-2">👋</div>

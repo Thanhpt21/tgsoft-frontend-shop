@@ -1,6 +1,6 @@
 'use client'
 
-import { Table, Tag, Image, Space, Tooltip, Input, Button, Modal, message, Badge } from 'antd'
+import { Table, Tag, Image, Space, Tooltip, Input, Button, Modal, message, Badge, Switch } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { EditOutlined, DeleteOutlined, PictureOutlined, MessageOutlined } from '@ant-design/icons'
 import { useUsers } from '@/hooks/user/useUsers'
@@ -12,8 +12,11 @@ import { UserChatModal } from './UserChatModal'
 import ioClient from 'socket.io-client'
 import { useAuth } from '@/context/AuthContext'
 
+
 import type { User } from '@/types/user.type'
 import { getImageUrl } from '@/utils/getImageUrl'
+import { useAiChatEnabled } from '@/hooks/chat/useAiChatEnabled'
+import { useSetAiChatEnabled } from '@/hooks/chat/useSetAiChatEnabled'
 
 export default function UserTable() {
   const [page, setPage] = useState(1)
@@ -28,6 +31,9 @@ export default function UserTable() {
 
   const { data, isLoading, refetch } = useUsers({ page, limit: 10, search })
   const { mutateAsync: deleteUser, isPending: isDeleting } = useDeleteUser()
+  const { data: aiChatEnabledData, refetch: refetchAiChat } = useAiChatEnabled()
+  const toggleAiChat = useSetAiChatEnabled()
+
 
   // Socket để lắng nghe tin nhắn mới
   useEffect(() => {
@@ -92,7 +98,7 @@ export default function UserTable() {
         [user.conversationId!]: 0
       }))
     } else {
-      message.error('Người dùng này chưa có cuộc trò chuyện!')
+      message.warning('Người dùng này chưa có cuộc trò chuyện!')
     }
   }
 
@@ -254,9 +260,27 @@ export default function UserTable() {
         </div>
 
         {/* Nhóm phải: Nút Tạo mới */}
-        <Button type="primary" onClick={() => setOpenCreate(true)}>
-          Thêm mới
-        </Button>
+       <div className="flex items-center gap-4">
+          <Switch
+            checked={aiChatEnabledData}
+            onChange={async (checked) => {
+              try {
+                await toggleAiChat.mutateAsync(checked)
+                message.success(`AI Chat ${checked ? 'đã bật' : 'đã tắt'}`)
+                refetch?.()
+                refetchAiChat?.()
+              } catch (error: any) {
+                message.error(error?.response?.data?.message || 'Cập nhật thất bại')
+              }
+            }}
+            checkedChildren="AI Chat Bật"
+            unCheckedChildren="AI Chat Tắt"
+          />
+          
+          <Button type="primary" onClick={() => setOpenCreate(true)}>
+            Thêm mới
+          </Button>
+        </div>
       </div>
 
       {/* 📋 Table */}

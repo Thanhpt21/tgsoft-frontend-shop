@@ -66,7 +66,6 @@ api.interceptors.response.use(
           break
 
         case 403:
-          message.error('Bạn không có quyền truy cập tài nguyên này.')
           break
 
         case 404:
