@@ -2,7 +2,7 @@
 
 import { Table, Button, InputNumber, Image, Breadcrumb, Modal, message, Checkbox, Empty, Card } from 'antd';
 import { DeleteOutlined, HomeOutlined, MinusOutlined, PlusOutlined, ShoppingCartOutlined } from '@ant-design/icons';
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -21,7 +21,6 @@ const ShoppingCart = () => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
-
   const {
     items,
     getTotalPrice,
@@ -32,21 +31,17 @@ const ShoppingCart = () => {
     setSelectedItems,
     clearCart
   } = useCartStore();
-
   const removeItemMutation = useRemoveCartItem();
   const updateItemMutation = useUpdateCartItem();
-
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
   const [selectAll, setSelectAll] = useState(false);
+  const { data: allAttributes } = useAllAttributes();
+  const { data: allAttributeValues } = useAttributeValues();
+  const { data: cartData, isLoading: cartLoading, error: cartError } = useMyCart();
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const { data: allAttributes } = useAllAttributes();
-  const { data: allAttributeValues } = useAttributeValues();
-
-  const { data: cartData, isLoading: cartLoading, error: cartError } = useMyCart();
 
   useEffect(() => {
     if (cartData?.items) {
@@ -62,15 +57,24 @@ const ShoppingCart = () => {
   }, [selectedItems, items.length]);
 
   // Tạo map cho thuộc tính
-  const attributeMap = allAttributes?.reduce((acc: Record<number, string>, attr: any) => {
-    acc[attr.id] = attr.name;
-    return acc;
-  }, {} as Record<number, string>) ?? {};
+    const attributeMap = useMemo(() => {
+    return allAttributes?.reduce((acc: Record<number, string>, attr: any) => {
+      acc[attr.id] = attr.name;
+      return acc;
+    }, {} as Record<number, string>) ?? {};
+  }, [allAttributes]);
 
-  const attributeValueMap = allAttributeValues?.data?.reduce((acc: Record<number, string>, val: any) => {
-    acc[val.id] = val.value;
-    return acc;
-  }, {} as Record<number, string>) ?? {};
+    const attributeValueMap = useMemo(() => {
+    return allAttributeValues?.data?.reduce((acc: Record<number, string>, val: any) => {
+      acc[val.id] = val.value;
+      return acc;
+    }, {} as Record<number, string>) ?? {};
+  }, [allAttributeValues]);
+
+  useEffect(() => {
+    setSelectAll(selectedItems.size > 0 && selectedItems.size === items.length);
+  }, [selectedItems, items.length]);
+
 
   // === CHECKBOX HANDLERS ===
   const handleCheckboxChange = (itemId: number) => {
@@ -411,9 +415,7 @@ const ShoppingCart = () => {
             </h1>
             <p className="text-gray-600">Bạn có {items.length} sản phẩm trong giỏ hàng</p>
           </div>
-          <Button danger onClick={handleClearCart} className="!rounded-lg ml-auto">
-            Xóa tất cả
-          </Button>
+       
         </div>
 
         {/* Header - Mobile */}
@@ -423,9 +425,7 @@ const ShoppingCart = () => {
           </h1>
           <div className="flex items-center justify-between">
             <p className="text-gray-600 text-sm">Bạn có {items.length} sản phẩm</p>
-            <Button danger size="small" onClick={handleClearCart} className="!rounded-lg">
-              Xóa tất cả
-            </Button>
+          
           </div>
         </div>
 

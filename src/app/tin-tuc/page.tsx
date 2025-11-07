@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { Spin, Empty, Breadcrumb } from 'antd';
 
@@ -9,10 +9,19 @@ import { useAllBlogs } from '@/hooks/blog/useAllBlogs';
 import { BlogCard } from '@/components/layout/blog/BlogCard';
 import { Blog } from '@/types/blog.type';
 
+// React.memo giúp tránh việc re-render không cần thiết cho BlogCard
+const MemoizedBlogCard = React.memo(BlogCard);
+
 export default function NewsPage() {
   // Gọi hook không cần tham số
   const { data: blogs, isLoading, isError } = useAllBlogs();
 
+  // Sử dụng useMemo để tối ưu việc lọc dữ liệu
+  const publishedBlogs = useMemo(() => {
+    return blogs?.filter((blog: Blog) => blog.isPublished) || [];
+  }, [blogs]);
+
+  // Render Loading Spinner
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -21,6 +30,7 @@ export default function NewsPage() {
     );
   }
 
+  // Render khi có lỗi
   if (isError) {
     return (
       <div className="flex justify-center items-center h-screen text-red-600 text-xl">
@@ -28,8 +38,6 @@ export default function NewsPage() {
       </div>
     );
   }
-
-  const publishedBlogs = blogs?.filter((blog: Blog) => blog.isPublished) || [];
 
   return (
     <div className="container lg:p-12 mx-auto p-4 md:p-8">
@@ -56,7 +64,7 @@ export default function NewsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {publishedBlogs.map((blog: Blog) => (
-            <BlogCard key={blog.id} blog={blog} />
+            <MemoizedBlogCard key={blog.id} blog={blog} />
           ))}
         </div>
       )}
