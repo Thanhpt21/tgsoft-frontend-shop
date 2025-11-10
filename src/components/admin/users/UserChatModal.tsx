@@ -1,6 +1,6 @@
 import { Modal, Input, Button, Avatar, Spin, Empty } from 'antd';
 import { SendOutlined, UserOutlined } from '@ant-design/icons';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import axios from 'axios';
 import ioClient from 'socket.io-client';
 import { User } from '@/types/user.type';
@@ -33,6 +33,7 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
     const { currentUser, isLoading: isAuthLoading } = useAuth();
     const adminId = currentUser?.id;
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isReloading, setIsReloading] = useState(false);
 
   // Scroll to bottom khi có tin nhắn mới
   const scrollToBottom = () => {
@@ -43,9 +44,12 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
 };
 
 
-  useEffect(() => {
+useEffect(() => {
+  const lastMsg = conversationMessages[conversationMessages.length - 1];
+  if (lastMsg?.senderType === 'ADMIN' || ('' + lastMsg?.id).startsWith('temp-')) {
     scrollToBottom();
-  }, [conversationMessages]);
+  }
+}, [conversationMessages]);
 
   // Connect socket khi mở modal
   useEffect(() => {
@@ -131,12 +135,9 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
   }, [open, user?.id, conversationId]);
 
   // Load conversation và messages từ API
-  const loadConversation = async () => {
-    if (!user?.id || !conversationId) {
-      console.error('❌ No valid conversationId or userId');
-      return;
-    }
-
+  const loadConversation = useCallback(async () => {
+    if (!user?.id || !conversationId || isReloading) return;
+    setIsReloading(true);
     try {
       setLoading(true);
       const userId = parseInt(user.id.toString(), 10);
@@ -171,22 +172,15 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
         setConversationMessages(sortedMessages);
       }
     } catch (error) {
-      console.error('❌ Error loading conversation:', error);
       setTimeout(() => loadConversation(), 2000);
     } finally {
       setLoading(false);
+      setIsReloading(false);
     }
-  };
+  },[user?.id, conversationId, isReloading])
 
   const handleSend = () => {
-    if (!message.trim() || !isConnected || !user?.id || !socket) {
-      return;
-    }
-
-    if (!conversationId) {
-      console.error('❌ No conversationId available');
-      return;
-    }
+    if (!message.trim() || !isConnected || !socket || !conversationId) return;
 
      const tempId = `temp-${Date.now()}`;
 

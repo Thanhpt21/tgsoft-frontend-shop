@@ -9,6 +9,25 @@ export interface LoginBody {
 
 export const login = async (body: LoginBody): Promise<LoginResponse> => {
   try {
+
+    try {
+      const resAi = await axios.post<LoginResponse>(
+        `${process.env.NEXT_PUBLIC_AI_URL}/auth/login`,
+        body
+      )
+
+      const dataAi = resAi.data
+      if (typeof window !== 'undefined' && dataAi.access_token) {
+        localStorage.setItem('access_token_ai', dataAi.access_token)
+      }
+
+      console.log('Đăng nhập AI thành công')
+    } catch (err: any) {
+      console.error('Đăng nhập AI thất bại', err.response?.data || err.message)
+    }
+
+
+
     const res = await axios.post<LoginResponse>(
       `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
       body,

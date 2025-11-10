@@ -5,12 +5,11 @@ import { login, LoginBody } from '@/lib/auth/login'
 import { LoginResponse } from '@/types/user.type'
 import { useRouter } from 'next/navigation'
 import { message } from 'antd'
-import { useChat } from '@/context/ChatContext'
 
 export const useLogin = (): UseMutationResult<LoginResponse, Error, LoginBody> => {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { handleUserLogin } = useChat() // 🔥 NEW: Lấy handleUserLogin từ ChatContext
+
 
   return useMutation<LoginResponse, Error, LoginBody>({
     mutationFn: login,
@@ -28,12 +27,7 @@ export const useLogin = (): UseMutationResult<LoginResponse, Error, LoginBody> =
       if (data.user && data.user.id) {
         const tenantId = data.user.tenantId || 
         parseInt(process.env.NEXT_PUBLIC_TENANT_ID || '1')
-      
-
-        // Đợi một chút để socket connection ổn định
-        setTimeout(() => {
-          handleUserLogin(data.user.id, tenantId)
-        }, 200)
+    
       }
 
       // Invalidate queries
