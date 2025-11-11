@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Card,
@@ -20,7 +20,7 @@ import { useAuth } from "@/context/AuthContext";
 import ProductImageGallery from "@/components/layout/product/ProductImageGallery";
 import { useProductBySlug } from "@/hooks/product/useProductBySlug";
 import { useProductVariants } from "@/hooks/product-variant/useProductVariants";
-import { useAddCartItem } from "@/hooks/cart/useAddCartItem";
+import { useAddCartItemWithOptimistic } from "@/hooks/cart/useAddCartItemWithOptimistic";
 import { getImageUrl } from "@/utils/getImageUrl";
 import { Product } from "@/types/product.type";
 import { ProductVariant } from "@/types/product-variant.type";
@@ -30,14 +30,12 @@ import { Attribute } from "@/types/attribute.type";
 import { useAllCategories } from "@/hooks/category/useAllCategories";
 import { useAllBrands } from "@/hooks/brand/useAllBrands";
 import RatingComponent from "@/components/layout/rating/RatingComponent";
-import { useAddCartItemWithOptimistic } from "@/hooks/cart/useAddCartItemWithOptimistic";
 
 const { Title, Text, Paragraph } = Typography;
 
 export default function ProductDetailPage() {
   const { slug } = useParams();
   const router = useRouter();
-
   const { isAuthenticated } = useAuth();
 
   const {
@@ -47,12 +45,10 @@ export default function ProductDetailPage() {
   } = useProductBySlug({ slug: slug as string });
   const productId = product?.id;
   const { data: variants } = useProductVariants(productId);
-  const addCartItemMutation = useAddCartItem();
   const addToCart = useAddCartItemWithOptimistic();
   const [isAdding, setIsAdding] = useState(false);
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [mainImage, setMainImage] = useState<string | null>(null);
   const [selectedAttributes, setSelectedAttributes] = useState<
@@ -67,35 +63,97 @@ export default function ProductDetailPage() {
   const { data: allCategories } = useAllCategories();
   const { data: allBrands } = useAllBrands();
 
-  const attributeMap =
-    allAttributes?.reduce((acc: Record<number, string>, attr: Attribute) => {
-      acc[attr.id] = attr.name;
-      return acc;
-    }, {} as Record<number, string>) ?? {};
+  // useMemo: attributeMap
+  const attributeMap = useMemo(() => {
+    return (
+      allAttributes?.reduce((acc: Record<number, string>, attr: Attribute) => {
+        acc[attr.id] = attr.name;
+        return acc;
+      }, {} as Record<number, string>) ?? {}
+    );
+  }, [allAttributes]);
 
-  const attributeValueMap =
-    allAttributeValues?.data.reduce((acc: Record<number, string>, val) => {
-      acc[val.id] = val.value;
-      return acc;
-    }, {} as Record<number, string>) ?? {};
+  // useMemo: attributeValueMap
+  const attributeValueMap = useMemo(() => {
+    return (
+      allAttributeValues?.data.reduce((acc: Record<number, string>, val) => {
+        acc[val.id] = val.value;
+        return acc;
+      }, {} as Record<number, string>) ?? {}
+    );
+  }, [allAttributeValues?.data]);
 
-  const categoryName = allCategories?.find(
-    (cat: any) => cat.id === currentProduct?.categoryId
-  )?.name;
-  const brandName = allBrands?.find(
-    (brand: any) => brand.id === currentProduct?.brandId
-  )?.name;
+  // useMemo: categoryName
+  const categoryName = useMemo(() => {
+    return allCategories?.find((cat: any) => cat.id === currentProduct?.categoryId)?.name;
+  }, [allCategories, currentProduct?.categoryId]);
 
+  // useMemo: brandName
+  const brandName = useMemo(() => {
+    return allBrands?.find((brand: any) => brand.id === currentProduct?.brandId)?.name;
+  }, [allBrands, currentProduct?.brandId]);
+
+  // useMemo: images
+  const images = useMemo(() => {
+    if (!currentProduct?.images?.length) {
+      return currentProduct?.thumb ? [currentProduct.thumb] : [];
+    }
+    return [currentProduct.thumb, ...currentProduct.images].filter(Boolean);
+  }, [currentProduct?.thumb, currentProduct?.images]);
+
+  // useMemo: attributeOptions
+  const attributeOptions = useMemo(() => {
+    const options: Record<number, Set<number>> = {};
+    variants?.forEach((v) => {
+      Object.entries(v.attrValues).forEach(([attrId, valueId]) => {
+        const numAttrId = Number(attrId);
+        if (!options[numAttrId]) options[numAttrId] = new Set();
+        options[numAttrId].add(valueId as number);
+      });
+    });
+    return options;
+  }, [variants]);
+
+  // useMemo: finalPrice, originalPrice, discountedPrice
+  const { finalPrice, originalPrice, discountedPrice } = useMemo(() => {
+    if (!currentProduct || !selectedVariant) {
+      const base = currentProduct?.basePrice ?? 0;
+      return { finalPrice: base, originalPrice: base, discountedPrice: null };
+    }
+
+    const basePrice = selectedVariant.priceDelta;
+    const promo = currentProduct.promotionProducts?.[0];
+
+    let discounted = null;
+    if (promo) {
+      if (promo.discountType === "PERCENT") {
+        discounted = basePrice * (1 - promo.discountValue / 100);
+      } else if (promo.discountType === "FIXED") {
+        discounted = Math.max(0, basePrice - promo.discountValue);
+      }
+    }
+
+    const final = discounted ?? basePrice;
+    return {
+      finalPrice: final,
+      originalPrice: basePrice,
+      discountedPrice: discounted,
+    };
+  }, [currentProduct, selectedVariant]);
+
+  // useEffect: set currentProduct & mainImage
   useEffect(() => {
     if (product && !currentProduct) {
+      const thumbUrl = getImageUrl(product.thumb ?? null);
       setCurrentProduct({
         ...product,
-        thumb: getImageUrl(product.thumb ?? null),
+        thumb: thumbUrl,
       });
-      setMainImage(getImageUrl(product.thumb ?? null));
+      setMainImage(thumbUrl);
     }
   }, [product, currentProduct]);
 
+  // useEffect: update selectedVariant & mainImage
   useEffect(() => {
     if (!variants) return;
 
@@ -114,33 +172,31 @@ export default function ProductDetailPage() {
     }
   }, [selectedAttributes, variants, product]);
 
-  const handleThumbnailClick = (img: string) => setMainImage(img);
+  const handleThumbnailClick = useCallback((img: string) => {
+    setMainImage(img);
+  }, []);
 
-  const handleAttributeChange = (attrId: string, value: number) => {
+  const handleAttributeChange = useCallback((attrId: string, value: number) => {
     setSelectedAttributes((prev) => ({ ...prev, [attrId]: value }));
-  };
+  }, []);
 
-  const handleResetAttributes = () => {
+  const handleResetAttributes = useCallback(() => {
     setSelectedAttributes({});
     setSelectedVariant(null);
     if (product) {
       setMainImage(getImageUrl(product.thumb ?? null));
     }
-  };
-
+  }, [product]);
 
   const handleAddToCart = useCallback(() => {
-    if (!selectedVariant || !product) return;
-
-    if (!isAuthenticated) {
-      setIsLoginModalOpen(true);
+    if (!selectedVariant || !product || !isAuthenticated) {
+      if (!isAuthenticated) setIsLoginModalOpen(true);
       return;
     }
-    if (isAdding || !selectedVariant || !product || !isAuthenticated) return;
 
+    if (isAdding) return;
     setIsAdding(true);
 
-    const price = selectedVariant.priceDelta;
     const attributes = Object.fromEntries(
       Object.entries(selectedVariant.attrValues).map(([attrId, valueId]) => [
         attributeMap[Number(attrId)] || attrId,
@@ -176,7 +232,6 @@ export default function ProductDetailPage() {
       return;
     }
 
-    const price = product.basePrice + selectedVariant.priceDelta;
     const attributes = Object.fromEntries(
       Object.entries(selectedVariant.attrValues).map(([attrId, valueId]) => [
         attributeMap[Number(attrId)] || attrId,
@@ -203,16 +258,17 @@ export default function ProductDetailPage() {
     router,
   ]);
 
-  const handleLoginModalOk = () => {
+  const handleLoginModalOk = useCallback(() => {
     setIsLoginModalOpen(false);
     const currentPath = window.location.pathname;
     router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
-  };
+  }, [router]);
 
-  const handleLoginModalCancel = () => {
+  const handleLoginModalCancel = useCallback(() => {
     setIsLoginModalOpen(false);
-  };
+  }, []);
 
+  // Loading & Error
   if (loadingProduct || !currentProduct || !mainImage) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -230,7 +286,7 @@ export default function ProductDetailPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50">
         <div className="text-center p-8 bg-white rounded-2xl shadow-xl">
-          <div className="text-6xl mb-4">❌</div>
+          <div className="text-6xl mb-4">Lỗi</div>
           <p className="text-xl text-red-600 font-semibold">
             Lỗi khi tải sản phẩm
           </p>
@@ -238,51 +294,6 @@ export default function ProductDetailPage() {
       </div>
     );
   }
-
-  const images = currentProduct.images
-    ? [currentProduct.thumb, ...currentProduct.images].filter(Boolean)
-    : [currentProduct.thumb];
-
-  const attributeOptions: Record<number, Set<number>> = {};
-  variants?.forEach((v) => {
-    Object.entries(v.attrValues).forEach(([attrId, valueId]) => {
-      const numAttrId = Number(attrId);
-      if (!attributeOptions[numAttrId]) attributeOptions[numAttrId] = new Set();
-      attributeOptions[numAttrId].add(valueId as number);
-    });
-  });
-
-  // Tính giá sau khuyến mãi
-  const getDiscountedPrice = () => {
-    if (!currentProduct?.promotionProducts?.length) return null;
-
-    const promo = currentProduct.promotionProducts[0];
-
-    // Tính giá cơ bản của variant (nếu có), nếu không thì dùng giá cơ bản của sản phẩm
-    const basePrice = selectedVariant
-      ? selectedVariant.priceDelta
-      : currentProduct.basePrice;
-
-    // Nếu có chương trình khuyến mãi
-    if (promo.discountType === "PERCENT") {
-      return basePrice * (1 - promo.discountValue / 100);
-    }
-    if (promo.discountType === "FIXED") {
-      return Math.max(0, basePrice - promo.discountValue);
-    }
-
-    return null;
-  };
-
-  const discountedPrice = getDiscountedPrice();
-
-  // Tính giá cuối cùng sau khuyến mãi, nếu không có khuyến mãi thì dùng giá gốc của variant
-  const finalPrice = discountedPrice ?? (selectedVariant ? selectedVariant.priceDelta : currentProduct.basePrice);
-
-  const originalPrice = selectedVariant
-    ? selectedVariant.priceDelta
-    : currentProduct.basePrice;
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">

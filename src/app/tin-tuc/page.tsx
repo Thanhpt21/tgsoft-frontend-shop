@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { Spin, Empty } from 'antd';
 
@@ -9,10 +9,19 @@ import { useAllBlogs } from '@/hooks/blog/useAllBlogs';
 import { BlogCard } from '@/components/layout/blog/BlogCard';
 import { Blog } from '@/types/blog.type';
 
+// React.memo giúp tránh việc re-render không cần thiết cho BlogCard
+const MemoizedBlogCard = React.memo(BlogCard);
+
 export default function NewsPage() {
   // Gọi hook không cần tham số
   const { data: blogs, isLoading, isError } = useAllBlogs();
 
+  // Sử dụng useMemo để tối ưu việc lọc dữ liệu
+  const publishedBlogs = useMemo(() => {
+    return blogs?.filter((blog: Blog) => blog.isPublished) || [];
+  }, [blogs]);
+
+  // Render Loading Spinner
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
@@ -40,6 +49,7 @@ export default function NewsPage() {
     );
   }
 
+  // Render khi có lỗi
   if (isError) {
     return (
       <div className="min-h-screen bg-white">
@@ -67,8 +77,6 @@ export default function NewsPage() {
     );
   }
 
-  const publishedBlogs = blogs?.filter((blog: Blog) => blog.isPublished) || [];
-
   return (
     <div className="min-h-screen bg-white">
       {/* Breadcrumb */}
@@ -87,26 +95,24 @@ export default function NewsPage() {
         </div>
       </div>
 
-      {/* Main Container - giống width với About Us */}
+      {/* Content Area */}
       <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-16 md:py-24">
-        <div className="min-h-[400px] flex items-center justify-center">
-          {publishedBlogs.length === 0 ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                <span className="text-xl text-gray-600">
-                  Không tìm thấy bài viết nào phù hợp.
-                </span>
-              }
-            />
-          ) : (
-            <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {publishedBlogs.map((blog: Blog) => (
-                <BlogCard key={blog.id} blog={blog} />
-              ))}
-            </div>
-          )}
-        </div>
+        {publishedBlogs.length === 0 ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={
+              <span className="text-xl text-gray-600">
+                Không tìm thấy bài viết nào phù hợp.
+              </span>
+            }
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {publishedBlogs.map((blog: Blog) => (
+              <MemoizedBlogCard key={blog.id} blog={blog} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

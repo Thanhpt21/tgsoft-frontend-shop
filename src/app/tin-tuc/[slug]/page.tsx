@@ -3,12 +3,10 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Spin } from "antd";
 import {
   EyeOutlined,
   CalendarOutlined,
   HomeOutlined,
-  ArrowRightOutlined,
 } from "@ant-design/icons";
 
 import { useBlogBySlug } from "@/hooks/blog/useBlogBySlug";

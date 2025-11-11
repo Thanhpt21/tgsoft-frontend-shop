@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { Typography, Button, Spin, message, Modal, Result, Radio, Space, Checkbox, Card } from 'antd'
 import { CheckCircleOutlined, ShoppingCartOutlined, HomeOutlined, EnvironmentOutlined, TruckOutlined, CreditCardOutlined, ShopOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
@@ -26,6 +26,7 @@ import { useAllAttributes } from '@/hooks/attribute/useAllAttributes'
 import { useAttributeValues } from '@/hooks/attribute-value/useAttributeValues'
 import { useProductOne } from '@/hooks/product/useProductOne'
 import { GiftProductDisplay } from '../common/GiftProductDisplay'
+import { CartItemSummary } from './CartItemSummary'
 
 const { Title, Text } = Typography
 
@@ -109,15 +110,19 @@ const OrderForm: React.FC = () => {
     setMounted(true)
   }, [])
 
-  const attributeMap = allAttributes?.reduce((acc: Record<number, string>, attr: any) => {
-    acc[attr.id] = attr.name
-    return acc
-  }, {} as Record<number, string>) ?? {}
+  const attributeMap = useMemo(() => {
+    return allAttributes?.reduce((acc: any, attr: any) => {
+      acc[attr.id] = attr.name;
+      return acc;
+    }, {} as Record<number, string>) ?? {};
+  }, [allAttributes]);
 
-  const attributeValueMap = allAttributeValues?.data?.reduce((acc: Record<number, string>, val: any) => {
-    acc[val.id] = val.value
-    return acc
-  }, {} as Record<number, string>) ?? {}
+  const attributeValueMap = useMemo(() => {
+    return allAttributeValues?.data?.reduce((acc, val) => {
+      acc[val.id] = val.value;
+      return acc;
+    }, {} as Record<number, string>) ?? {};
+  }, [allAttributeValues?.data]);
 
   // Đồng bộ khi cart từ server thay đổi
   useEffect(() => {
@@ -137,15 +142,20 @@ const OrderForm: React.FC = () => {
       .join(', ')
   }
 
-  const handleCheckboxChange = (itemId: number) => {
-    toggleSelectItem(itemId);
-  };
+  const handleSelectAll = useCallback((e: any) => {
+    const checked = e.target.checked;
+    if (checked && items.length > 10) {
+      message.warning('Chỉ được chọn tối đa 10 sản phẩm');
+      return;
+    }
+    const ids = items.slice(0, 10).map(i => i.id);
+    selectAll(checked, ids);
+  }, [items, selectAll]);
 
-  const handleSelectAll = (e: any) => {
-    const isChecked = e.target.checked;
-    const allItemIds = items.map((item) => item.id);
-    selectAll(isChecked, allItemIds);
-  };
+  const handleCheckboxChange = useCallback((itemId: number) => {
+    toggleSelectItem(itemId);
+  }, [toggleSelectItem]);
+
 
   // Tính toán
   const temporaryTotal = getSelectedTotal();
@@ -503,41 +513,14 @@ const OrderForm: React.FC = () => {
                         '/no-image.png'
                       )
 
-                      const promotion = item.variant.product.promotionProducts?.[0];
-
                       return (
-                        <div key={item.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all">
-                          <Checkbox
-                            checked={selectedItems.has(item.id)}
-                            onChange={() => handleCheckboxChange(item.id)}
-                          />
-
-                          <img
-                            src={thumbUrl || ''}
-                            alt={item.variant.product.name}
-                            className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
-                          />
-
-                          <div className="flex-1 min-w-0">
-                            <Text strong className="block truncate">{item.variant.product.name}</Text>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {renderAttributes(item.variant.attrValues)}
-                            </div>
-
-                            {/* Quà tặng */}
-                            {promotion && promotion.giftProductId && promotion.giftQuantity && ( 
-                              <GiftProductDisplay 
-                                giftProductId={promotion.giftProductId}
-                                giftQuantity={promotion.giftQuantity}
-                              />
-                            )}
-
-                            <div className="flex items-center justify-between mt-2">
-                              <Text className="text-blue-600 font-semibold">{formatVND(item.finalPrice)}</Text>
-                              <Text type="secondary">x {item.quantity}</Text>
-                            </div>
-                          </div>
-                        </div>
+                       <CartItemSummary
+                        key={item.id}
+                        item={item}
+                        isSelected={selectedItems.has(item.id)}
+                        onToggle={() => handleCheckboxChange(item.id)}
+                        renderAttributes={renderAttributes}
+                      />
                       )
                     })
                   )}

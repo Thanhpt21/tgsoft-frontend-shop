@@ -36,8 +36,12 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
 
   // Scroll to bottom khi có tin nhắn mới
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // Kiểm tra nếu ref tồn tại
+  if (messagesEndRef.current) {
+    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }
+};
+
 
   useEffect(() => {
     scrollToBottom();
@@ -71,16 +75,24 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
         setIsConnected(false);
       });
 
-      socketInstance.on('message', (msg: ChatMessage) => {
-        if (msg.conversationId === conversationId) {
-          setConversationMessages((prev) => {
-            const exists = prev.some(m => m.id.toString() === msg.id.toString() || m.id.toString().startsWith('temp-'));
-            if (exists) {
-              return prev.map(m => m.id.toString().startsWith('temp-') ? msg : m);
-            }
-            return [...prev, msg];
-          });
-        }
+     socketInstance.on('message', (msg: ChatMessage & { tempId?: string }) => {
+        if (msg.conversationId !== conversationId) return;
+
+        setConversationMessages((prev) => {
+          // ✅ Nếu có tempId, thay thế tin tạm bằng tin thật
+          if (msg.tempId) {
+            return prev.map((m) =>
+              m.id === msg.tempId ? { ...msg, id: msg.id, tempId: undefined } : m
+            );
+          }
+
+          // ✅ Nếu tin này đã tồn tại (id trùng), bỏ qua
+          const exists = prev.some((m) => m.id.toString() === msg.id.toString());
+          if (exists) return prev;
+
+          // ✅ Thêm mới nếu chưa có
+          return [...prev, msg];
+        });
       });
 
       socketInstance.on('new-user-message', (data: any) => {
@@ -176,8 +188,10 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
       return;
     }
 
+     const tempId = `temp-${Date.now()}`;
+
     const tempMessage: ChatMessage = {
-      id: `temp-${Date.now()}`,
+      id: tempId,
       conversationId,
       senderId: adminId,
       senderType: 'ADMIN',
@@ -191,6 +205,8 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
     socket.emit('admin:send-message', {
       conversationId,
       message: message.trim(),
+      tempId
+      
     });
   };
 
@@ -238,21 +254,66 @@ export function UserChatModal({ open, onClose, user, conversationId }: UserChatM
             <div>
               {conversationMessages.map((msg) => {
                 const isAdmin = msg.senderType === 'ADMIN';
+                const isBot = msg.senderType === 'BOT';
+                const isUser = msg.senderType === 'USER' || msg.senderType === 'GUEST';
+
                 return (
-                  <div key={msg.id} className={`flex mb-3 ${isAdmin ? 'justify-end' : 'justify-start'} gap-2 items-end`}>
-                  
-                    <div className={`max-w-[70%] rounded-lg px-4 py-2 ${isAdmin ? 'bg-blue-500 text-white' : 'bg-white text-gray-800'}`}>
+                  <div
+                    key={msg.id}
+                    className={`flex mb-3 ${
+                      isAdmin ? 'justify-end' : 'justify-start'
+                    } gap-2 items-end`}
+                  >
+                    {/* Avatar cho User/Bot */}
+                    {isUser && (
+                      <Avatar size={32} icon={<UserOutlined />} className="bg-gray-400" />
+                    )}
+                    {isBot && (
+                      <Avatar size={32} className="bg-green-500 text-white flex items-center justify-center text-xs font-bold">
+                        BOT
+                      </Avatar>
+                    )}
+
+                    <div
+                      className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                        isAdmin
+                          ? 'bg-blue-500 text-white'
+                          : isBot
+                          ? 'bg-green-500 text-white'
+                          : 'bg-white text-gray-800 border border-gray-200'
+                      }`}
+                    >
                       <div className="text-xs mb-1 font-medium">
-                        {isAdmin ? '👨‍💼 Admin (Bạn)' : '👤 Khách hàng'}
+                        {isAdmin
+                          ? 'Admin (Bạn)'
+                          : isBot
+                          ? 'Bot'
+                          : 'Khách hàng'}
                       </div>
                       <div>{msg.message}</div>
-                      <div className="text-xs text-gray-300 mt-1" style={{ fontWeight: 'bold' }}>
-                        {new Date(msg.createdAt).toLocaleTimeString()}
+                      <div
+                        className={`text-xs mt-1 ${
+                          isAdmin || isBot ? 'text-gray-200' : 'text-gray-400'
+                        }`}
+                        style={{ fontWeight: 'bold' }}
+                      >
+                        {new Date(msg.createdAt).toLocaleTimeString('vi-VN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </div>
                     </div>
+
+                    {/* Avatar cho Admin */}
+                    {isAdmin && (
+                      <Avatar size={32} className="bg-blue-600 text-white">
+                        A
+                      </Avatar>
+                    )}
                   </div>
                 );
               })}
+                <div ref={messagesEndRef} />
             </div>
           )}
         </div>
