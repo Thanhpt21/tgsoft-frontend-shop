@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useUserConversationIds } from '@/hooks/chat/useUserConversationIds';
 import { useGetAiChatEnabled } from '@/hooks/chat/useGetAiChatEnabled';
 import { useSaveBotMessage } from '@/hooks/chat/useSaveBotMessage';
+import { useCurrent } from '@/hooks/auth/useCurrent';
 
 // ==================== TYPES ====================
 
@@ -79,12 +80,41 @@ export default function ChatBox() {
 
   const latestConversationId = dbConversationIds[0] ?? null;
   const AI_URL = process.env.NEXT_PUBLIC_AI_URL!;
+  const { data: currentUser } = useCurrent();
+  const [isGuest, setIsGuest] = useState(false);
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
 
-  // ==================== OPTIMIZED MESSAGE MANAGEMENT ====================
+  // ==================== AUTH & SESSION MANAGEMENT ====================
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isUserAuthenticated = currentUser && currentUser.id;
+      
+      if (!isUserAuthenticated) {
+        // Guest user - create session
+        let guestSessionId = localStorage.getItem('guestSessionId');
+        if (!guestSessionId) {
+          guestSessionId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          localStorage.setItem('guestSessionId', guestSessionId);
+        }
+        setSessionId(guestSessionId);
+        setIsGuest(true);
+        console.log('🔍 User is GUEST, sessionId:', guestSessionId);
+      } else {
+        // Authenticated user - cleanup guest data
+        setIsGuest(false);
+        setSessionId(null);
+        localStorage.removeItem('guestSessionId');
+        localStorage.removeItem('guestConversationId');
+        console.log('🔍 User is AUTHENTICATED, userId:', currentUser.id);
+      }
+    }
+  }, [currentUser]);
+
+  // ==================== MESSAGE MANAGEMENT ====================
 
   const addMessage = useCallback((newMessage: ChatMessage) => {
     setMessages(prev => {
-      // Kiểm tra trùng lặp dựa trên id và tempId
       const exists = prev.some(msg => 
         msg.id === newMessage.id || 
         (newMessage.tempId && msg.id === newMessage.tempId) ||
@@ -92,18 +122,16 @@ export default function ChatBox() {
       );
       
       if (exists) {
-        // Cập nhật tin nhắn đã tồn tại
         return prev.map(msg => {
           if (msg.id === newMessage.id || 
               (newMessage.tempId && msg.id === newMessage.tempId) ||
               (msg.tempId && msg.tempId === newMessage.tempId)) {
-            return { ...newMessage, tempId: undefined }; // Xóa tempId sau khi confirm
+            return { ...newMessage, tempId: undefined };
           }
           return msg;
         });
       }
       
-      // Thêm tin nhắn mới và sắp xếp theo thời gian
       const updated = [...prev, newMessage].sort((a, b) => 
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
@@ -129,10 +157,13 @@ export default function ChatBox() {
     
     isLoadingMessagesRef.current = true;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/messages?conversationId=${conversationId}`, {
-        headers: { 'x-tenant-id': tenantId.toString() },
-        cache: 'no-cache'
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/chat/messages?conversationId=${conversationId}`,
+        {
+          headers: { 'x-tenant-id': tenantId.toString() },
+          cache: 'no-cache'
+        }
+      );
       
       if (!res.ok) throw new Error('Failed to load messages');
       const data = await res.json();
@@ -163,9 +194,7 @@ export default function ChatBox() {
 
     const onConnect = () => {
       setIsConnected(true);
-      if (conversationId) {
-        socketInstance.emit('join:conversation', conversationId);
-      }
+      console.log('🔍 Socket connected - isGuest:', isGuest, 'currentUser:', currentUser);
     };
 
     const onDisconnect = () => {
@@ -186,13 +215,20 @@ export default function ChatBox() {
       }
     };
 
+    const onGuestConversationCreated = (data: { conversationId: number }) => {
+      console.log('✅ Guest conversation created:', data.conversationId);
+      setConversationId(data.conversationId);
+      localStorage.setItem('conversationId', data.conversationId.toString());
+      localStorage.setItem('guestConversationId', data.conversationId.toString());
+      socketInstance.emit('join:conversation', data.conversationId);
+      setTimeout(() => loadMessages(), 100);
+    };
+
     const onMessage = (msg: ChatMessage & { tempId?: string }) => {
-      // Nếu là tin nhắn từ server confirm tin nhắn tạm
       if (msg.tempId && pendingMessagesRef.current.has(msg.tempId)) {
         pendingMessagesRef.current.delete(msg.tempId);
         updateMessageStatus(msg.tempId, msg.id, 'sent');
       } else {
-        // Tin nhắn mới từ người khác
         addMessage(msg);
       }
     };
@@ -218,58 +254,227 @@ export default function ChatBox() {
       }
     };
 
-    // Đăng ký events
+    // ==================== MIGRATION EVENT HANDLERS ====================
+    const onUserLoginSuccess = (data: { conversationId: number }) => {
+      console.log('✅ User login migration success:', data.conversationId);
+      setConversationId(data.conversationId);
+      localStorage.setItem('conversationId', data.conversationId.toString());
+      
+      // Load messages sau khi migration
+      setTimeout(() => loadMessages(), 500);
+    };
+
+    const onMigrationComplete = (data: { conversationId: number; messageCount: number }) => {
+      console.log(`✅ Migration completed: ${data.messageCount} messages migrated to conversation ${data.conversationId}`);
+      setConversationId(data.conversationId);
+      localStorage.setItem('conversationId', data.conversationId.toString());
+      
+      // Refresh conversation list
+      queryClient.invalidateQueries({ queryKey: ['user-conversation-ids'] });
+      loadMessages();
+    };
+
+    // Register events
     socketInstance.on('connect', onConnect);
     socketInstance.on('disconnect', onDisconnect);
     socketInstance.on('session-initialized', onSession);
     socketInstance.on('conversation-updated', onConvUpdate);
+    socketInstance.on('guest-conversation-created', onGuestConversationCreated);
     socketInstance.on('message', onMessage);
     socketInstance.on('message:confirmed', onMessageConfirmed);
     socketInstance.on('message:failed', onMessageFailed);
     socketInstance.on('typing', onTyping);
+    socketInstance.on('user-login-success', onUserLoginSuccess);
+    socketInstance.on('migration-complete', onMigrationComplete);
 
     return () => {
       socketInstance.off('connect', onConnect);
       socketInstance.off('disconnect', onDisconnect);
       socketInstance.off('session-initialized', onSession);
       socketInstance.off('conversation-updated', onConvUpdate);
+      socketInstance.off('guest-conversation-created', onGuestConversationCreated);
       socketInstance.off('message', onMessage);
       socketInstance.off('message:confirmed', onMessageConfirmed);
       socketInstance.off('message:failed', onMessageFailed);
       socketInstance.off('typing', onTyping);
+      socketInstance.off('user-login-success', onUserLoginSuccess);
+      socketInstance.off('migration-complete', onMigrationComplete);
     };
-  }, [conversationId, addMessage, updateMessageStatus]);
+  }, [conversationId, addMessage, updateMessageStatus, isGuest, sessionId, tenantId, loadMessages, currentUser, queryClient]);
 
-  // Auto join latest conversation
+  // ==================== PERSIST CONVERSATION ON RELOAD ====================
+
   useEffect(() => {
-    if (latestConversationId && latestConversationId !== conversationId) {
-      setConversationId(latestConversationId);
-      localStorage.setItem('conversationId', latestConversationId.toString());
-      if (socket?.connected) {
-        socket.emit('join:conversation', latestConversationId);
-        // Không load messages ngay lập tức, đợi component ready
-        setTimeout(() => loadMessages(), 100);
+    if (typeof window !== 'undefined') {
+      // Ưu tiên load conversation từ localStorage
+      const savedConversationId = localStorage.getItem('conversationId');
+      const guestConvId = localStorage.getItem('guestConversationId');
+      
+      if (currentUser && savedConversationId) {
+        // User đã login - load conversation đã lưu
+        console.log('💾 Loading saved conversation:', savedConversationId);
+        setConversationId(Number(savedConversationId));
+      } else if (!currentUser && guestConvId) {
+        // Guest - load guest conversation
+        console.log('💾 Loading guest conversation:', guestConvId);
+        setConversationId(Number(guestConvId));
       }
     }
-  }, [latestConversationId, conversationId, socket, loadMessages]);
+  }, [currentUser]);
 
-  // Load messages khi mở chat
+  // Load messages khi conversationId thay đổi
+  useEffect(() => {
+    if (conversationId && socket?.connected) {
+      console.log('🔗 Joining conversation on reload:', conversationId);
+      socket.emit('join:conversation', conversationId);
+      
+      // Load messages sau một chút delay để đảm bảo socket ready
+      setTimeout(() => {
+        if (isChatOpen) {
+          loadMessages();
+        }
+      }, 300);
+    }
+  }, [conversationId, socket?.connected, isChatOpen, loadMessages]);
+
+  // ==================== AUTO JOIN CONVERSATION ====================
+
+  useEffect(() => {
+    if (socket?.connected) {
+      console.log('🔍 Auto join check - currentUser:', currentUser?.id, 'isGuest:', isGuest, 'latestConversationId:', latestConversationId);
+      
+      const savedConversationId = localStorage.getItem('conversationId');
+      const guestConversationId = localStorage.getItem('guestConversationId');
+      
+      // Ưu tiên conversation đã lưu trong localStorage
+      if (savedConversationId && !conversationId) {
+        console.log('💾 Using saved conversation:', savedConversationId);
+        setConversationId(Number(savedConversationId));
+        socket.emit('join:conversation', Number(savedConversationId));
+        setTimeout(() => loadMessages(), 100);
+      }
+      else if (currentUser && latestConversationId && latestConversationId !== conversationId) {
+        console.log('👤 User joining conversation:', latestConversationId);
+        setConversationId(latestConversationId);
+        localStorage.setItem('conversationId', latestConversationId.toString());
+        localStorage.removeItem('guestConversationId');
+        localStorage.removeItem('guestSessionId');
+        socket.emit('join:conversation', latestConversationId);
+        setTimeout(() => loadMessages(), 100);
+      } 
+      else if (isGuest && guestConversationId && guestConversationId !== conversationId?.toString()) {
+        console.log('🎭 Guest joining conversation:', guestConversationId);
+        setConversationId(Number(guestConversationId));
+        socket.emit('join:conversation', Number(guestConversationId));
+        setTimeout(() => loadMessages(), 100);
+      } 
+      else if (isGuest && !guestConversationId && !conversationId) {
+        console.log('🆕 Guest creating new conversation...');
+        socket.emit('create:guest-conversation', {
+          sessionId: sessionId,
+          tenantId: tenantId
+        });
+      } 
+      else if (currentUser && !latestConversationId && !conversationId) {
+        console.log('👤 User has no conversations yet');
+        // Conversation sẽ được tạo khi user gửi tin nhắn đầu tiên
+      }
+      else if (conversationId) {
+        console.log('🔗 Already have conversation:', conversationId);
+        socket.emit('join:conversation', conversationId);
+      }
+    }
+  }, [socket?.connected, currentUser, latestConversationId, isGuest, sessionId, tenantId, loadMessages, conversationId]);
+
+  // ==================== USER STATE CLEANUP & MIGRATION ====================
+
+  useEffect(() => {
+    if (currentUser && currentUser.id) {
+      console.log('🔄 User logged in - migrating chat data...');
+      
+      // Cleanup guest data
+      localStorage.removeItem('guestSessionId');
+      localStorage.removeItem('guestConversationId');
+      setIsGuest(false);
+      
+      // Nếu đang có guest conversation, migrate sang user
+      const guestConversationId = localStorage.getItem('guestConversationId');
+      if (guestConversationId && socket?.connected) {
+        console.log('🔄 Migrating guest conversation to user...');
+        
+        // Gọi API migrate messages từ guest sang user
+        socket.emit('user-login', { 
+          userId: currentUser.id,
+          sessionId: sessionId, // Guest session hiện tại
+          tenantId: tenantId
+        });
+        
+        // Chờ migration xong thì load conversations của user
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['user-conversation-ids'] });
+        }, 1000);
+      } else if (latestConversationId && latestConversationId !== conversationId) {
+        // User đã có conversation từ trước
+        console.log('👤 Loading existing user conversation:', latestConversationId);
+        setConversationId(latestConversationId);
+        if (socket?.connected) {
+          socket.emit('join:conversation', latestConversationId);
+          loadMessages();
+        }
+      }
+    }
+  }, [currentUser, latestConversationId, socket, conversationId, loadMessages, queryClient, sessionId, tenantId]);
+
+  // ==================== LOGOUT CLEANUP ====================
+
+  useEffect(() => {
+    if (!currentUser && typeof window !== 'undefined') {
+      const wasPreviouslyLoggedIn = localStorage.getItem('wasLoggedIn');
+      
+      if (wasPreviouslyLoggedIn) {
+        console.log('🚪 User logged out - resetting chat state');
+        // Reset state
+        setConversationId(null);
+        setMessages([]);
+        setIsGuest(true);
+        
+        // Clear user data but keep guest data
+        localStorage.removeItem('conversationId');
+        localStorage.removeItem('wasLoggedIn');
+        
+        // Tạo guest session mới
+        const guestSessionId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        setSessionId(guestSessionId);
+        localStorage.setItem('guestSessionId', guestSessionId);
+      }
+    }
+  }, [currentUser]);
+
+  // Đánh dấu user đã login
+  useEffect(() => {
+    if (currentUser && currentUser.id) {
+      localStorage.setItem('wasLoggedIn', 'true');
+    }
+  }, [currentUser]);
+
+  // ==================== LOAD MESSAGES ON CHAT OPEN ====================
+
   useEffect(() => {
     if (isChatOpen && conversationId && !isLoadingMessagesRef.current) {
       loadMessages();
     }
   }, [isChatOpen, conversationId, loadMessages]);
 
-  // ==================== SEND MESSAGE OPTIMIZED ====================
+  // ==================== AI MESSAGE HANDLING ====================
 
-  const sendAiMessage = async (msg: string) => {
+  const sendAiMessage = useCallback(async (msg: string) => {
     setIsTyping(prev => ({ ...prev, ai: true }));
     
     const aiTempId = `ai-temp-${Date.now()}`;
     const aiPendingMessage: ChatMessage = {
       id: aiTempId,
       senderType: 'BOT',
-      message: '...', // Placeholder
+      message: '...',
       conversationId,
       sessionId,
       createdAt: new Date().toISOString(),
@@ -280,7 +485,7 @@ export default function ChatBox() {
     addMessage(aiPendingMessage);
 
     try {
-      const token = localStorage.getItem('access_token_ai');
+      const token = process.env.NEXT_PUBLIC_AI_PUBLIC_TOKEN;
       if (!token) throw new Error('No AI token');
 
       const res = await fetch(`${AI_URL}/chat`, {
@@ -289,14 +494,19 @@ export default function ChatBox() {
           'Content-Type': 'application/json', 
           Authorization: `Bearer ${token}` 
         },
-        body: JSON.stringify({ prompt: msg }),
+        body: JSON.stringify({ 
+          prompt: msg,  
+          metadata: {
+            isGuest: !currentUser,
+            sessionId: sessionId
+          } 
+        }),
       });
 
       if (!res.ok) throw new Error('AI failed');
       const data = await res.json();
       const aiText = data.response?.text || 'Xin lỗi, tôi không thể trả lời ngay lúc này.';
 
-      // Cập nhật tin nhắn AI
       setMessages(prev => 
         prev.map(msg => 
           msg.tempId === aiTempId 
@@ -311,14 +521,12 @@ export default function ChatBox() {
         )
       );
 
-      // Lưu vào database
       saveBotMessage.mutate({ 
         conversationId, 
         message: aiText, 
         sessionId 
       });
     } catch (err) {
-      // Cập nhật trạng thái lỗi
       setMessages(prev => 
         prev.map(msg => 
           msg.tempId === aiTempId 
@@ -334,46 +542,69 @@ export default function ChatBox() {
     } finally {
       setIsTyping(prev => ({ ...prev, ai: false }));
     }
-  };
+  }, [conversationId, sessionId, currentUser, addMessage, saveBotMessage, setMessages, setIsTyping]);
+
+  // ==================== SEND MESSAGE ====================
 
   const sendMessage = useCallback((message: string, metadata?: any) => {
-    if (!message.trim() || !socket || !conversationId) return;
+    if (!message.trim() || !socket) return;
+
+    console.log('🔍 Sending message - isGuest:', isGuest, 'currentUser:', currentUser?.id);
 
     const tempId = `temp-${Date.now()}`;
+    const senderType = currentUser && currentUser.id ? 'USER' : 'GUEST';
+    const senderId = currentUser?.id || null;
+
     const userMsg: ChatMessage = {
       id: tempId,
-      senderType: 'USER',
+      senderType: senderType,
+      senderId: senderId,
       message: message.trim(),
       conversationId,
-      sessionId,
+      sessionId: isGuest ? sessionId : null,
       createdAt: new Date().toISOString(),
       tempId,
       status: 'sending',
-      metadata,
+      metadata: {
+        ...metadata,
+        isGuest: !currentUser?.id,
+        guestSessionId: !currentUser?.id ? sessionId : undefined
+      },
     };
 
-    // Optimistic update - hiển thị ngay lập tức
+    if (!conversationId && !isCreatingConversation) {
+      console.log('⏳ Chưa có conversation, đang tạo...');
+      setIsCreatingConversation(true);
+    }
+
     addMessage(userMsg);
     pendingMessagesRef.current.add(tempId);
 
-    // Gửi qua socket
-    socket.emit('send:message', { 
-      conversationId, 
+    const payload: any = {
       message: message.trim(), 
       tempId, 
-      metadata 
-    });
+      metadata: userMsg.metadata,
+      senderType,
+      senderId
+    };
 
-    // Gửi AI message nếu enabled
+    if (conversationId) {
+      payload.conversationId = conversationId;
+    } else {
+      payload.sessionId = sessionId;
+      payload.tenantId = tenantId;
+    }
+
+    socket.emit('send:message', payload);
+
     if (aiChatEnabled) {
       sendAiMessage(message.trim());
     }
 
-
     setInput('');
-  }, [socket, conversationId, sessionId, aiChatEnabled, addMessage]);
+  }, [socket, conversationId, sessionId, aiChatEnabled, currentUser, addMessage, tenantId, isGuest, sendAiMessage, isCreatingConversation]);
 
-      console.log("aiChatEnabled",aiChatEnabled)
+  console.log("aiChatEnabled", aiChatEnabled);
 
   // ==================== SCROLL MANAGEMENT ====================
 
@@ -381,14 +612,13 @@ export default function ChatBox() {
     messagesEndRef.current?.scrollIntoView({ behavior });
   }, []);
 
-  // Theo dõi scroll position
   useEffect(() => {
     const container = chatContainerRef.current;
     if (!container) return;
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      const atBottom = scrollHeight - scrollTop - clientHeight < 100; // 100px threshold
+      const atBottom = scrollHeight - scrollTop - clientHeight < 100;
       isUserAtBottom.current = atBottom;
     };
 
@@ -396,21 +626,20 @@ export default function ChatBox() {
     return () => container.removeEventListener('scroll', handleScroll);
   }, [isChatOpen]);
 
-  // Tự động scroll khi có tin nhắn mới và user đang ở cuối
   useEffect(() => {
     if (isUserAtBottom.current) {
       scrollToBottom();
     }
   }, [messages, isTyping, scrollToBottom]);
 
-  // Reset unread count khi mở chat
+  // ==================== UNREAD COUNT ====================
+
   useEffect(() => {
     if (isChatOpen) {
       setUnreadCount(0);
     }
   }, [isChatOpen]);
 
-  // Tính unread count
   useEffect(() => {
     if (!isChatOpen && messages.length > previousLengthRef.current) {
       const newMsgs = messages.slice(previousLengthRef.current);
@@ -421,6 +650,19 @@ export default function ChatBox() {
     }
     previousLengthRef.current = messages.length;
   }, [messages, isChatOpen]);
+
+  // ==================== DEBUG STATE ====================
+
+  console.log('🔍 Chat State:', {
+    currentUser: currentUser?.id,
+    isGuest,
+    conversationId,
+    sessionId,
+    latestConversationId,
+    savedConversationId: typeof window !== 'undefined' ? localStorage.getItem('conversationId') : null,
+    guestConversationId: typeof window !== 'undefined' ? localStorage.getItem('guestConversationId') : null,
+    socketConnected: socket?.connected
+  });
 
   // ==================== UI HELPERS ====================
 
@@ -462,7 +704,7 @@ export default function ChatBox() {
     }
   };
 
-  // ==================== MEMOIZED VALUES ====================
+  // ==================== CONTEXT VALUE ====================
 
   const contextValue = useMemo(() => ({
     messages,
@@ -528,8 +770,23 @@ export default function ChatBox() {
           >
             {messages.length === 0 && !isTyping.admin && !isTyping.ai && (
               <div className="text-center text-gray-500 mt-8">
-                <div className="text-5xl mb-3">👋</div>
-                <p className="text-sm">Chào bạn! Hỏi gì cũng được, AI và Admin luôn sẵn sàng!</p>
+                <div className="text-5xl mb-3">
+                  {currentUser ? '👋' : '🤖'}
+                </div>
+                <p className="text-sm font-medium mb-2">
+                  {currentUser ? 'Chào bạn!' : 'Xin chào!'}
+                </p>
+                <p className="text-xs text-gray-600">
+                  {currentUser 
+                    ? 'Hỏi gì cũng được, AI và Admin luôn sẵn sàng!' 
+                    : 'Tôi là AI hỗ trợ. Hãy chat với tôi!'
+                  }
+                </p>
+                {!currentUser && (
+                  <p className="text-xs text-blue-600 mt-2">
+                    💡 Bạn có thể đăng nhập để lưu lịch sử chat
+                  </p>
+                )}
               </div>
             )}
 

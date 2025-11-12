@@ -8,19 +8,11 @@ export interface RegisterBody {
 
 export const register = async (body: RegisterBody) => {
   try {
-    try {
-      const resAi = await axios.post(`${process.env.NEXT_PUBLIC_AI_URL}/auth/register`, body)
-      console.log('Tài khoản AI tạo thành công:', resAi.data)
-    } catch (err: any) {
-      console.error('Đăng ký tài khoản AI thất bại', err.response?.data || err.message)
-    }
-
-
     const res = await axios.post(
       `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
       body,
       {
-        withCredentials: true, // 🔥 BẮT BUỘC để browser lưu cookie (JWT)
+        withCredentials: true, 
         headers: {
           'x-tenant-id': process.env.NEXT_PUBLIC_TENANT_ID || '1', // ✅ đảm bảo luôn có giá trị
         },
