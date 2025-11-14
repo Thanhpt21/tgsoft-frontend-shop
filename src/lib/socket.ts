@@ -33,19 +33,20 @@ export const getSocket = (options: SocketOptions = {}): SocketType | null => {
     }
 
 
-     // 🔥 FIX: Thêm /chat namespace và cấu hình đầy đủ
+     // 🔥 Tối ưu reconnection config
     socket = ioClient(`${wsUrl}/chat`, {
       auth: {
         userId,
         sessionId,
         tenantId: parseInt(process.env.NEXT_PUBLIC_TENANT_ID || '1', 10),
-        isAdmin: false, // Frontend user không phải admin
+        isAdmin: false,
       },
-      transports: ['websocket', 'polling'], // 🔥 Thêm polling fallback
+      transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionDelay: options.reconnectionDelay || 2000,
-      reconnectionAttempts: options.reconnectionAttempts || 5,
-      timeout: 10000, // 🔥 Timeout 10s
+      reconnectionDelay: options.reconnectionDelay || 500, // 🔥 Giảm từ 2000 → 500ms
+      reconnectionDelayMax: 3000, // 🔥 Max 3s
+      reconnectionAttempts: options.reconnectionAttempts || 10, // 🔥 Tăng từ 5 → 10 lần
+      timeout: 5000, // 🔥 Giảm từ 10s → 5s
       forceNew: false,
       upgrade: true,
       rememberUpgrade: true,

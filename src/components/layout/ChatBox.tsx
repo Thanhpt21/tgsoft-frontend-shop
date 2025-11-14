@@ -7,6 +7,11 @@ import { useUserConversationIds } from '@/hooks/chat/useUserConversationIds';
 import { useGetAiChatEnabled } from '@/hooks/chat/useGetAiChatEnabled';
 import { useSaveBotMessage } from '@/hooks/chat/useSaveBotMessage';
 import { useCurrent } from '@/hooks/auth/useCurrent';
+import { useTenantAIConfig } from '@/hooks/tenant/useTenantAIConfig';
+import { useAllProducts } from '@/hooks/product/useAllProducts';
+import { Product } from '@/types/product.type';
+import Link from 'next/link';
+import { useAiMessage } from '@/hooks/chat/useAiMessage';
 
 // ==================== TYPES ====================
 
@@ -20,7 +25,7 @@ export interface ChatMessage {
   metadata?: any;
   createdAt: string;
   tempId?: string;
-  status?: 'sending' | 'sent' | 'failed';
+  status?: 'sending' | 'sent' | 'failed' | 'local';
 }
 
 // ==================== CONTEXT ====================
@@ -61,11 +66,12 @@ export default function ChatBox() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousLengthRef = useRef(0);
-  const hasScrolledToBottom = useRef(true);
   const isUserAtBottom = useRef(true);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const pendingMessagesRef = useRef<Set<string>>(new Set());
   const isLoadingMessagesRef = useRef(false);
+  const sendAiMessageRef = useRef<((msg: string, targetConversationId?: number | null) => Promise<void>) | null>(null);
+  const [aiTypingDots, setAiTypingDots] = useState('');
 
   const tenantId = Number(process.env.NEXT_PUBLIC_TENANT_ID || '1');
   const localUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
@@ -77,12 +83,124 @@ export default function ChatBox() {
     enabled: !!userIdNumber,
   });
   const saveBotMessage = useSaveBotMessage();
+  const { 
+    data: aiConfig, 
+    isLoading, 
+    error,
+    isError 
+  } = useTenantAIConfig(tenantId)
+
+  const textPromptAi = useMemo(() => {
+    return aiConfig?.aiSystemPrompt?.text || '';
+  }, [aiConfig?.aiSystemPrompt?.text]);
+
+  useEffect(() => {
+    if (textPromptAi) {
+      console.log("✅ System Prompt loaded:", textPromptAi.substring(0, 100) + "...");
+    }
+  }, [textPromptAi]);
+
+  // Hiệu ứng typing dots cho AI
+  useEffect(() => {
+    if (!isTyping.ai) {
+      setAiTypingDots('');
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setAiTypingDots(prev => {
+        if (prev === '...') return '';
+        return prev + '.';
+      });
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [isTyping.ai]);
 
   const latestConversationId = dbConversationIds[0] ?? null;
   const AI_URL = process.env.NEXT_PUBLIC_AI_URL!;
   const { data: currentUser } = useCurrent();
   const [isGuest, setIsGuest] = useState(false);
-  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+  const { data: products = [], isLoading: isLoadingProducts } = useAllProducts()
+
+  // Ref để lưu tin nhắn local khi chưa login
+  const localMessagesRef = useRef<ChatMessage[]>([]);
+
+  // ==================== HELPER FUNCTIONS ====================
+
+  const findProductsByKeyword = useCallback((keyword: string) => {
+    if (!products.length) return [];
+    
+    const lowerKeyword = keyword.toLowerCase().trim();
+    
+    const keywordMappings: { [key: string]: string[] } = {
+      'áo': ['áo', 'thun', 'sơ mi', 'áo nam', 'áo nữ'],
+      'quần': ['quần', 'jeans', 'tây', 'short'],
+      'giày': ['giày', 'dép', 'sandal'],
+      'phụ kiện': ['phụ kiện', 'túi', 'mũ', 'ví', 'thắt lưng'],
+      'găng tay': ['găng tay', 'gang tay', 'bao tay'],
+      'vớ': ['vớ', 'tất', 'vo'],
+    };
+
+    let searchKeywords = [lowerKeyword];
+    Object.entries(keywordMappings).forEach(([mainKeyword, synonyms]) => {
+      if (synonyms.some(syn => lowerKeyword.includes(syn))) {
+        searchKeywords = [...searchKeywords, mainKeyword, ...synonyms];
+      }
+    });
+
+    return products.filter((product: Product) => {
+      const productName = product.name?.toLowerCase() || '';
+      const productDesc = product.description?.toLowerCase() || '';
+      const seoKeywords = product.seoKeywords?.toLowerCase() || '';
+
+      const matches = searchKeywords.some(searchWord => 
+        productName.includes(searchWord) || 
+        productDesc.includes(searchWord) ||
+        seoKeywords.includes(searchWord)
+      );
+
+      return matches;
+    }).slice(0, 4);
+  }, [products]);
+
+  const renderMessageWithLinks = (message: string) => {
+    if (!message) return message;
+
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = linkRegex.exec(message)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(message.slice(lastIndex, match.index));
+      }
+
+      const linkText = match[1];
+      const linkUrl = match[2];
+      
+      parts.push(
+        <Link 
+          key={match.index}
+          href={`/${linkUrl}`}
+          className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {linkText}
+        </Link>
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < message.length) {
+      parts.push(message.slice(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : message;
+  };
 
   // ==================== AUTH & SESSION MANAGEMENT ====================
 
@@ -90,23 +208,61 @@ export default function ChatBox() {
     if (typeof window !== 'undefined') {
       const isUserAuthenticated = currentUser && currentUser.id;
       
+      console.log('🔐 Auth check:', {
+        isUserAuthenticated: !!isUserAuthenticated,
+        currentUserId: currentUser?.id,
+        currentIsGuest: isGuest
+      });
+      
       if (!isUserAuthenticated) {
-        // Guest user - create session
+        // Guest mode
         let guestSessionId = localStorage.getItem('guestSessionId');
         if (!guestSessionId) {
           guestSessionId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           localStorage.setItem('guestSessionId', guestSessionId);
         }
-        setSessionId(guestSessionId);
-        setIsGuest(true);
+        
+        if (sessionId !== guestSessionId) {
+          setSessionId(guestSessionId);
+        }
+        if (!isGuest) {
+          setIsGuest(true);
+        }
+        
+        // Load tin nhắn local
+        const savedLocalMessages = localStorage.getItem('localChatMessages');
+        if (savedLocalMessages) {
+          try {
+            const parsedMessages = JSON.parse(savedLocalMessages);
+            localMessagesRef.current = parsedMessages;
+            setMessages(parsedMessages);
+          } catch (e) {
+            console.error('Error loading local messages:', e);
+            localMessagesRef.current = [];
+          }
+        }
+        
         console.log('🔍 User is GUEST, sessionId:', guestSessionId);
       } else {
-        // Authenticated user - cleanup guest data
-        setIsGuest(false);
-        setSessionId(null);
+        // User authenticated
+        if (isGuest) {
+          setIsGuest(false);
+        }
+        if (sessionId) {
+          setSessionId(null);
+        }
+        
         localStorage.removeItem('guestSessionId');
         localStorage.removeItem('guestConversationId');
+        
         console.log('🔍 User is AUTHENTICATED, userId:', currentUser.id);
+        
+        // Migrate messages sau khi đã chuyển trạng thái
+        setTimeout(() => {
+          if (localMessagesRef.current.length > 0) {
+            migrateLocalMessagesToServer();
+          }
+        }, 1000);
       }
     }
   }, [currentUser]);
@@ -141,10 +297,15 @@ export default function ChatBox() {
   }, []);
 
   const updateMessageStatus = useCallback((tempId: string, newId: string | number, status: 'sent' | 'failed') => {
+    if (status === 'failed') {
+      console.log('🔄 Keeping message as sending instead of failed:', tempId);
+      return;
+    }
+    
     setMessages(prev => 
       prev.map(msg => 
         msg.tempId === tempId 
-          ? { ...msg, id: newId, tempId: undefined, status }
+          ? { ...msg, id: newId, tempId: undefined, status: 'sent' }
           : msg
       )
     );
@@ -153,12 +314,25 @@ export default function ChatBox() {
   // ==================== LOAD MESSAGES ====================
 
   const loadMessages = useCallback(async () => {
-    if (!conversationId || isLoadingMessagesRef.current) return;
+    // Nếu là guest, không load từ server
+    if (isGuest) {
+      console.log('🎭 Guest mode - using local messages');
+      return;
+    }
+    
+    // QUAN TRỌNG: Luôn load messages nếu có conversationId
+    const targetConversationId = conversationId || latestConversationId;
+    if (!targetConversationId || isLoadingMessagesRef.current) {
+      console.log('⏳ Cannot load messages - no conversationId or loading:', targetConversationId);
+      return;
+    }
+    
+    console.log('🔄 Loading messages for conversation:', targetConversationId);
     
     isLoadingMessagesRef.current = true;
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/chat/messages?conversationId=${conversationId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/chat/messages?conversationId=${targetConversationId}`,
         {
           headers: { 'x-tenant-id': tenantId.toString() },
           cache: 'no-cache'
@@ -169,81 +343,288 @@ export default function ChatBox() {
       const data = await res.json();
       
       const loadedMessages = Array.isArray(data.messages) ? data.messages : [];
+      console.log('📥 Loaded messages from server:', loadedMessages.length);
+      
       const sortedMessages = loadedMessages.sort((a: any, b: any) => 
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
       
+      // QUAN TRỌNG: Thay thế toàn bộ messages bằng messages từ server
       setMessages(sortedMessages);
+      
     } catch (err) {
-      console.error('Load messages failed:', err);
+      console.error('❌ Load messages failed:', err);
     } finally {
       isLoadingMessagesRef.current = false;
     }
-  }, [conversationId, tenantId]);
+  }, [conversationId, latestConversationId, tenantId, isGuest]);
+
+  // ==================== AUTO LOAD MESSAGES WHEN CONVERSATION AVAILABLE ====================
+
+  useEffect(() => {
+    // Tự động load messages khi có conversationId và user đã login
+    if (currentUser?.id && !isGuest && conversationId) {
+      console.log('🔄 Auto-loading messages for conversation:', conversationId);
+      
+      // Đợi một chút để đảm bảo socket đã kết nối
+      const timer = setTimeout(() => {
+        loadMessages();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currentUser?.id, isGuest, conversationId, loadMessages]);
+
+  // Lưu tin nhắn local vào localStorage
+  const saveLocalMessages = useCallback((messages: ChatMessage[]) => {
+    if (typeof window === 'undefined') return;
+    
+    // Chỉ lưu tin nhắn có status 'local'
+    const localMessages = messages.filter(msg => msg.status === 'local');
+    localStorage.setItem('localChatMessages', JSON.stringify(localMessages));
+    localMessagesRef.current = localMessages;
+  }, []);
+
+  // Chuyển đổi tin nhắn local thành tin nhắn thật khi login
+  const migrateLocalMessagesToServer = useCallback(async () => {
+    if (!currentUser?.id || !conversationId || localMessagesRef.current.length === 0) return;
+    
+    console.log('🔄 Migrating local messages to server:', localMessagesRef.current.length);
+    
+    for (const localMsg of localMessagesRef.current) {
+      if (localMsg.senderType === 'GUEST' || localMsg.senderType === 'USER') {
+        // Gửi lại tin nhắn user qua socket
+        if (socket?.connected) {
+          const tempId = `migrate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          
+          socket.emit('send:message', {
+            message: localMsg.message,
+            tempId: tempId,
+            metadata: localMsg.metadata,
+            conversationId: conversationId,
+            senderType: 'USER',
+            senderId: currentUser.id,
+            sessionId: null,
+            tenantId: tenantId
+          });
+        }
+      } else if (localMsg.senderType === 'BOT' || localMsg.senderType === 'AI') {
+        // Lưu tin nhắn bot vào database
+        saveBotMessage.mutate({ 
+          conversationId: Number(conversationId),
+          message: localMsg.message, 
+          sessionId: null
+        });
+      }
+    }
+    
+    // Xóa tin nhắn local sau khi migrate
+    localStorage.removeItem('localChatMessages');
+    localMessagesRef.current = [];
+    
+    // Reload messages từ server
+    setTimeout(() => loadMessages(), 1000);
+  }, [currentUser, conversationId, socket, tenantId, saveBotMessage, loadMessages]);
+
+  // ==================== CONVERSATION INITIALIZATION ====================
+
+  useEffect(() => {
+    console.log('🔄 Conversation init check:', {
+      currentUser: currentUser?.id,
+      isConnected,
+      conversationId,
+      dbConversationIds: dbConversationIds.length
+    });
+
+    // Chỉ xử lý khi user đã login và socket connected
+    if (!currentUser?.id || !isConnected || conversationId) {
+      return;
+    }
+
+    console.log('🚀 Initializing conversation...');
+
+    // Ưu tiên dùng conversation từ database
+    if (dbConversationIds.length > 0) {
+      const existingConvId = dbConversationIds[0];
+      console.log('👤 Using existing conversation:', existingConvId);
+      setConversationId(existingConvId);
+      
+      // Join conversation và load messages
+      if (socket?.connected) {
+        socket.emit('join:conversation', existingConvId);
+      }
+      
+      // Load messages sau khi set conversationId
+      setTimeout(() => loadMessages(), 300);
+    } else {
+      console.log('📝 No existing conversation - will create on first message');
+    }
+  }, [currentUser?.id, isConnected, conversationId, dbConversationIds, socket, loadMessages]);
+
+
+const { sendAiMessage } = useAiMessage({
+  conversationId,
+  sessionId,
+  currentUser,
+  addMessage,
+  saveBotMessage,
+  textPromptAi,
+  findProductsByKeyword,
+  isGuest,
+  setMessages,
+  setIsTyping
+});
+
+
+  useEffect(() => {
+    sendAiMessageRef.current = sendAiMessage;
+  }, [sendAiMessage]);
 
   // ==================== SOCKET MANAGEMENT ====================
 
   useEffect(() => {
+    console.log('🔌 Socket effect running:', {
+      currentUser: currentUser?.id,
+      isGuest,
+      shouldConnect: currentUser?.id && !isGuest
+    });
+
+    // QUAN TRỌNG: Chỉ kết nối socket khi có user thật
+    const shouldConnectSocket = currentUser?.id && !isGuest;
+    
+    if (!shouldConnectSocket) {
+      console.log('🎭 Guest mode or no user - Socket disabled');
+      setIsConnected(false);
+      if (socket) {
+        console.log('🔌 Disconnecting existing socket');
+        socket.disconnect();
+        setSocket(null);
+      }
+      return;
+    }
+
+    console.log('👤 User detected, creating socket...', currentUser.id);
+
     const socketInstance = getSocket({ 
-      reconnectionAttempts: 5, 
-      reconnectionDelay: 2000 
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
     
-    if (!socketInstance) return;
+    if (!socketInstance) {
+      console.log('❌ Cannot get socket instance');
+      return;
+    }
+    
     setSocket(socketInstance);
 
     const onConnect = () => {
       setIsConnected(true);
-      console.log('🔍 Socket connected - isGuest:', isGuest, 'currentUser:', currentUser);
+      console.log('✅ Socket connected - User:', currentUser.id);
+      
+      // QUAN TRỌNG: Load messages ngay sau khi kết nối
+      if (conversationId) {
+        console.log('🔄 Loading messages for conversation:', conversationId);
+        loadMessages();
+      } else if (latestConversationId) {
+        console.log('🔄 Loading messages for latest conversation:', latestConversationId);
+        setConversationId(latestConversationId);
+        setTimeout(() => loadMessages(), 300);
+      }
     };
 
-    const onDisconnect = () => {
+    const onDisconnect = (reason: string) => {
+      setIsConnected(false);
+      console.log('❌ Socket disconnected:', reason);
+    };
+
+    const onConnectError = (error: any) => {
+      console.error('🔴 Socket connection error:', error);
       setIsConnected(false);
     };
 
     const onSession = (data: { sessionId: string }) => {
       setSessionId(data.sessionId);
       localStorage.setItem('sessionId', data.sessionId);
+      console.log('🔑 Session initialized:', data.sessionId);
     };
 
     const onConvUpdate = (data: any) => {
       const id = data.conversationId || data.id;
       if (id && id !== conversationId) {
+        console.log('🔄 Conversation updated:', id);
         setConversationId(id);
         localStorage.setItem('conversationId', id.toString());
-        socketInstance.emit('join:conversation', id);
+        
+        if (socketInstance.connected) {
+          socketInstance.emit('join:conversation', id);
+        }
       }
     };
 
-    const onGuestConversationCreated = (data: { conversationId: number }) => {
-      console.log('✅ Guest conversation created:', data.conversationId);
-      setConversationId(data.conversationId);
-      localStorage.setItem('conversationId', data.conversationId.toString());
-      localStorage.setItem('guestConversationId', data.conversationId.toString());
-      socketInstance.emit('join:conversation', data.conversationId);
-      setTimeout(() => loadMessages(), 100);
+    const onConversationCreated = (data: any) => {
+      console.log('✅ Conversation created event:', data);
+      const newConversationId = data.conversationId || data.id;
+      if (newConversationId) {
+        setConversationId(newConversationId);
+        localStorage.setItem('conversationId', newConversationId.toString());
+        
+        if (socketInstance.connected) {
+          socketInstance.emit('join:conversation', newConversationId);
+        }
+        
+        setTimeout(() => loadMessages(), 300);
+      }
     };
 
     const onMessage = (msg: ChatMessage & { tempId?: string }) => {
+      console.log('📨 onMessage received:', { 
+        tempId: msg.tempId, 
+        senderType: msg.senderType, 
+        conversationId: msg.conversationId 
+      });
+      
       if (msg.tempId && pendingMessagesRef.current.has(msg.tempId)) {
+        console.log('✅ Message confirmation received:', msg.tempId);
         pendingMessagesRef.current.delete(msg.tempId);
         updateMessageStatus(msg.tempId, msg.id, 'sent');
+        
+        if (aiChatEnabled && ['USER', 'GUEST'].includes(msg.senderType)) {
+          console.log('🤖 Triggering AI response after user message confirmed');
+          setTimeout(() => {
+            sendAiMessageRef.current?.(msg.message, msg.conversationId);
+          }, 500);
+        }
       } else {
+        console.log('💬 New message from backend');
         addMessage(msg);
       }
     };
 
     const onMessageConfirmed = (data: { tempId: string; messageId: string | number }) => {
+      console.log('✅ Message confirmed:', data.tempId, '->', data.messageId);
       if (pendingMessagesRef.current.has(data.tempId)) {
         pendingMessagesRef.current.delete(data.tempId);
-        updateMessageStatus(data.tempId, data.messageId, 'sent');
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.tempId === data.tempId 
+              ? { ...msg, id: data.messageId, tempId: undefined, status: 'sent' }
+              : msg
+          )
+        );
       }
     };
 
-    const onMessageFailed = (data: { tempId: string }) => {
+    const onMessageFailed = (data: { tempId: string; error?: string }) => {
+      console.log('❌ Message failed:', data.tempId, data.error);
       if (pendingMessagesRef.current.has(data.tempId)) {
         pendingMessagesRef.current.delete(data.tempId);
-        updateMessageStatus(data.tempId, data.tempId, 'failed');
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.tempId === data.tempId 
+              ? { ...msg, status: 'failed' as const }
+              : msg
+          )
+        );
       }
     };
 
@@ -254,300 +635,44 @@ export default function ChatBox() {
       }
     };
 
-    // ==================== MIGRATION EVENT HANDLERS ====================
-    const onUserLoginSuccess = (data: { conversationId: number }) => {
-      console.log('✅ User login migration success:', data.conversationId);
-      setConversationId(data.conversationId);
-      localStorage.setItem('conversationId', data.conversationId.toString());
-      
-      // Load messages sau khi migration
-      setTimeout(() => loadMessages(), 500);
-    };
-
-    const onMigrationComplete = (data: { conversationId: number; messageCount: number }) => {
-      console.log(`✅ Migration completed: ${data.messageCount} messages migrated to conversation ${data.conversationId}`);
-      setConversationId(data.conversationId);
-      localStorage.setItem('conversationId', data.conversationId.toString());
-      
-      // Refresh conversation list
-      queryClient.invalidateQueries({ queryKey: ['user-conversation-ids'] });
-      loadMessages();
-    };
-
     // Register events
     socketInstance.on('connect', onConnect);
     socketInstance.on('disconnect', onDisconnect);
+    socketInstance.on('connect_error', onConnectError);
     socketInstance.on('session-initialized', onSession);
     socketInstance.on('conversation-updated', onConvUpdate);
-    socketInstance.on('guest-conversation-created', onGuestConversationCreated);
+    socketInstance.on('conversation:created', onConversationCreated);
     socketInstance.on('message', onMessage);
     socketInstance.on('message:confirmed', onMessageConfirmed);
     socketInstance.on('message:failed', onMessageFailed);
     socketInstance.on('typing', onTyping);
-    socketInstance.on('user-login-success', onUserLoginSuccess);
-    socketInstance.on('migration-complete', onMigrationComplete);
+
+    // Kết nối socket
+    console.log('🔌 Connecting socket...');
+    socketInstance.connect();
 
     return () => {
+      console.log('🧹 Cleaning up socket events');
       socketInstance.off('connect', onConnect);
       socketInstance.off('disconnect', onDisconnect);
+      socketInstance.off('connect_error', onConnectError);
       socketInstance.off('session-initialized', onSession);
       socketInstance.off('conversation-updated', onConvUpdate);
-      socketInstance.off('guest-conversation-created', onGuestConversationCreated);
+      socketInstance.off('conversation:created', onConversationCreated);
       socketInstance.off('message', onMessage);
       socketInstance.off('message:confirmed', onMessageConfirmed);
       socketInstance.off('message:failed', onMessageFailed);
       socketInstance.off('typing', onTyping);
-      socketInstance.off('user-login-success', onUserLoginSuccess);
-      socketInstance.off('migration-complete', onMigrationComplete);
     };
-  }, [conversationId, addMessage, updateMessageStatus, isGuest, sessionId, tenantId, loadMessages, currentUser, queryClient]);
-
-  // ==================== PERSIST CONVERSATION ON RELOAD ====================
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Ưu tiên load conversation từ localStorage
-      const savedConversationId = localStorage.getItem('conversationId');
-      const guestConvId = localStorage.getItem('guestConversationId');
-      
-      if (currentUser && savedConversationId) {
-        // User đã login - load conversation đã lưu
-        console.log('💾 Loading saved conversation:', savedConversationId);
-        setConversationId(Number(savedConversationId));
-      } else if (!currentUser && guestConvId) {
-        // Guest - load guest conversation
-        console.log('💾 Loading guest conversation:', guestConvId);
-        setConversationId(Number(guestConvId));
-      }
-    }
-  }, [currentUser]);
-
-  // Load messages khi conversationId thay đổi
-  useEffect(() => {
-    if (conversationId && socket?.connected) {
-      console.log('🔗 Joining conversation on reload:', conversationId);
-      socket.emit('join:conversation', conversationId);
-      
-      // Load messages sau một chút delay để đảm bảo socket ready
-      setTimeout(() => {
-        if (isChatOpen) {
-          loadMessages();
-        }
-      }, 300);
-    }
-  }, [conversationId, socket?.connected, isChatOpen, loadMessages]);
-
-  // ==================== AUTO JOIN CONVERSATION ====================
-
-  useEffect(() => {
-    if (socket?.connected) {
-      console.log('🔍 Auto join check - currentUser:', currentUser?.id, 'isGuest:', isGuest, 'latestConversationId:', latestConversationId);
-      
-      const savedConversationId = localStorage.getItem('conversationId');
-      const guestConversationId = localStorage.getItem('guestConversationId');
-      
-      // Ưu tiên conversation đã lưu trong localStorage
-      if (savedConversationId && !conversationId) {
-        console.log('💾 Using saved conversation:', savedConversationId);
-        setConversationId(Number(savedConversationId));
-        socket.emit('join:conversation', Number(savedConversationId));
-        setTimeout(() => loadMessages(), 100);
-      }
-      else if (currentUser && latestConversationId && latestConversationId !== conversationId) {
-        console.log('👤 User joining conversation:', latestConversationId);
-        setConversationId(latestConversationId);
-        localStorage.setItem('conversationId', latestConversationId.toString());
-        localStorage.removeItem('guestConversationId');
-        localStorage.removeItem('guestSessionId');
-        socket.emit('join:conversation', latestConversationId);
-        setTimeout(() => loadMessages(), 100);
-      } 
-      else if (isGuest && guestConversationId && guestConversationId !== conversationId?.toString()) {
-        console.log('🎭 Guest joining conversation:', guestConversationId);
-        setConversationId(Number(guestConversationId));
-        socket.emit('join:conversation', Number(guestConversationId));
-        setTimeout(() => loadMessages(), 100);
-      } 
-      else if (isGuest && !guestConversationId && !conversationId) {
-        console.log('🆕 Guest creating new conversation...');
-        socket.emit('create:guest-conversation', {
-          sessionId: sessionId,
-          tenantId: tenantId
-        });
-      } 
-      else if (currentUser && !latestConversationId && !conversationId) {
-        console.log('👤 User has no conversations yet');
-        // Conversation sẽ được tạo khi user gửi tin nhắn đầu tiên
-      }
-      else if (conversationId) {
-        console.log('🔗 Already have conversation:', conversationId);
-        socket.emit('join:conversation', conversationId);
-      }
-    }
-  }, [socket?.connected, currentUser, latestConversationId, isGuest, sessionId, tenantId, loadMessages, conversationId]);
-
-  // ==================== USER STATE CLEANUP & MIGRATION ====================
-
-  useEffect(() => {
-    if (currentUser && currentUser.id) {
-      console.log('🔄 User logged in - migrating chat data...');
-      
-      // Cleanup guest data
-      localStorage.removeItem('guestSessionId');
-      localStorage.removeItem('guestConversationId');
-      setIsGuest(false);
-      
-      // Nếu đang có guest conversation, migrate sang user
-      const guestConversationId = localStorage.getItem('guestConversationId');
-      if (guestConversationId && socket?.connected) {
-        console.log('🔄 Migrating guest conversation to user...');
-        
-        // Gọi API migrate messages từ guest sang user
-        socket.emit('user-login', { 
-          userId: currentUser.id,
-          sessionId: sessionId, // Guest session hiện tại
-          tenantId: tenantId
-        });
-        
-        // Chờ migration xong thì load conversations của user
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ['user-conversation-ids'] });
-        }, 1000);
-      } else if (latestConversationId && latestConversationId !== conversationId) {
-        // User đã có conversation từ trước
-        console.log('👤 Loading existing user conversation:', latestConversationId);
-        setConversationId(latestConversationId);
-        if (socket?.connected) {
-          socket.emit('join:conversation', latestConversationId);
-          loadMessages();
-        }
-      }
-    }
-  }, [currentUser, latestConversationId, socket, conversationId, loadMessages, queryClient, sessionId, tenantId]);
-
-  // ==================== LOGOUT CLEANUP ====================
-
-  useEffect(() => {
-    if (!currentUser && typeof window !== 'undefined') {
-      const wasPreviouslyLoggedIn = localStorage.getItem('wasLoggedIn');
-      
-      if (wasPreviouslyLoggedIn) {
-        console.log('🚪 User logged out - resetting chat state');
-        // Reset state
-        setConversationId(null);
-        setMessages([]);
-        setIsGuest(true);
-        
-        // Clear user data but keep guest data
-        localStorage.removeItem('conversationId');
-        localStorage.removeItem('wasLoggedIn');
-        
-        // Tạo guest session mới
-        const guestSessionId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        setSessionId(guestSessionId);
-        localStorage.setItem('guestSessionId', guestSessionId);
-      }
-    }
-  }, [currentUser]);
-
-  // Đánh dấu user đã login
-  useEffect(() => {
-    if (currentUser && currentUser.id) {
-      localStorage.setItem('wasLoggedIn', 'true');
-    }
-  }, [currentUser]);
-
-  // ==================== LOAD MESSAGES ON CHAT OPEN ====================
-
-  useEffect(() => {
-    if (isChatOpen && conversationId && !isLoadingMessagesRef.current) {
-      loadMessages();
-    }
-  }, [isChatOpen, conversationId, loadMessages]);
-
-  // ==================== AI MESSAGE HANDLING ====================
-
-  const sendAiMessage = useCallback(async (msg: string) => {
-    setIsTyping(prev => ({ ...prev, ai: true }));
-    
-    const aiTempId = `ai-temp-${Date.now()}`;
-    const aiPendingMessage: ChatMessage = {
-      id: aiTempId,
-      senderType: 'BOT',
-      message: '...',
-      conversationId,
-      sessionId,
-      createdAt: new Date().toISOString(),
-      tempId: aiTempId,
-      status: 'sending'
-    };
-    
-    addMessage(aiPendingMessage);
-
-    try {
-      const token = process.env.NEXT_PUBLIC_AI_PUBLIC_TOKEN;
-      if (!token) throw new Error('No AI token');
-
-      const res = await fetch(`${AI_URL}/chat`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({ 
-          prompt: msg,  
-          metadata: {
-            isGuest: !currentUser,
-            sessionId: sessionId
-          } 
-        }),
-      });
-
-      if (!res.ok) throw new Error('AI failed');
-      const data = await res.json();
-      const aiText = data.response?.text || 'Xin lỗi, tôi không thể trả lời ngay lúc này.';
-
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.tempId === aiTempId 
-            ? {
-                ...msg,
-                id: `ai-${Date.now()}`,
-                message: aiText,
-                tempId: undefined,
-                status: 'sent'
-              }
-            : msg
-        )
-      );
-
-      saveBotMessage.mutate({ 
-        conversationId, 
-        message: aiText, 
-        sessionId 
-      });
-    } catch (err) {
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.tempId === aiTempId 
-            ? {
-                ...msg,
-                message: 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau.',
-                tempId: undefined,
-                status: 'failed'
-              }
-            : msg
-        )
-      );
-    } finally {
-      setIsTyping(prev => ({ ...prev, ai: false }));
-    }
-  }, [conversationId, sessionId, currentUser, addMessage, saveBotMessage, setMessages, setIsTyping]);
+  }, [currentUser?.id, isGuest, conversationId, latestConversationId, loadMessages]);
 
   // ==================== SEND MESSAGE ====================
 
   const sendMessage = useCallback((message: string, metadata?: any) => {
-    if (!message.trim() || !socket) return;
+    if (!message.trim()) {
+      console.log('❌ Cannot send message: empty message');
+      return;
+    }
 
     console.log('🔍 Sending message - isGuest:', isGuest, 'currentUser:', currentUser?.id);
 
@@ -555,27 +680,76 @@ export default function ChatBox() {
     const senderType = currentUser && currentUser.id ? 'USER' : 'GUEST';
     const senderId = currentUser?.id || null;
 
+    // Nếu là GUEST -> chỉ lưu local
+    if (isGuest) {
+      console.log('🎭 Guest mode - saving message locally');
+      
+      const userMsg: ChatMessage = {
+        id: tempId,
+        senderType: 'GUEST',
+        senderId: null,
+        message: message.trim(),
+        conversationId: null,
+        sessionId: sessionId,
+        createdAt: new Date().toISOString(),
+        tempId,
+        status: 'local',
+        metadata: {
+          ...metadata,
+          isGuest: true,
+          guestSessionId: sessionId
+        },
+      };
+
+      addMessage(userMsg);
+      
+      // Lưu vào localStorage
+      const updatedMessages = [...messages.filter(msg => msg.id !== tempId), userMsg];
+      saveLocalMessages(updatedMessages);
+      
+      // Gọi AI response nếu enabled
+      if (aiChatEnabled) {
+        setTimeout(() => {
+          sendAiMessageRef.current?.(message.trim(), null);
+        }, 300);
+      }
+      
+      setInput('');
+      return;
+    }
+
+    // Nếu là USER đã login
+    if (!socket) {
+      console.log('❌ Cannot send message: no socket');
+      return;
+    }
+
+    // QUAN TRỌNG: Nếu chưa có conversationId, backend sẽ tự động tạo
+    const effectiveConversationId = conversationId || latestConversationId;
+    
+    console.log('📤 Preparing message with:', {
+      hasConversationId: !!effectiveConversationId,
+      conversationId: effectiveConversationId,
+      socketConnected: socket.connected
+    });
+
     const userMsg: ChatMessage = {
       id: tempId,
-      senderType: senderType,
+      senderType: 'USER',
       senderId: senderId,
       message: message.trim(),
-      conversationId,
-      sessionId: isGuest ? sessionId : null,
+      conversationId: effectiveConversationId || undefined,
+      sessionId: null,
       createdAt: new Date().toISOString(),
       tempId,
       status: 'sending',
       metadata: {
         ...metadata,
-        isGuest: !currentUser?.id,
-        guestSessionId: !currentUser?.id ? sessionId : undefined
+        isGuest: false,
+        userId: senderId,
+        tenantId: tenantId
       },
     };
-
-    if (!conversationId && !isCreatingConversation) {
-      console.log('⏳ Chưa có conversation, đang tạo...');
-      setIsCreatingConversation(true);
-    }
 
     addMessage(userMsg);
     pendingMessagesRef.current.add(tempId);
@@ -584,27 +758,110 @@ export default function ChatBox() {
       message: message.trim(), 
       tempId, 
       metadata: userMsg.metadata,
-      senderType,
-      senderId
+      senderType: 'USER',
+      senderId,
+      tenantId: tenantId,
+      userId: senderId,
     };
 
-    if (conversationId) {
-      payload.conversationId = conversationId;
+    // QUAN TRỌNG: Gửi cả khi chưa có conversationId, backend sẽ xử lý
+    if (effectiveConversationId) {
+      payload.conversationId = effectiveConversationId;
     } else {
-      payload.sessionId = sessionId;
-      payload.tenantId = tenantId;
+      console.log('🆕 No conversationId - backend will create one automatically');
     }
 
+    console.log('📤 Emitting send:message:', payload);
     socket.emit('send:message', payload);
-
-    if (aiChatEnabled) {
-      sendAiMessage(message.trim());
-    }
-
+    
+    // Fallback: Nếu backend không confirm sau 15s
+    const timeoutId = setTimeout(() => {
+      if (pendingMessagesRef.current.has(tempId)) {
+        console.warn('⏳ No confirmation from backend after 15s, marking as sent anyway');
+        pendingMessagesRef.current.delete(tempId);
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.tempId === tempId 
+              ? { ...msg, status: 'sent', tempId: undefined }
+              : msg
+          )
+        );
+        
+        // Trigger AI response với conversationId hiện tại
+        if (aiChatEnabled) {
+          setTimeout(() => {
+            const currentConvId = conversationId || latestConversationId;
+            console.log('🤖 Triggering AI with conversationId:', currentConvId);
+            sendAiMessageRef.current?.(message.trim(), currentConvId || undefined);
+          }, 500);
+        }
+      }
+    }, 15000);
+    
+    // Clear timeout khi message được confirm
+    const messageConfirmCheckInterval = setInterval(() => {
+      if (!pendingMessagesRef.current.has(tempId)) {
+        clearTimeout(timeoutId);
+        clearInterval(messageConfirmCheckInterval);
+      }
+    }, 100);
+    
     setInput('');
-  }, [socket, conversationId, sessionId, aiChatEnabled, currentUser, addMessage, tenantId, isGuest, sendAiMessage, isCreatingConversation]);
+  }, [socket, conversationId, latestConversationId, aiChatEnabled, currentUser, addMessage, isGuest, sessionId, messages, saveLocalMessages, tenantId]);
 
-  console.log("aiChatEnabled", aiChatEnabled);
+  // ==================== FALLBACK MESSAGE DISPLAY ====================
+
+  useEffect(() => {
+    // Fallback: Nếu socket không kết nối được nhưng có messages trong database, vẫn hiển thị
+    if (currentUser?.id && !isGuest && messages.length === 0 && dbConversationIds.length > 0) {
+      console.log('🔄 Fallback: Loading messages directly from database');
+      
+      const loadMessagesDirectly = async () => {
+        try {
+          const conversationIdToLoad = conversationId || dbConversationIds[0];
+          const res = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/chat/messages?conversationId=${conversationIdToLoad}`,
+            {
+              headers: { 'x-tenant-id': tenantId.toString() },
+              cache: 'no-cache'
+            }
+          );
+          
+          if (res.ok) {
+            const data = await res.json();
+            const loadedMessages = Array.isArray(data.messages) ? data.messages : [];
+            if (loadedMessages.length > 0) {
+              console.log('📥 Fallback loaded messages:', loadedMessages.length);
+              setMessages(loadedMessages.sort((a: any, b: any) => 
+                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              ));
+            }
+          }
+        } catch (err) {
+          console.error('❌ Fallback load messages failed:', err);
+        }
+      };
+
+      // Thử load sau 3 giây nếu socket vẫn chưa kết nối
+      const timer = setTimeout(() => {
+        if (!isConnected) {
+          loadMessagesDirectly();
+        }
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currentUser?.id, isGuest, messages.length, dbConversationIds, conversationId, isConnected, tenantId]);
+
+  // ==================== AUTO SAVE LOCAL MESSAGES ====================
+
+  useEffect(() => {
+    if (isGuest && messages.length > 0) {
+      // Chỉ lưu những tin nhắn có status 'local'
+      const localMessages = messages.filter(msg => msg.status === 'local');
+      saveLocalMessages(localMessages);
+    }
+  }, [messages, isGuest, saveLocalMessages]);
 
   // ==================== SCROLL MANAGEMENT ====================
 
@@ -651,19 +908,6 @@ export default function ChatBox() {
     previousLengthRef.current = messages.length;
   }, [messages, isChatOpen]);
 
-  // ==================== DEBUG STATE ====================
-
-  console.log('🔍 Chat State:', {
-    currentUser: currentUser?.id,
-    isGuest,
-    conversationId,
-    sessionId,
-    latestConversationId,
-    savedConversationId: typeof window !== 'undefined' ? localStorage.getItem('conversationId') : null,
-    guestConversationId: typeof window !== 'undefined' ? localStorage.getItem('guestConversationId') : null,
-    socketConnected: socket?.connected
-  });
-
   // ==================== UI HELPERS ====================
 
   const getBubbleClass = useCallback((msg: ChatMessage) => {
@@ -674,8 +918,8 @@ export default function ChatBox() {
       return `${base} bg-gray-300 text-gray-600 opacity-80 rounded-br-none`;
     }
     
-    if (msg.status === 'failed') {
-      return `${base} bg-red-100 text-red-800 border border-red-300 rounded-br-none`;
+    if (msg.status === 'local') {
+      return `${base} bg-indigo-500 text-white rounded-br-none opacity-90`;
     }
     
     if (isOwn) {
@@ -704,6 +948,52 @@ export default function ChatBox() {
     }
   };
 
+  // Helper function để hiển thị trạng thái
+  const getConnectionStatus = () => {
+    if (isGuest) {
+      return {
+        text: 'Chế độ khách - Tin nhắn tạm thời',
+        color: 'text-yellow-600',
+        inputDisabled: false,
+        placeholder: 'Nhập tin nhắn (lưu tạm thời)...'
+      };
+    }
+    
+    if (!currentUser?.id) {
+      return {
+        text: 'Đang kiểm tra đăng nhập...',
+        color: 'text-gray-600', 
+        inputDisabled: true,
+        placeholder: 'Đang kiểm tra...'
+      };
+    }
+    
+    if (!isConnected) {
+      return {
+        text: 'Đang kết nối socket...',
+        color: 'text-orange-600',
+        inputDisabled: true,
+        placeholder: 'Đang kết nối...'
+      };
+    }
+    
+    if (!conversationId) {
+      return {
+        text: 'Đang tải hội thoại...',
+        color: 'text-blue-600',
+        inputDisabled: true,
+        placeholder: 'Đang tải hội thoại...'
+      };
+    }
+    
+    return {
+      text: `Đã kết nối - ${messages.length} tin nhắn`,
+      color: 'text-green-600',
+      inputDisabled: false,
+      placeholder: 'Nhập tin nhắn...'
+    };
+  };
+
   // ==================== CONTEXT VALUE ====================
 
   const contextValue = useMemo(() => ({
@@ -720,6 +1010,8 @@ export default function ChatBox() {
 
   // ==================== RENDER ====================
 
+  const status = getConnectionStatus();
+
   return (
     <ChatContext.Provider value={contextValue}>
       {/* Floating Chat Button */}
@@ -729,10 +1021,15 @@ export default function ChatBox() {
           className="relative bg-gradient-to-r from-blue-600 to-green-600 text-white px-6 py-3 rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-110 flex items-center gap-2 font-medium"
         >
           <span className="text-2xl">💬</span>
-          <span>Chat hỗ trợ</span>
+          <span>Chat hổ trợ</span>
+          {isGuest && (
+            <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 shadow-md">
+              🔄
+            </span>
+          )}
         </button>
 
-        {!isConnected && (
+        {!isGuest && !isConnected && (
           <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-pulse border border-white"></span>
         )}
 
@@ -748,13 +1045,25 @@ export default function ChatBox() {
         <div className="fixed bottom-24 right-5 w-96 h-[600px] bg-white border border-gray-300 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-[9999] animate-in slide-in-from-bottom-5 duration-300">
           {/* Header */}
           <div className="flex justify-between items-center bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 text-white px-4 py-3">
-            <div>
-              <h3 className="font-bold text-lg">Hỗ trợ & AI</h3>
-              <p className="text-xs flex items-center gap-1">
-                <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></span>
-                {isConnected ? 'Đang kết nối' : 'Mất kết nối'}
-              </p>
+            <div className="flex items-center gap-2">
+              <div>
+                <h3 className="font-bold text-lg">AI BOT</h3>
+                <p className="text-xs flex items-center gap-1">
+                  {isGuest ? (
+                    <span className="text-yellow-300">Đăng nhập để lưu lịch sử chat</span>
+                  ) : (
+                    <>
+                      <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></span>
+                      {isConnected ? 'Đang kết nối' : 'Mất kết nối'}
+                     
+                    </>
+                  )}
+                </p>
+              </div>
+              
+             
             </div>
+            
             <button 
               onClick={() => setIsChatOpen(false)} 
               className="text-white hover:bg-white/20 w-8 h-8 rounded-full flex items-center justify-center text-2xl transition-colors"
@@ -782,11 +1091,6 @@ export default function ChatBox() {
                     : 'Tôi là AI hỗ trợ. Hãy chat với tôi!'
                   }
                 </p>
-                {!currentUser && (
-                  <p className="text-xs text-blue-600 mt-2">
-                    💡 Bạn có thể đăng nhập để lưu lịch sử chat
-                  </p>
-                )}
               </div>
             )}
 
@@ -801,14 +1105,16 @@ export default function ChatBox() {
                       {msg.senderType === 'ADMIN' ? '👨‍💼 Admin' : msg.senderType === 'BOT' ? '🤖 AI' : 'Bạn'}
                     </div>
                   )}
-                  <p className="whitespace-pre-wrap break-words">{msg.message}</p>
+                  <div className="whitespace-pre-wrap break-words">
+                    {renderMessageWithLinks(msg.message)}
+                  </div>
                   <div className="text-xs mt-1 opacity-70 flex items-center gap-1">
                     {formatTime(msg.createdAt)}
                     {msg.status === 'sending' && (
-                      <span className="w-2 h-2 bg-current rounded-full opacity-60"></span>
-                    )}
-                    {msg.status === 'failed' && (
-                      <span className="text-red-500">❌</span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-current rounded-full opacity-60 animate-pulse"></span>
+                        <span className="text-xs opacity-70">đang gửi...</span>
+                      </span>
                     )}
                   </div>
                 </div>
@@ -832,12 +1138,7 @@ export default function ChatBox() {
             {isTyping.ai && (
               <div className="flex justify-start animate-in fade-in duration-200">
                 <div className="bg-green-100 text-green-800 rounded-2xl px-4 py-3 flex items-center gap-3">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                  </div>
-                  <span className="text-sm font-medium">AI đang suy nghĩ...</span>
+                  <span className="text-sm font-medium">AI đang suy nghĩ {aiTypingDots}</span>
                 </div>
               </div>
             )}
@@ -850,26 +1151,22 @@ export default function ChatBox() {
             <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="Nhập tin nhắn..."
+                placeholder={status.placeholder}
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                disabled={!isConnected}
+                disabled={status.inputDisabled}
                 className="flex-1 border border-gray-300 rounded-full px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:bg-gray-50 transition"
               />
               <button
                 onClick={() => sendMessage(input)}
-                disabled={!input.trim() || !isConnected}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2.5 rounded-full hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-300 font-medium shadow-md transition disabled:cursor-not-allowed"
+                disabled={!input.trim() || status.inputDisabled}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2.5 rounded-full hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-300 font-medium shadow-md transition disabled:cursor-not-allowed flex items-center gap-2"
               >
                 Gửi
               </button>
             </div>
-            {!isConnected && (
-              <p className="text-xs text-red-500 mt-2 text-center animate-pulse">
-                Đang kết nối lại...
-              </p>
-            )}
+            
           </div>
         </div>
       )}
