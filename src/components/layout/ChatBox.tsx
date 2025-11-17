@@ -72,6 +72,7 @@ export default function ChatBox() {
   const isLoadingMessagesRef = useRef(false);
   const sendAiMessageRef = useRef<((msg: string, targetConversationId?: number | null) => Promise<void>) | null>(null);
   const [aiTypingDots, setAiTypingDots] = useState('');
+  const [hasAttemptedInitialLoad, setHasAttemptedInitialLoad] = useState(false);
 
   const tenantId = Number(process.env.NEXT_PUBLIC_TENANT_ID || '1');
   const localUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
@@ -320,10 +321,16 @@ export default function ChatBox() {
       return;
     }
     
-    // QUAN TRỌNG: Luôn load messages nếu có conversationId
+    // QUAN TRỌNG: Chỉ load messages nếu có conversationId
     const targetConversationId = conversationId || latestConversationId;
-    if (!targetConversationId || isLoadingMessagesRef.current) {
-      console.log('⏳ Cannot load messages - no conversationId or loading:', targetConversationId);
+    if (!targetConversationId) {
+      console.log('⏳ No conversationId available - skipping message load');
+      setHasAttemptedInitialLoad(true);
+      return;
+    }
+    
+    if (isLoadingMessagesRef.current) {
+      console.log('⏳ Already loading messages - skipping');
       return;
     }
     
@@ -351,9 +358,11 @@ export default function ChatBox() {
       
       // QUAN TRỌNG: Thay thế toàn bộ messages bằng messages từ server
       setMessages(sortedMessages);
+      setHasAttemptedInitialLoad(true);
       
     } catch (err) {
       console.error('❌ Load messages failed:', err);
+      setHasAttemptedInitialLoad(true);
     } finally {
       isLoadingMessagesRef.current = false;
     }
@@ -363,7 +372,7 @@ export default function ChatBox() {
 
   useEffect(() => {
     // Tự động load messages khi có conversationId và user đã login
-    if (currentUser?.id && !isGuest && conversationId) {
+    if (currentUser?.id && !isGuest && conversationId && !hasAttemptedInitialLoad) {
       console.log('🔄 Auto-loading messages for conversation:', conversationId);
       
       // Đợi một chút để đảm bảo socket đã kết nối
@@ -373,7 +382,7 @@ export default function ChatBox() {
       
       return () => clearTimeout(timer);
     }
-  }, [currentUser?.id, isGuest, conversationId, loadMessages]);
+  }, [currentUser?.id, isGuest, conversationId, loadMessages, hasAttemptedInitialLoad]);
 
   // Lưu tin nhắn local vào localStorage
   const saveLocalMessages = useCallback((messages: ChatMessage[]) => {
@@ -433,7 +442,8 @@ export default function ChatBox() {
       currentUser: currentUser?.id,
       isConnected,
       conversationId,
-      dbConversationIds: dbConversationIds.length
+      dbConversationIds: dbConversationIds.length,
+      hasAttemptedInitialLoad
     });
 
     // Chỉ xử lý khi user đã login và socket connected
@@ -458,8 +468,10 @@ export default function ChatBox() {
       setTimeout(() => loadMessages(), 300);
     } else {
       console.log('📝 No existing conversation - will create on first message');
+      // QUAN TRỌNG: Đánh dấu đã thử load để không bị kẹt ở trạng thái loading
+      setHasAttemptedInitialLoad(true);
     }
-  }, [currentUser?.id, isConnected, conversationId, dbConversationIds, socket, loadMessages]);
+  }, [currentUser?.id, isConnected, conversationId, dbConversationIds, socket, loadMessages, hasAttemptedInitialLoad]);
 
 
 const { sendAiMessage } = useAiMessage({
@@ -529,6 +541,9 @@ const { sendAiMessage } = useAiMessage({
         console.log('🔄 Loading messages for latest conversation:', latestConversationId);
         setConversationId(latestConversationId);
         setTimeout(() => loadMessages(), 300);
+      } else {
+        // Nếu không có conversation nào, đánh dấu đã thử load
+        setHasAttemptedInitialLoad(true);
       }
     };
 
@@ -948,7 +963,7 @@ const { sendAiMessage } = useAiMessage({
     }
   };
 
-  // Helper function để hiển thị trạng thái
+  // Helper function để hiển thị trạng thái - ĐÃ SỬA LỖI
   const getConnectionStatus = () => {
     if (isGuest) {
       return {
@@ -970,24 +985,35 @@ const { sendAiMessage } = useAiMessage({
     
     if (!isConnected) {
       return {
-        text: 'Đang kết nối socket...',
+        text: 'Đang kết nối...',
         color: 'text-orange-600',
         inputDisabled: true,
         placeholder: 'Đang kết nối...'
       };
     }
     
-    if (!conversationId) {
+    // QUAN TRỌNG: Đã sửa ở đây - không còn bị kẹt ở "đang tải hội thoại"
+    if (!conversationId && !hasAttemptedInitialLoad) {
       return {
-        text: 'Đang tải hội thoại...',
+        text: 'Đang khởi tạo...',
         color: 'text-blue-600',
-        inputDisabled: true,
-        placeholder: 'Đang tải hội thoại...'
+        inputDisabled: false, // Cho phép nhập tin nhắn ngay cả khi chưa có conversationId
+        placeholder: 'Nhập tin nhắn để bắt đầu hội thoại...'
+      };
+    }
+    
+    // Nếu đã thử load và không có conversationId, vẫn cho phép nhập
+    if (!conversationId && hasAttemptedInitialLoad) {
+      return {
+        text: 'Sẵn sàng - Chưa có hội thoại',
+        color: 'text-green-600',
+        inputDisabled: false,
+        placeholder: 'Nhập tin nhắn để tạo hội thoại mới...'
       };
     }
     
     return {
-      text: `Đã kết nối - ${messages.length} tin nhắn`,
+      text: `Đã kết nối`,
       color: 'text-green-600',
       inputDisabled: false,
       placeholder: 'Nhập tin nhắn...'
@@ -1054,14 +1080,11 @@ const { sendAiMessage } = useAiMessage({
                   ) : (
                     <>
                       <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></span>
-                      {isConnected ? 'Đang kết nối' : 'Mất kết nối'}
-                     
+                      {status.text}
                     </>
                   )}
                 </p>
               </div>
-              
-             
             </div>
             
             <button 
@@ -1091,6 +1114,12 @@ const { sendAiMessage } = useAiMessage({
                     : 'Tôi là AI hỗ trợ. Hãy chat với tôi!'
                   }
                 </p>
+                {/* Hiển thị trạng thái cho user mới */}
+                {currentUser && !conversationId && (
+                  <p className="text-xs text-blue-600 mt-2 font-medium">
+                    💡 Nhập tin nhắn đầu tiên để tạo hội thoại mới
+                  </p>
+                )}
               </div>
             )}
 
@@ -1167,6 +1196,7 @@ const { sendAiMessage } = useAiMessage({
               </button>
             </div>
             
+          
           </div>
         </div>
       )}
