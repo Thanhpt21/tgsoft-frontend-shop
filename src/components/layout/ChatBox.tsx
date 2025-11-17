@@ -484,7 +484,8 @@ const { sendAiMessage } = useAiMessage({
   findProductsByKeyword,
   isGuest,
   setMessages,
-  setIsTyping
+  setIsTyping,
+  tenantId
 });
 
 
