@@ -2,13 +2,14 @@
 
 import { Table, Tag, Image, Space, Tooltip, Input, Button, Modal, message, Badge, Switch } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { EditOutlined, DeleteOutlined, PictureOutlined, MessageOutlined } from '@ant-design/icons'
+import { EditOutlined, DeleteOutlined, PictureOutlined, MessageOutlined, UserOutlined } from '@ant-design/icons'
 import { useUsers } from '@/hooks/user/useUsers'
 import { useDeleteUser } from '@/hooks/user/useDeleteUser'
 import { useState, useEffect } from 'react'
 import { UserCreateModal } from './UserCreateModal'
 import { UserUpdateModal } from './UserUpdateModal'
 import { UserChatModal } from './UserChatModal'
+import { AddRoleModal } from './AddRoleModal'
 import ioClient from 'socket.io-client'
 import { useAuth } from '@/context/AuthContext'
 
@@ -27,6 +28,7 @@ export default function UserTable() {
   const [openCreate, setOpenCreate] = useState(false)
   const [openUpdate, setOpenUpdate] = useState(false)
   const [openChat, setOpenChat] = useState(false)
+  const [openAddRole, setOpenAddRole] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [unreadCounts, setUnreadCounts] = useState<Record<number, number>>({}) // conversationId -> count
   const { currentUser } = useAuth()
@@ -213,6 +215,15 @@ export default function UserTable() {
               }}
             />
           </Tooltip>
+          <Tooltip title="Quản lý quyền">
+            <UserOutlined
+              style={{ color: '#faad14', cursor: 'pointer' }}
+              onClick={() => {
+                setSelectedUser(record)
+                setOpenAddRole(true)
+              }}
+            />
+          </Tooltip>
           <Tooltip title="Xóa">
             <DeleteOutlined
               style={{ color: 'red', cursor: 'pointer' }}
@@ -322,6 +333,16 @@ export default function UserTable() {
         onClose={() => setOpenUpdate(false)}
         user={selectedUser}
         refetch={refetch}
+      />
+
+      {/* Add Role Modal */}
+      <AddRoleModal
+        open={openAddRole}
+        onClose={() => {
+          setOpenAddRole(false)
+          setSelectedUser(null)
+        }}
+        user={selectedUser}
       />
 
       {/* Chat Modal */}
