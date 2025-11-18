@@ -147,7 +147,7 @@ const handleSimpleQuestion = (lowerMsg: string, currentConvId: number | null, is
 
   // Gọi AI API
   const callAiApi = async (msg: string, relevantProducts: Product[]) => {
-    const token = adminShopTokens?.token;
+    const token = adminShopTokens?.token || process.env.NEXT_PUBLIC_AI_PUBLIC_TOKEN;
     if (!token) throw new Error('No AI token');
 
     // 🔥 CHECK NẾU ADMIN SHOP CÓ 0 TOKEN
@@ -276,12 +276,10 @@ Câu hỏi: "${msg}"`;
     
     // Nếu chưa có conversationId, đợi một chút
     if (!currentConvId && !isGuest) {
-      console.log('⏳ Waiting for conversation creation...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       currentConvId = conversationId;
       
       if (!currentConvId) {
-        console.log('❌ Cannot send AI message: Still no conversation ID');
         return;
       }
     }
@@ -341,13 +339,14 @@ Câu hỏi: "${msg}"`;
         );
 
         // Lưu vào database nếu cần
-        if (response.shouldSave && currentConvId) {
+        if (response.shouldSave && currentConvId && !isGuestMode) {
           saveBotMessage.mutate({ 
             conversationId: Number(currentConvId),
             message: response.finalAiText, 
             sessionId: sessionId || null
           });
         }
+         setIsTyping(prev => ({ ...prev, ai: false }));
         return;
       }
 
