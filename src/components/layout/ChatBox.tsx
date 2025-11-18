@@ -485,7 +485,6 @@ const { sendAiMessage } = useAiMessage({
   isGuest,
   setMessages,
   setIsTyping,
-  tenantId
 });
 
 
