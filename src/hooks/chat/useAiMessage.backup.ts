@@ -2,9 +2,6 @@ import { useCallback } from 'react';
 
 import { Product } from '@/types/product.type';
 import { ChatMessage } from '@/components/layout/ChatBox';
-import { useCheckTenantAdminShopTokens } from '@/hooks/user/useCheckTenantAdminShopTokens';
-import { useUpdateTenantAdminShopTokens } from '@/hooks/user/useUpdateTenantAdminShopTokens';
-import { useTenantAdminShopTokens } from '@/hooks/user/useTenantAdminShopTokens';
 
 interface UseAiMessageProps {
   conversationId: number | null;
@@ -17,7 +14,6 @@ interface UseAiMessageProps {
   isGuest: boolean;
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   setIsTyping: React.Dispatch<React.SetStateAction<{ admin: boolean; ai: boolean }>>;
-  tenantId?: number;
 }
 
 export const useAiMessage = ({
@@ -30,16 +26,9 @@ export const useAiMessage = ({
   findProductsByKeyword,
   isGuest,
    setMessages,
-    setIsTyping,
-    tenantId = 1
+    setIsTyping
 }: UseAiMessageProps) => {
   const AI_URL = process.env.NEXT_PUBLIC_AI_URL!;
-  const TOKENS_PER_AI_CALL = 10; // Chi phí token cho mỗi lần gọi AI (default fallback)
-
-  // Hooks check & update token
-  const checkTokens = useCheckTenantAdminShopTokens();
-  const updateTokens = useUpdateTenantAdminShopTokens();
-  const { data: adminShopTokens, isLoading: isTokensLoading } = useTenantAdminShopTokens(tenantId);
 
   // Kiểm tra loại tin nhắn
   const checkMessageType = (msg: string) => {
@@ -147,29 +136,8 @@ const handleSimpleQuestion = (lowerMsg: string, currentConvId: number | null, is
 
   // Gọi AI API
   const callAiApi = async (msg: string, relevantProducts: Product[]) => {
-    const token = adminShopTokens?.token || process.env.NEXT_PUBLIC_AI_PUBLIC_TOKEN;
+    const token = process.env.NEXT_PUBLIC_AI_PUBLIC_TOKEN;
     if (!token) throw new Error('No AI token');
-
-    // 🔥 CHECK NẾU ADMIN SHOP CÓ 0 TOKEN
-    if (adminShopTokens && adminShopTokens.token === 0) {
-      const error = new Error(`❌ Admin shop không có token AI. Hiện tại: 0 token. Vui lòng nạp thêm token để sử dụng dịch vụ AI.`);
-      (error as any).code = 'NO_TOKENS';
-      throw error;
-    }
-
-    // 🔥 CHECK TOKEN TRƯỚC KHI GỌI AI (dùng default estimate)
-    const checkResult = await checkTokens.mutateAsync({
-      tokensNeeded: TOKENS_PER_AI_CALL,
-      tenantId
-    });
-
-    if (!checkResult.hasEnoughTokens) {
-      const error = new Error(`Không đủ token AI. Hiện tại: ${checkResult.currentTokens}, cần: ${checkResult.tokensNeeded}`);
-      (error as any).code = 'INSUFFICIENT_TOKENS';
-      throw error;
-    }
-
-    console.log(`✅ Token check passed. Current: ${checkResult.currentTokens}, Checking needed: ${TOKENS_PER_AI_CALL}`);
 
     const productList = relevantProducts.map((product: Product) => 
       `- ${product.name} (Giá: ${product.basePrice.toLocaleString('vi-VN')}đ) - Link: san-pham/${product.slug}${product.description ? ` - Mô tả: ${product.description}` : ''}${product.promotionProducts && product.promotionProducts.length > 0 ? ' - ĐANG KHUYẾN MÃI' : ''}`
@@ -235,39 +203,7 @@ Câu hỏi: "${msg}"`;
 
     if (!res.ok) throw new Error('AI failed');
     const data = await res.json();
-    const aiResponse = data.response?.text || 'Xin lỗi, tôi không thể trả lời ngay lúc này.';
-
-    // 🔥 LẤY ACTUAL TOKENS TỪ API RESPONSE & TRỪ TOKEN SAU KHI GỌI AI THÀNH CÔNG
-    const isCachedResponse = data.cached === true;
-    const actualTokensUsed = data.usage?.total_tokens;
-    
-    // Metadata để tracking token usage
-    const tokenMetadata = {
-      isCached: isCachedResponse,
-      tokensUsed: actualTokensUsed,
-      promptTokens: data.usage?.prompt_tokens || 0,
-      completionTokens: data.usage?.completion_tokens || 0,
-      totalTokens: data.usage?.total_tokens || 0,
-    };
-    
-    if (isCachedResponse) {
-      console.log(`⚡ Response từ cache - không trừ token`);
-      console.log(`📊 Token metadata:`, tokenMetadata);
-    } else {
-      console.log(`💳 API used ${actualTokensUsed} tokens (prompt: ${data.usage?.prompt_tokens}, completion: ${data.usage?.completion_tokens})`);
-      console.log(`💳 Deducting ${actualTokensUsed} tokens from admin shop...`);
-      console.log(`📊 Token metadata:`, tokenMetadata);
-      
-      await updateTokens.mutateAsync({
-        tokensUsed: actualTokensUsed,
-        tenantId
-      });
-
-      console.log(`✅ Tokens deducted successfully. Admin now has: ${checkResult.currentTokens - actualTokensUsed} tokens`);
-    }
-
-    // Lưu tokenMetadata để sử dụng khi lưu message
-    return { aiResponse, tokenMetadata };
+    return data.response?.text || 'Xin lỗi, tôi không thể trả lời ngay lúc này.';
   };
 
   // Xử lý tin nhắn AI
@@ -276,10 +212,12 @@ Câu hỏi: "${msg}"`;
     
     // Nếu chưa có conversationId, đợi một chút
     if (!currentConvId && !isGuest) {
+      console.log('⏳ Waiting for conversation creation...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       currentConvId = conversationId;
       
       if (!currentConvId) {
+        console.log('❌ Cannot send AI message: Still no conversation ID');
         return;
       }
     }
@@ -339,22 +277,19 @@ Câu hỏi: "${msg}"`;
         );
 
         // Lưu vào database nếu cần
-        if (response.shouldSave && currentConvId && !isGuestMode) {
+        if (response.shouldSave && currentConvId) {
           saveBotMessage.mutate({ 
             conversationId: Number(currentConvId),
             message: response.finalAiText, 
             sessionId: sessionId || null
           });
         }
-         setIsTyping(prev => ({ ...prev, ai: false }));
         return;
       }
 
       // Xử lý bằng AI API cho các tin nhắn phức tạp
       const relevantProducts = findProductsByKeyword(msg);
-      const aiCallResult = await callAiApi(msg, relevantProducts);
-      let aiText = aiCallResult.aiResponse;
-      const tokenMetadata = aiCallResult.tokenMetadata;
+      let aiText = await callAiApi(msg, relevantProducts);
 
       // Xử lý kết quả từ AI
       let finalAiText = aiText;
@@ -390,56 +325,29 @@ Câu hỏi: "${msg}"`;
         )
       );
 
-      // Lưu vào database nếu cần - truyền tokenMetadata vào metadata
+      // Lưu vào database nếu cần
       if (!isGuestMode && currentConvId && finalAiText && finalAiText !== '...' && finalAiText !== 'Xin lỗi, tôi không thể trả lời ngay lúc này.') {
         saveBotMessage.mutate({ 
           conversationId: Number(currentConvId),
-          message: finalAiText,
-          metadata: tokenMetadata,
+          message: finalAiText, 
           sessionId: sessionId || null
         });
       }
 
-    } catch (err: any) {
+    } catch (err) {
       console.error('❌ AI message error:', err);
-
-      let errorMessage = 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau.';
-      let isTokenError = false;
-
-      // Xử lý lỗi token
-      if (err.code === 'NO_TOKENS' || err.message?.includes('không có token')) {
-        errorMessage = `🤖 AI hiện không thể phản hồi. Vui lòng thông cảm và liên hệ cửa hàng để được hỗ trợ thêm.`;
-        isTokenError = true;
-      } else if (err.code === 'INSUFFICIENT_TOKENS' || err.message?.includes('Không đủ token')) {
-        errorMessage = `🤖 AI hiện không thể phản hồi. Vui lòng thông cảm và liên hệ cửa hàng để được hỗ trợ thêm.`;
-        isTokenError = true;
-      }
-
       setMessages(prev => 
         prev.map(msg => 
           msg.tempId === tempId 
             ? {
                 ...msg,
-                message: errorMessage,
+                message: 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau.',
                 tempId: undefined,
                 status: isGuestMode ? 'local' : 'sent'
               }
             : msg
         )
       );
-
-      // Lưu vào database nếu là token error
-      if (!isGuestMode && currentConvId && isTokenError) {
-        saveBotMessage.mutate({ 
-          conversationId: Number(currentConvId),
-          message: errorMessage,
-          metadata: { 
-            isTokenError: true,
-            timestamp: new Date().toISOString()
-          },
-          sessionId: sessionId || null
-        });
-      }
     } finally {
       // Tắt trạng thái typing
       setIsTyping(prev => ({ ...prev, ai: false }));
@@ -453,11 +361,7 @@ Câu hỏi: "${msg}"`;
     textPromptAi,
     findProductsByKeyword,
     isGuest,
-    setIsTyping,
-    checkTokens,
-    updateTokens,
-    tenantId,
-    setMessages
+    setIsTyping
   ]);
 
   return {

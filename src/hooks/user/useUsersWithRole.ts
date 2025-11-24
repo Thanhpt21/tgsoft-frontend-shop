@@ -1,11 +1,12 @@
-// useUsers.ts
+// hooks/user/useUsersWithRole.ts
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/axios'
 
-interface UseUsersParams {
+interface UseUsersWithRoleParams {
   page?: number
   limit?: number
   search?: string
+  roleName?: string
   enabled?: boolean
 }
 
@@ -35,39 +36,47 @@ interface User {
     status: string
     createdAt: string
   }>
+  roles: Array<{
+    id: number
+    name: string
+    description: string
+  }>
+  hasRole: boolean
 }
 
-interface UsersResponse {
+interface UsersWithRoleResponse {
   data: User[]
   total: number
   page: number
   pageCount: number
+  filter: string
 }
 
-export const useUsers = ({
+export const useUsersWithRole = ({
   page = 1,
   limit = 10,
   search = '',
+  roleName = '',
   enabled = true,
-}: UseUsersParams = {}) => {
+}: UseUsersWithRoleParams = {}) => {
   return useQuery({
-    queryKey: ['users', { page, limit, search }], // Object format tốt hơn
-    queryFn: async (): Promise<UsersResponse> => {
-      const res = await api.get('/users', {
+    queryKey: ['users-with-role', { page, limit, search, roleName }],
+    queryFn: async (): Promise<UsersWithRoleResponse> => {
+      const res = await api.get('/users/with-role', {
         params: { 
           page, 
           limit, 
           search,
-          timestamp: Date.now() // Tránh cache
+          roleName,
+          timestamp: Date.now()
         },
       })
       return res.data.data
     },
     enabled,
-    staleTime: 5 * 60 * 1000, // 5 phút
-    gcTime: 10 * 60 * 1000, // 10 phút (trong React Query v4 trở lên)
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     retry: 2,
-    refetchOnWindowFocus: false, // Tùy chọn
+    refetchOnWindowFocus: false,
   })
 }
-

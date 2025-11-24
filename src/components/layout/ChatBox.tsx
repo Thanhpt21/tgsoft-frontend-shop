@@ -12,6 +12,7 @@ import { useAllProducts } from '@/hooks/product/useAllProducts';
 import { Product } from '@/types/product.type';
 import Link from 'next/link';
 import { useAiMessage } from '@/hooks/chat/useAiMessage';
+import { useUserChatStatus } from '@/hooks/user/useUserChatStatus';
 
 // ==================== TYPES ====================
 
@@ -83,6 +84,11 @@ export default function ChatBox() {
     tenantId,
     enabled: !!userIdNumber,
   });
+    const latestConversationId = dbConversationIds[0] ?? null;
+  const AI_URL = process.env.NEXT_PUBLIC_AI_URL!;
+  const { data: currentUser } = useCurrent();
+  const [isGuest, setIsGuest] = useState(false);
+  const { data: products = [], isLoading: isLoadingProducts } = useAllProducts()
   const saveBotMessage = useSaveBotMessage();
   const { 
     data: aiConfig, 
@@ -90,6 +96,20 @@ export default function ChatBox() {
     error,
     isError 
   } = useTenantAIConfig(tenantId)
+
+   const { data: userChatStatus, isLoading: isLoadingChatStatus } = useUserChatStatus(
+    currentUser?.id || 0
+  );
+
+    // Kiểm tra nếu chat bị tắt - CHỈ ÁP DỤNG CHO USER ĐÃ LOGIN
+  const isChatDisabled = currentUser?.id && // Chỉ user đã login
+                        userChatStatus?.data && 
+                        !userChatStatus.data.chatEnabled;
+                          // KHÁCH (guest) LUÔN ĐƯỢC BẬT CHAT
+  const computedIsGuest = !currentUser?.id;
+
+ 
+
 
   const textPromptAi = useMemo(() => {
     return aiConfig?.aiSystemPrompt?.text || '';
@@ -118,11 +138,7 @@ export default function ChatBox() {
     return () => clearInterval(interval);
   }, [isTyping.ai]);
 
-  const latestConversationId = dbConversationIds[0] ?? null;
-  const AI_URL = process.env.NEXT_PUBLIC_AI_URL!;
-  const { data: currentUser } = useCurrent();
-  const [isGuest, setIsGuest] = useState(false);
-  const { data: products = [], isLoading: isLoadingProducts } = useAllProducts()
+
 
   // Ref để lưu tin nhắn local khi chưa login
   const localMessagesRef = useRef<ChatMessage[]>([]);
@@ -1037,6 +1053,11 @@ const { sendAiMessage } = useAiMessage({
   // ==================== RENDER ====================
 
   const status = getConnectionStatus();
+
+   if (isChatDisabled && !computedIsGuest) {
+    console.log('🚫 Chat is disabled for USER:', currentUser?.id);
+    return null;
+  }
 
   return (
     <ChatContext.Provider value={contextValue}>

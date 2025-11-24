@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 
 import { Product } from '@/types/product.type';
 import { ChatMessage } from '@/components/layout/ChatBox';
+import { useUpdateTenantAdminShopTokens } from '@/hooks/user/useUpdateTenantAdminShopTokens';
 
 interface UseAiMessageProps {
   conversationId: number | null;
@@ -14,6 +15,7 @@ interface UseAiMessageProps {
   isGuest: boolean;
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
   setIsTyping: React.Dispatch<React.SetStateAction<{ admin: boolean; ai: boolean }>>;
+  tenantId?: number;
 }
 
 export const useAiMessage = ({
@@ -26,9 +28,13 @@ export const useAiMessage = ({
   findProductsByKeyword,
   isGuest,
    setMessages,
-    setIsTyping
+    setIsTyping,
+    tenantId = 1
 }: UseAiMessageProps) => {
   const AI_URL = process.env.NEXT_PUBLIC_AI_URL!;
+
+  // Hook update token (vẫn giữ lại)
+  const updateTokens = useUpdateTenantAdminShopTokens();
 
   // Kiểm tra loại tin nhắn
   const checkMessageType = (msg: string) => {
@@ -66,7 +72,7 @@ const handleGreeting = (currentConvId: number | null, isGuestMode: boolean, temp
   
   return {
     finalAiText,
-    shouldSave: !isGuestMode && !!currentConvId, // FIX: Đảm bảo trả về boolean
+    shouldSave: !isGuestMode && !!currentConvId,
     tempId
   };
 };
@@ -84,7 +90,7 @@ const handleThankYou = (currentConvId: number | null, isGuestMode: boolean, temp
   
   return {
     finalAiText,
-    shouldSave: !isGuestMode && !!currentConvId, // FIX: Đảm bảo trả về boolean
+    shouldSave: !isGuestMode && !!currentConvId,
     tempId
   };
 };
@@ -102,7 +108,7 @@ const handleGoodbye = (currentConvId: number | null, isGuestMode: boolean, tempI
   
   return {
     finalAiText,
-    shouldSave: !isGuestMode && !!currentConvId, // FIX: Đảm bảo trả về boolean
+    shouldSave: !isGuestMode && !!currentConvId,
     tempId
   };
 };
@@ -126,7 +132,7 @@ const handleSimpleQuestion = (lowerMsg: string, currentConvId: number | null, is
   if (matchedQuestion) {
     return {
       finalAiText: simpleQuestions[matchedQuestion],
-      shouldSave: !isGuestMode && !!currentConvId, // FIX: Đảm bảo trả về boolean
+      shouldSave: !isGuestMode && !!currentConvId,
       tempId
     };
   }
@@ -136,7 +142,7 @@ const handleSimpleQuestion = (lowerMsg: string, currentConvId: number | null, is
 
   // Gọi AI API
   const callAiApi = async (msg: string, relevantProducts: Product[]) => {
-    const token = process.env.NEXT_PUBLIC_AI_PUBLIC_TOKEN;
+    const token =  process.env.NEXT_PUBLIC_AI_PUBLIC_TOKEN;
     if (!token) throw new Error('No AI token');
 
     const productList = relevantProducts.map((product: Product) => 
@@ -203,7 +209,39 @@ Câu hỏi: "${msg}"`;
 
     if (!res.ok) throw new Error('AI failed');
     const data = await res.json();
-    return data.response?.text || 'Xin lỗi, tôi không thể trả lời ngay lúc này.';
+    const aiResponse = data.response?.text || 'Xin lỗi, tôi không thể trả lời ngay lúc này.';
+
+    // Lấy actual tokens từ API response & trừ token sau khi gọi AI thành công
+    const isCachedResponse = data.cached === true;
+    const actualTokensUsed = data.usage?.total_tokens;
+    
+    // Metadata để tracking token usage
+    const tokenMetadata = {
+      isCached: isCachedResponse,
+      tokensUsed: actualTokensUsed,
+      promptTokens: data.usage?.prompt_tokens || 0,
+      completionTokens: data.usage?.completion_tokens || 0,
+      totalTokens: data.usage?.total_tokens || 0,
+    };
+    
+    if (isCachedResponse) {
+      console.log(`⚡ Response từ cache - không trừ token`);
+      console.log(`📊 Token metadata:`, tokenMetadata);
+    } else {
+      console.log(`💳 API used ${actualTokensUsed} tokens (prompt: ${data.usage?.prompt_tokens}, completion: ${data.usage?.completion_tokens})`);
+      console.log(`💳 Deducting ${actualTokensUsed} tokens from admin shop...`);
+      console.log(`📊 Token metadata:`, tokenMetadata);
+      
+      // Vẫn update tokens nhưng không check trước
+      await updateTokens.mutateAsync({
+        tokensUsed: actualTokensUsed,
+        tenantId
+      });
+
+      console.log(`✅ Tokens deducted successfully`);
+    }
+
+    return { aiResponse, tokenMetadata };
   };
 
   // Xử lý tin nhắn AI
@@ -212,12 +250,10 @@ Câu hỏi: "${msg}"`;
     
     // Nếu chưa có conversationId, đợi một chút
     if (!currentConvId && !isGuest) {
-      console.log('⏳ Waiting for conversation creation...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       currentConvId = conversationId;
       
       if (!currentConvId) {
-        console.log('❌ Cannot send AI message: Still no conversation ID');
         return;
       }
     }
@@ -226,7 +262,7 @@ Câu hỏi: "${msg}"`;
     const isGuestMode = isGuest;
     const tempId = isGuestMode ? `ai-local-${Date.now()}` : `ai-temp-${Date.now()}`;
 
-        // Bật trạng thái typing
+    // Bật trạng thái typing
     setIsTyping(prev => ({ ...prev, ai: true }));
 
     // Thêm tin nhắn pending
@@ -277,19 +313,22 @@ Câu hỏi: "${msg}"`;
         );
 
         // Lưu vào database nếu cần
-        if (response.shouldSave && currentConvId) {
+        if (response.shouldSave && currentConvId && !isGuestMode) {
           saveBotMessage.mutate({ 
             conversationId: Number(currentConvId),
             message: response.finalAiText, 
             sessionId: sessionId || null
           });
         }
+         setIsTyping(prev => ({ ...prev, ai: false }));
         return;
       }
 
       // Xử lý bằng AI API cho các tin nhắn phức tạp
       const relevantProducts = findProductsByKeyword(msg);
-      let aiText = await callAiApi(msg, relevantProducts);
+      const aiCallResult = await callAiApi(msg, relevantProducts);
+      let aiText = aiCallResult.aiResponse;
+      const tokenMetadata = aiCallResult.tokenMetadata;
 
       // Xử lý kết quả từ AI
       let finalAiText = aiText;
@@ -325,23 +364,27 @@ Câu hỏi: "${msg}"`;
         )
       );
 
-      // Lưu vào database nếu cần
+      // Lưu vào database nếu cần - truyền tokenMetadata vào metadata
       if (!isGuestMode && currentConvId && finalAiText && finalAiText !== '...' && finalAiText !== 'Xin lỗi, tôi không thể trả lời ngay lúc này.') {
         saveBotMessage.mutate({ 
           conversationId: Number(currentConvId),
-          message: finalAiText, 
+          message: finalAiText,
+          metadata: tokenMetadata,
           sessionId: sessionId || null
         });
       }
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ AI message error:', err);
+
+      let errorMessage = 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau.';
+
       setMessages(prev => 
         prev.map(msg => 
           msg.tempId === tempId 
             ? {
                 ...msg,
-                message: 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau.',
+                message: errorMessage,
                 tempId: undefined,
                 status: isGuestMode ? 'local' : 'sent'
               }
@@ -361,7 +404,10 @@ Câu hỏi: "${msg}"`;
     textPromptAi,
     findProductsByKeyword,
     isGuest,
-    setIsTyping
+    setIsTyping,
+    updateTokens, // Vẫn giữ updateTokens trong dependencies
+    tenantId,
+    setMessages
   ]);
 
   return {
