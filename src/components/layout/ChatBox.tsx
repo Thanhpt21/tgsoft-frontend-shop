@@ -41,6 +41,7 @@ interface ChatContextType {
   loadMessages: () => Promise<void>;
   isChatOpen: boolean;
   setIsChatOpen: (open: boolean) => void;
+  isAiProcessing: boolean; // THÊM DÒNG NÀY
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -84,7 +85,7 @@ export default function ChatBox() {
     tenantId,
     enabled: !!userIdNumber,
   });
-    const latestConversationId = dbConversationIds[0] ?? null;
+  const latestConversationId = dbConversationIds[0] ?? null;
   const AI_URL = process.env.NEXT_PUBLIC_AI_URL!;
   const { data: currentUser } = useCurrent();
   const [isGuest, setIsGuest] = useState(false);
@@ -97,19 +98,16 @@ export default function ChatBox() {
     isError 
   } = useTenantAIConfig(tenantId)
 
-   const { data: userChatStatus, isLoading: isLoadingChatStatus } = useUserChatStatus(
+  const { data: userChatStatus, isLoading: isLoadingChatStatus } = useUserChatStatus(
     currentUser?.id || 0
   );
 
-    // Kiểm tra nếu chat bị tắt - CHỈ ÁP DỤNG CHO USER ĐÃ LOGIN
+  // Kiểm tra nếu chat bị tắt - CHỈ ÁP DỤNG CHO USER ĐÃ LOGIN
   const isChatDisabled = currentUser?.id && // Chỉ user đã login
                         userChatStatus?.data && 
                         !userChatStatus.data.chatEnabled;
-                          // KHÁCH (guest) LUÔN ĐƯỢC BẬT CHAT
+  // KHÁCH (guest) LUÔN ĐƯỢC BẬT CHAT
   const computedIsGuest = !currentUser?.id;
-
- 
-
 
   const textPromptAi = useMemo(() => {
     return aiConfig?.aiSystemPrompt?.text || '';
@@ -137,8 +135,6 @@ export default function ChatBox() {
 
     return () => clearInterval(interval);
   }, [isTyping.ai]);
-
-
 
   // Ref để lưu tin nhắn local khi chưa login
   const localMessagesRef = useRef<ChatMessage[]>([]);
@@ -489,20 +485,21 @@ export default function ChatBox() {
     }
   }, [currentUser?.id, isConnected, conversationId, dbConversationIds, socket, loadMessages, hasAttemptedInitialLoad]);
 
+  // ==================== AI MESSAGE HOOK ====================
 
-const { sendAiMessage } = useAiMessage({
-  conversationId,
-  sessionId,
-  currentUser,
-  addMessage,
-  saveBotMessage,
-  textPromptAi,
-  findProductsByKeyword,
-  isGuest,
-  setMessages,
-  setIsTyping,
-});
-
+  // SỬA: Lấy cả isAiProcessing từ hook
+  const { sendAiMessage, isAiProcessing } = useAiMessage({
+    conversationId,
+    sessionId,
+    currentUser,
+    addMessage,
+    saveBotMessage,
+    textPromptAi,
+    findProductsByKeyword,
+    isGuest,
+    setMessages,
+    setIsTyping,
+  });
 
   useEffect(() => {
     sendAiMessageRef.current = sendAiMessage;
@@ -700,6 +697,12 @@ const { sendAiMessage } = useAiMessage({
   // ==================== SEND MESSAGE ====================
 
   const sendMessage = useCallback((message: string, metadata?: any) => {
+    // THÊM: Kiểm tra nếu AI đang xử lý thì không cho gửi
+    if (isAiProcessing) {
+      console.log('⏳ AI is processing - please wait');
+      return;
+    }
+
     if (!message.trim()) {
       console.log('❌ Cannot send message: empty message');
       return;
@@ -838,7 +841,7 @@ const { sendAiMessage } = useAiMessage({
     }, 100);
     
     setInput('');
-  }, [socket, conversationId, latestConversationId, aiChatEnabled, currentUser, addMessage, isGuest, sessionId, messages, saveLocalMessages, tenantId]);
+  }, [socket, conversationId, latestConversationId, aiChatEnabled, currentUser, addMessage, isGuest, sessionId, messages, saveLocalMessages, tenantId, isAiProcessing]); // THÊM isAiProcessing vào dependencies
 
   // ==================== FALLBACK MESSAGE DISPLAY ====================
 
@@ -981,6 +984,16 @@ const { sendAiMessage } = useAiMessage({
 
   // Helper function để hiển thị trạng thái - ĐÃ SỬA LỖI
   const getConnectionStatus = () => {
+    // THÊM: Kiểm tra trạng thái AI processing
+    if (isAiProcessing) {
+      return {
+        text: 'AI đang trả lời...',
+        color: 'text-orange-600',
+        inputDisabled: true,
+        placeholder: 'Vui lòng đợi AI trả lời...'
+      };
+    }
+
     if (isGuest) {
       return {
         text: 'Chế độ khách - Tin nhắn tạm thời',
@@ -1047,14 +1060,15 @@ const { sendAiMessage } = useAiMessage({
     sessionId,
     loadMessages,
     isChatOpen,
-    setIsChatOpen
-  }), [messages, sendMessage, isConnected, isTyping, conversationId, sessionId, loadMessages, isChatOpen]);
+    setIsChatOpen,
+    isAiProcessing // THÊM: Đưa isAiProcessing vào context
+  }), [messages, sendMessage, isConnected, isTyping, conversationId, sessionId, loadMessages, isChatOpen, isAiProcessing]);
 
   // ==================== RENDER ====================
 
   const status = getConnectionStatus();
 
-   if (isChatDisabled && !computedIsGuest) {
+  if (isChatDisabled && !computedIsGuest) {
     console.log('🚫 Chat is disabled for USER:', currentUser?.id);
     return null;
   }
@@ -1068,7 +1082,7 @@ const { sendAiMessage } = useAiMessage({
           className="relative bg-gradient-to-r from-blue-600 to-green-600 text-white px-6 py-3 rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-110 flex items-center gap-2 font-medium"
         >
           <span className="text-2xl">💬</span>
-          <span>Chat hổ trợ</span>
+          <span>Chat hỗ trợ</span>
           {isGuest && (
             <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 shadow-md">
               🔄
@@ -1206,18 +1220,29 @@ const { sendAiMessage } = useAiMessage({
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={status.inputDisabled}
-                className="flex-1 border border-gray-300 rounded-full px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:bg-gray-50 transition"
+                className={`flex-1 border border-gray-300 rounded-full px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition ${
+                  status.inputDisabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
+                }`}
               />
               <button
                 onClick={() => sendMessage(input)}
                 disabled={!input.trim() || status.inputDisabled}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2.5 rounded-full hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-300 font-medium shadow-md transition disabled:cursor-not-allowed flex items-center gap-2"
+                className={`bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2.5 rounded-full font-medium shadow-md transition flex items-center gap-2 ${
+                  !input.trim() || status.inputDisabled 
+                    ? 'from-gray-300 to-gray-300 cursor-not-allowed' 
+                    : 'hover:from-indigo-700 hover:to-purple-700'
+                }`}
               >
                 Gửi
               </button>
             </div>
             
-          
+            {/* THÊM: Hiển thị thông báo khi AI đang xử lý */}
+            {isAiProcessing && (
+              <div className="mt-2 text-xs text-blue-600 text-center">
+                ⏳ Đang chờ AI trả lời, vui lòng đợi...
+              </div>
+            )}
           </div>
         </div>
       )}

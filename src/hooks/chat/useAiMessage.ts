@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { Product } from '@/types/product.type';
 import { ChatMessage } from '@/components/layout/ChatBox';
@@ -32,9 +32,9 @@ export const useAiMessage = ({
     tenantId = 1
 }: UseAiMessageProps) => {
   const AI_URL = process.env.NEXT_PUBLIC_AI_URL!;
-
-  // Hook update token (vẫn giữ lại)
   const updateTokens = useUpdateTenantAdminShopTokens();
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+
 
   // Kiểm tra loại tin nhắn
   const checkMessageType = (msg: string) => {
@@ -246,6 +246,10 @@ Câu hỏi: "${msg}"`;
 
   // Xử lý tin nhắn AI
   const sendAiMessage = useCallback(async (msg: string, targetConversationId?: number | null) => {
+    if (isAiProcessing) {
+      return;
+    }
+
     let currentConvId = targetConversationId !== undefined ? targetConversationId : conversationId;
     
     // Nếu chưa có conversationId, đợi một chút
@@ -262,6 +266,7 @@ Câu hỏi: "${msg}"`;
     const isGuestMode = isGuest;
     const tempId = isGuestMode ? `ai-local-${Date.now()}` : `ai-temp-${Date.now()}`;
 
+    setIsAiProcessing(true);
     // Bật trạng thái typing
     setIsTyping(prev => ({ ...prev, ai: true }));
 
@@ -320,6 +325,7 @@ Câu hỏi: "${msg}"`;
             sessionId: sessionId || null
           });
         }
+         setIsAiProcessing(false);
          setIsTyping(prev => ({ ...prev, ai: false }));
         return;
       }
@@ -392,6 +398,7 @@ Câu hỏi: "${msg}"`;
         )
       );
     } finally {
+      setIsAiProcessing(false);
       // Tắt trạng thái typing
       setIsTyping(prev => ({ ...prev, ai: false }));
     }
@@ -407,10 +414,12 @@ Câu hỏi: "${msg}"`;
     setIsTyping,
     updateTokens, // Vẫn giữ updateTokens trong dependencies
     tenantId,
-    setMessages
+    setMessages,
+    isAiProcessing 
   ]);
 
   return {
-    sendAiMessage
+    sendAiMessage,
+    isAiProcessing 
   };
 };
