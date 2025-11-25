@@ -15,8 +15,10 @@ import { useAuth } from '@/context/AuthContext'
 
 import type { User } from '@/types/user.type'
 import { getImageUrl } from '@/utils/getImageUrl'
-import { useAiChatEnabled } from '@/hooks/chat/useAiChatEnabled'
-import { useSetAiChatEnabled } from '@/hooks/chat/useSetAiChatEnabled'
+import { useGetAiChatEnabled } from '@/hooks/chat/useGetAiChatEnabled'
+import { useToggleAiChat } from '@/hooks/chat/useToggleAiChat'
+import { useQueryClient } from '@tanstack/react-query'
+
 
 export default function UserTable() {
   const [page, setPage] = useState(1)
@@ -31,9 +33,12 @@ export default function UserTable() {
 
   const { data, isLoading, refetch } = useUsers({ page, limit: 10, search })
   const { mutateAsync: deleteUser, isPending: isDeleting } = useDeleteUser()
-  const { data: aiChatEnabledData, refetch: refetchAiChat } = useAiChatEnabled()
-  const toggleAiChat = useSetAiChatEnabled()
-
+  const queryClient = useQueryClient()
+  const { 
+    data: aiChatEnabled = false, 
+    isLoading: isLoadingAiStatus 
+  } = useGetAiChatEnabled()
+  const { mutate: toggleAiChat, isPending: isToggling } = useToggleAiChat()
 
   // Socket để lắng nghe tin nhắn mới
   useEffect(() => {
@@ -241,6 +246,22 @@ export default function UserTable() {
     setSearch(inputValue)
   }
 
+  const handleToggleAi = () => {
+      toggleAiChat(
+        undefined, // không cần truyền gì
+        {
+          onSuccess: () => {
+            message.success(`AI Chat đã ${!aiChatEnabled ? 'bật' : 'tắt'}`)
+          },
+          onError: () => {
+            message.error('Cập nhật thất bại')
+          },
+        }
+      )
+    }
+
+  
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -261,21 +282,13 @@ export default function UserTable() {
 
         {/* Nhóm phải: Nút Tạo mới */}
        <div className="flex items-center gap-4">
-          <Switch
-            checked={aiChatEnabledData}
-            onChange={async (checked) => {
-              try {
-                await toggleAiChat.mutateAsync(checked)
-                message.success(`AI Chat ${checked ? 'đã bật' : 'đã tắt'}`)
-                refetch?.()
-                refetchAiChat?.()
-              } catch (error: any) {
-                message.error(error?.response?.data?.message || 'Cập nhật thất bại')
-              }
-            }}
-            checkedChildren="AI Chat Bật"
-            unCheckedChildren="AI Chat Tắt"
-          />
+         <Switch
+              checked={aiChatEnabled}
+              loading={isLoadingAiStatus || isToggling}
+              onChange={handleToggleAi}
+              checkedChildren="Bật"
+              unCheckedChildren="Tắt"
+            />
           
           <Button type="primary" onClick={() => setOpenCreate(true)}>
             Thêm mới

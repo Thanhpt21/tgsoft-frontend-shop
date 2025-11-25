@@ -6,7 +6,6 @@ import {
   EnvironmentOutlined,
   PhoneOutlined,
   UserOutlined,
-  MessageOutlined,
   StarOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
@@ -19,13 +18,12 @@ import { formatDate } from '@/utils/helpers';
 import { Order } from '@/types/order.type';
 import { getImageUrl } from '@/utils/getImageUrl';
 import Link from 'next/link';
-import { useChat } from '@/context/ChatContext';
+
 
 const PurchaseHistory: React.FC = () => {
   const { data: currentUser } = useCurrent();
   const userId = currentUser?.id;
   const { data: ordersData, isLoading, isError, error } = useOrdersByUser({ userId });
-  const { sendMessage, isConnected, conversationId, joinConversation, setIsChatOpen } = useChat();
   const [chatClickedOrders, setChatClickedOrders] = useState<number[]>([]);
  
 
@@ -84,34 +82,6 @@ const PurchaseHistory: React.FC = () => {
     );
   };
 
-  const handleChatSupport = (order: Order) => {
-  if (!isConnected) {
-    return;
-  }
-
-  // Mở khung chat
-  setIsChatOpen(true);
-
-  // Tham gia cuộc hội thoại cho đơn hàng này nếu chưa có
-  if (!conversationId) {
-    joinConversation(order.id);
-  }
-
-  const productNames = order.items
-    ?.map((item) => item.productVariant?.product?.name)
-    .filter((name) => name)
-    .join(', ');
-
-  const message = `Hỗ trợ đơn hàng ID: ${order.id}. Sản phẩm: ${productNames || 'Không có sản phẩm'}.`;
-
-  // Gửi tin nhắn đầu tiên sau khi mở chat
-  setTimeout(() => {
-    sendMessage(message, { orderId: order.id });
-  }, 500);
-
-  // Disable nút chat cho đơn hàng này
-  setChatClickedOrders((prev) => [...prev, order.id]);
-};
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -169,21 +139,7 @@ const PurchaseHistory: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className={`px-4 py-2 rounded-full font-semibold flex items-center gap-2 ${statusConfig.color}`}>
-                        {statusConfig.icon}
-                        {statusConfig.text}
-                      </div>
-                      <Button
-                        type="default"
-                        icon={<MessageOutlined />}
-                        onClick={() => handleChatSupport(order)}
-                        disabled={!isConnected}
-                        className="h-10 rounded-lg font-medium hover:border-blue-500 hover:text-blue-600"
-                      >
-                        Chat hỗ trợ
-                      </Button>
-                    </div>
+                  
                   </div>
                 </div>
 
