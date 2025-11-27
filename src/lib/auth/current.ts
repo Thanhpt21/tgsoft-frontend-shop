@@ -10,6 +10,7 @@ export interface CurrentUser {
   type_account: string;
   avatar: string | null;
   isActive: boolean;
+  token: string  | null;
 }
 
 export const getCurrentUser = async (): Promise<CurrentUser | null> => {
@@ -29,7 +30,7 @@ export const getCurrentUser = async (): Promise<CurrentUser | null> => {
     }
 
     const { success, data } = await response.json();
-
+    
     return success && data ? data : null;
   } catch (error: any) {
     console.error('Lỗi getCurrentUser:', error.message);

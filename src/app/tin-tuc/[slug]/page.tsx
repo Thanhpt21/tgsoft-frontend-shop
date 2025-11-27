@@ -27,14 +27,36 @@ export default function BlogDetailPage() {
     ?.filter((b: Blog) => b.slug !== slug && b.isPublished)
     .slice(0, 3);
 
+  // ✅ Loading state - hiển thị breadcrumb + spinner
   if (isLoading || isLoadingAllBlogs) {
     return (
-      <div className="min-h-screen flex justify-center items-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent mb-4"></div>
-          <p className="text-gray-600 font-semibold text-lg">
-            Đang tải bài viết...
-          </p>
+      <div className="min-h-screen bg-white flex flex-col">
+        {/* Breadcrumb */}
+        <div className="max-w-[1400px] mx-auto w-full px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8">
+          <nav className="flex items-center gap-2 text-sm">
+            <Link
+              href="/"
+              className="flex items-center gap-1 text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              <HomeOutlined />
+              <span>Trang chủ</span>
+            </Link>
+            <span className="text-gray-400">/</span>
+            <Link
+              href="/tin-tuc"
+              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            >
+              Tin tức
+            </Link>
+          </nav>
+        </div>
+
+        {/* Spinner Loading */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-gray-300 mb-4"></div>
+            <p className="text-lg text-gray-600 font-medium">Đang tải bài viết...</p>
+          </div>
         </div>
       </div>
     );
@@ -42,34 +64,57 @@ export default function BlogDetailPage() {
 
   if (isError || !displayedBlog) {
     return (
-      <div className="min-h-screen flex justify-center items-center">
-        <div className="text-center bg-white rounded-2xl shadow-xl p-12 max-w-md">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg
-              className="w-10 h-10 text-red-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+      <div className="min-h-screen flex flex-col">
+        {/* Breadcrumb */}
+        <div className="max-w-[1400px] mx-auto w-full px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8 border-b border-gray-200">
+          <nav className="flex items-center gap-2 text-sm">
+            <Link
+              href="/"
+              className="flex items-center gap-1 text-gray-600 hover:text-blue-600 transition-colors"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
+              <HomeOutlined />
+              <span>Trang chủ</span>
+            </Link>
+            <span className="text-gray-400">/</span>
+            <Link
+              href="/tin-tuc"
+              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            >
+              Tin tức
+            </Link>
+          </nav>
+        </div>
+
+        {/* Error Message */}
+        <div className="flex-1 flex justify-center items-center">
+          <div className="text-center bg-white rounded-2xl shadow-xl p-12 max-w-md">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg
+                className="w-10 h-10 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              Không tìm thấy bài viết
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Bài viết này không tồn tại hoặc chưa được công bố.
+            </p>
+            <Link href="/tin-tuc">
+              <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all duration-300">
+                Quay lại tin tức
+              </button>
+            </Link>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">
-            Không tìm thấy bài viết
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Bài viết này không tồn tại hoặc chưa được công bố.
-          </p>
-          <Link href="/tin-tuc">
-            <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all duration-300">
-              Quay lại tin tức
-            </button>
-          </Link>
         </div>
       </div>
     );
@@ -100,7 +145,12 @@ export default function BlogDetailPage() {
             <span>Trang chủ</span>
           </Link>
           <span className="text-gray-400">/</span>
-          <span className="text-blue-600 font-medium">Tin tức</span>
+          <Link
+            href="/tin-tuc"
+            className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+          >
+            Tin tức
+          </Link>
         </nav>
 
         <div className="flex flex-col lg:flex-row gap-8">

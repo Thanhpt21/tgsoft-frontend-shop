@@ -21,10 +21,10 @@ export default function NewsPage() {
     return blogs?.filter((blog: Blog) => blog.isPublished) || [];
   }, [blogs]);
 
-  // Render Loading Spinner
+  // Render Loading Spinner (giống trang sản phẩm khi bấm danh mục)
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white flex flex-col">
         {/* Breadcrumb */}
         <div className="border-b border-gray-200">
           <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-4">
@@ -40,9 +40,11 @@ export default function NewsPage() {
             </div>
           </div>
         </div>
-        <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-16 md:py-24">
-          <div className="flex justify-center items-center h-[400px]">
-            <Spin size="large" tip="Đang tải tin tức..." />
+        {/* Spinner Loading */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-gray-300 mb-4"></div>
+            <p className="text-lg text-gray-600 font-medium">Đang tải tin tức...</p>
           </div>
         </div>
       </div>
@@ -54,7 +56,7 @@ export default function NewsPage() {
     return (
       <div className="min-h-screen bg-white">
         {/* Breadcrumb */}
-        <div className="bg-gray-50 border-b border-gray-200">
+        <div className="border-b border-gray-200">
           <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-4">
             <div className="flex items-center gap-2 text-sm">
               <Link
@@ -69,8 +71,11 @@ export default function NewsPage() {
           </div>
         </div>
         <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-16 md:py-24">
-          <div className="flex justify-center items-center h-[400px] text-red-600 text-xl">
-            Đã có lỗi xảy ra khi tải tin tức. Vui lòng thử lại sau.
+          <div className="flex justify-center items-center h-[400px]">
+            <div className="text-center">
+              <p className="text-red-600 text-lg font-semibold mb-2">Đã có lỗi xảy ra</p>
+              <p className="text-gray-600">Vui lòng thử lại sau</p>
+            </div>
           </div>
         </div>
       </div>

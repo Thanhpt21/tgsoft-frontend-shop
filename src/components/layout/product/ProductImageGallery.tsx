@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { Card, Carousel, Button, Image } from 'antd'; // dùng Image của antd
-import { UpOutlined, DownOutlined } from '@ant-design/icons';
+import { Card, Carousel, Button, Image } from 'antd';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import { getImageUrl } from '@/utils/getImageUrl';
 
 interface ProductImageGalleryProps {
@@ -33,32 +33,47 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
   const showNavigation = uniqueCurrentImages.length > 4;
 
   return (
-    <div className="grid grid-cols-5 gap-4 h-[350px] md:h-[600px]">
-      {/* Thumbnail column */}
-      <div className="col-span-1 flex flex-col items-center justify-center gap-2">
+    <div className="flex flex-col gap-4">
+      {/* Main Image */}
+      <div className="w-full aspect-square overflow-hidden rounded-md border border-gray-200">
+        <Card bodyStyle={{ padding: 0 }} className="w-full h-full">
+          <Image
+            src={mainImage || ''}
+            alt={currentData?.title || productTitle}
+            preview={false}
+            width="100%"
+            height="100%"
+            style={{ objectFit: 'contain' }}
+          />
+        </Card>
+      </div>
+
+      {/* Thumbnail carousel - nằm dưới */}
+      <div className="flex items-center justify-center gap-2">
         {showNavigation && (
           <Button
             type="text"
-            icon={<UpOutlined />}
+            icon={<LeftOutlined />}
             onClick={prev}
-            className="w-full !min-w-0 !p-0"
+            className="!min-w-0 !p-2 flex-shrink-0"
           />
         )}
-        <div className="flex-grow w-full">
+        
+        <div className="flex-grow overflow-hidden">
           <Carousel
             ref={carouselRef}
             dots={false}
-            vertical
+            vertical={false}
             slidesToShow={4}
             slidesToScroll={1}
             infinite={false}
-            className="h-full"
+            className="w-full"
           >
             {uniqueCurrentImages.map((img: string, index: number) => (
-              <div key={img} className="px-1 py-1">
+              <div key={img} className="px-1">
                 <Card
                   bodyStyle={{ padding: 0 }}
-                  className={`relative w-full aspect-square overflow-hidden rounded-md cursor-pointer hover:opacity-80 border ${
+                  className={`relative w-full aspect-square overflow-hidden rounded-md cursor-pointer hover:opacity-80 border transition-all ${
                     mainImage === img ? 'border-blue-500 border-2' : 'border-gray-300'
                   }`}
                   hoverable
@@ -67,7 +82,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                   <Image
                     src={img}
                     alt={`${currentData?.title || productTitle} - Hình ảnh ${index + 1}`}
-                    preview={false} // disable preview
+                    preview={false}
                     width="100%"
                     height="100%"
                     style={{ objectFit: 'cover' }}
@@ -77,28 +92,15 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
             ))}
           </Carousel>
         </div>
+
         {showNavigation && (
           <Button
             type="text"
-            icon={<DownOutlined />}
+            icon={<RightOutlined />}
             onClick={next}
-            className="w-full !min-w-0 !p-0"
+            className="!min-w-0 !p-2 flex-shrink-0"
           />
         )}
-      </div>
-
-      {/* Main Image */}
-      <div className="col-span-4">
-        <Card bodyStyle={{ padding: 0 }} className="w-full aspect-square overflow-hidden rounded-md border">
-          <Image
-            src={mainImage || ''}
-            alt={currentData?.title || productTitle}
-            preview={false} // disable preview
-            width="100%"
-            height="100%"
-            style={{ objectFit: 'contain' }}
-          />
-        </Card>
       </div>
     </div>
   );

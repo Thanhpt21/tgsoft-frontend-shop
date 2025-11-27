@@ -1,7 +1,7 @@
 'use client';
 
 import { Image, Layout, Menu } from 'antd';
-import { AppleOutlined, AppstoreOutlined, BgColorsOutlined, BranchesOutlined, BuildOutlined, BulbOutlined, DashboardOutlined, DollarOutlined, FileProtectOutlined, GiftOutlined, GoldOutlined, HomeOutlined, MessageOutlined, PicLeftOutlined, PicRightOutlined, ProductOutlined, ScissorOutlined, SettingOutlined, SkinOutlined, SolutionOutlined, TruckOutlined, UnorderedListOutlined, UserOutlined } from '@ant-design/icons';
+import { AppleOutlined, AppstoreOutlined, BgColorsOutlined, BranchesOutlined, BuildOutlined, BulbOutlined, DashboardOutlined, DollarOutlined, FileProtectOutlined, GiftOutlined, GoldOutlined, HomeOutlined, MessageOutlined, PicLeftOutlined, PicRightOutlined, ProductOutlined, ScissorOutlined, SettingOutlined, SkinOutlined, SolutionOutlined, ToolOutlined, TruckOutlined, UnorderedListOutlined, UserOutlined, UserSwitchOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 
 interface SidebarAdminProps {
@@ -30,26 +30,31 @@ export default function SidebarAdmin({ collapsed }: SidebarAdminProps) {
         defaultSelectedKeys={['1']}
         items={[
           {
-            key: '1',
+            key: 'Dashboard',
             icon: <DashboardOutlined />,
-            label: <Link href="/admin">Dashboard</Link>,
+            label: <Link href="/admin">Thống kê</Link>,
           },
         
           {
-            key: '3',
+            key: 'users',
             icon: <UserOutlined />,
-            label: <Link href="/admin/users">Tài khoản</Link>,
+            label: <Link href="/admin/users">Khách hàng</Link>,
           },
           {
-            key: '4',
+            key: 'staff',
+            icon: <UserSwitchOutlined />,
+            label: <Link href="/admin/staff">Nhân viên</Link>,
+          },
+          {
+            key: 'product',
             icon: <ProductOutlined />,
             label: <Link href="/admin/product">Sản phẩm</Link>,
           },
-          { key: '17', icon: <ScissorOutlined />, label: <Link href="/admin/attribute">Thuộc tính</Link> },
-          { key: '18', icon: <BuildOutlined />, label: <Link href="/admin/category">Danh mục</Link> },
-          { key: '19', icon: <AppleOutlined />, label: <Link href="/admin/brand">Thương hiệu</Link> },
+          { key: 'attribute', icon: <ScissorOutlined />, label: <Link href="/admin/attribute">Thuộc tính</Link> },
+          { key: 'category', icon: <BuildOutlined />, label: <Link href="/admin/category">Danh mục</Link> },
+          { key: 'brand', icon: <AppleOutlined />, label: <Link href="/admin/brand">Thương hiệu</Link> },
           {
-            key: '5',
+            key: 'order',
             icon: <FileProtectOutlined />,
             label: <Link href="/admin/order">Đơn hàng</Link>,
           },
@@ -60,22 +65,22 @@ export default function SidebarAdmin({ collapsed }: SidebarAdminProps) {
           //   label: <Link href="/admin/payout">Phiếu chi</Link>,
           // },
           {
-            key: '8',
+            key: 'payment',
             icon: <DollarOutlined />,
             label: <Link href="/admin/payment">Thanh toán</Link>,
           },
             {
-            key: '9',
+            key: 'blog',
             icon: <BulbOutlined  />,
             label: <Link href="/admin/blog">Tin tức</Link>,
           },
          
           {
-            key: '10',
+            key: 'contact',
             icon: <MessageOutlined />,
             label: <Link href="/admin/contact">Liên hệ</Link>,
           },
-           { key: '11', icon: <GiftOutlined />, label: <Link href="/admin/promotion">Khuyến mãi</Link> },
+           { key: 'promotion', icon: <GiftOutlined />, label: <Link href="/admin/promotion">Khuyến mãi</Link> },
           // {
           //   key: 'sub1',
           //   icon: <UnorderedListOutlined />,
@@ -109,14 +114,15 @@ export default function SidebarAdmin({ collapsed }: SidebarAdminProps) {
             label: 'Cấu hình',
             children: [
             {
-              key: '6',
+              key: 'warehouse',
               icon: <GoldOutlined />,
               label: <Link href="/admin/warehouse">Kho hàng</Link>,
             },
-            { key: '20', icon: <SettingOutlined />, label: <Link href="/admin/config">Cấu hình</Link> },
+            { key: 'config', icon: <SettingOutlined />, label: <Link href="/admin/config">Cấu hình</Link> },
              
             ],
           },
+            { key: 'support-mailbox', icon: <ToolOutlined />, label: <Link href="/admin/support-mailbox">Hổ trợ kỹ thuật</Link> },
         ]}
       />
     </Layout.Sider>

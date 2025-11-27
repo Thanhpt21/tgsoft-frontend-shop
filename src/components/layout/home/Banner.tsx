@@ -10,28 +10,58 @@ export default function Banner() {
   const [paused, setPaused] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [firstImageLoaded, setFirstImageLoaded] = useState(false);
   const startX = useRef(0);
   const moved = useRef(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   const { data: config, isLoading, isError } = useConfigByTenant();
 
+  const slides = config?.banner?.map((url: string, idx: number) => ({
+    id: idx + 1,
+    img: url,
+    clickable: true,
+  })) || [];
+
   // Hydration check
   useEffect(() => {
     setIsHydrated(true);
   }, []);
 
+  // Hiển thị ngay khi có slides, không cần chờ load ảnh
+  useEffect(() => {
+    if (slides.length > 0 && isHydrated) {
+      setFirstImageLoaded(true);
+    }
+  }, [slides, isHydrated]);
+
+  // Auto play effect
+  useEffect(() => {
+    if (!isHydrated || slides.length === 0) return;
+    
+    const startAutoPlay = () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setIndex((i) => (i + 1) % slides.length);
+      }, 4000);
+    };
+
+    const stopAutoPlay = () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+
+    if (!paused && !dragging) startAutoPlay();
+    else stopAutoPlay();
+    
+    return stopAutoPlay;
+  }, [paused, dragging, isHydrated, slides.length]);
+
+  // Early returns after all hooks
   if (isLoading || isError || !config) {
     return (
       <div className="w-full h-[250px] sm:h-[350px] md:h-[500px] bg-gray-200" />
     );
   }
-
-  const slides = config?.banner?.map((url: any, idx: any) => ({
-    id: idx + 1,
-    img: url,
-    clickable: true,
-  })) || [];
 
   if (slides.length === 0) {
     return (
@@ -39,31 +69,9 @@ export default function Banner() {
     );
   }
 
-  // Preload images ngay khi có data
-  useEffect(() => {
-    slides.forEach((slide) => {
-      const img = new window.Image();
-      img.src = slide.img;
-    });
-  }, [slides]);
-
-  const startAutoPlay = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setIndex((i) => (i + 1) % slides.length);
-    }, 4000);
-  };
-
   const stopAutoPlay = () => {
     if (timerRef.current) clearInterval(timerRef.current);
   };
-
-  useEffect(() => {
-    if (!isHydrated) return;
-    if (!paused && !dragging) startAutoPlay();
-    else stopAutoPlay();
-    return stopAutoPlay;
-  }, [paused, dragging, isHydrated, slides.length]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setDragging(true);
@@ -87,7 +95,7 @@ export default function Banner() {
     setDragging(false);
   };
 
-  const handleClick = (slide: any) => {
+  const handleClick = (slide: { clickable: boolean }) => {
     if (moved.current || !slide.clickable) return;
     router.push("/san-pham");
   };
@@ -100,13 +108,20 @@ export default function Banner() {
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
+      style={{ 
+        minHeight: '200px',
+        height: 'auto'
+      }}
     >
-      {/* Dải slide - Load all images immediately */}
+      {/* Dải slide */}
       <div
-        className="flex transition-transform duration-700 ease-in-out"
-        style={{ transform: `translateX(-${index * 100}%)` }}
+        className="flex"
+        style={{ 
+          transform: `translateX(-${index * 100}%)`,
+          transition: "transform 0.7s ease-in-out"
+        }}
       >
-        {slides.map((s: any) => (
+        {slides.map((s: { id: number; img: string; clickable: boolean }, idx: number) => (
           <div
             key={s.id}
             className={`w-full flex-shrink-0 relative ${
@@ -117,9 +132,12 @@ export default function Banner() {
             <img
               src={s.img}
               alt={`Slide ${s.id}`}
-              className="w-full h-[200px] sm:h-[350px] md:h-[500px] object-cover"
-              loading="eager"
-              decoding="async"
+              loading={idx === 0 ? "eager" : "lazy"}
+              className="w-full h-[200px] sm:h-[350px] md:h-[500px] object-cover block"
+              style={{ 
+                imageRendering: idx === 0 ? 'crisp-edges' : 'auto',
+                display: 'block'
+              }}
             />
           </div>
         ))}
@@ -149,7 +167,7 @@ export default function Banner() {
 
       {/* Chấm chỉ báo */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-        {slides.map((_: any, i: any) => (
+        {slides.map((_: any, i: number) => (
           <button
             key={i}
             onClick={() => {

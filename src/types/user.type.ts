@@ -1,3 +1,5 @@
+import { UserTag } from "@/enums/user.enums"
+
 export interface Role {
   id: number
   name: string
@@ -26,6 +28,8 @@ export interface User {
   conversationId?: number;
   chatConversations?: { id: number }[]; // Thêm chatConversations ở đây
   userTenantRoles?: UserTenantRole[];
+  chatEnabled: boolean; // Thêm field chatEnabled
+  tag?: UserTag  | null;
 }
 export interface LoginResponse {
   user: User
