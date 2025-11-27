@@ -18,11 +18,26 @@ export const useToggleAiChat = () => {
       return res.data.data.aiChatEnabled
     },
     onSuccess: (newEnabled) => {
-      // TỰ ĐỘNG CẬP NHẬT CACHE
+      console.log('✅ Toggle AI success:', newEnabled)
+      
+      // 1. CẬP NHẬT CACHE NGAY LẬP TỨC
       queryClient.setQueryData(['chat', 'ai-enabled', TENANT_ID], newEnabled)
+      
+      // 2. INVALIDATE QUERIES ĐỂ TỰ ĐỘNG REFETCH
+      queryClient.invalidateQueries({ 
+        queryKey: ['chat', 'ai-enabled', TENANT_ID],
+        refetchType: 'all' // Bắt buộc refetch ngay cả khi data chưa stale
+      })
+      
+      // 3. THÊM POLLING: Tự động refetch sau 2 giây để đảm bảo data đồng bộ
+      setTimeout(() => {
+        queryClient.invalidateQueries({ 
+          queryKey: ['chat', 'ai-enabled', TENANT_ID] 
+        })
+      }, 2000)
     },
     onError: (error) => {
-      console.error('Toggle AI failed:', error)
+      console.error('❌ Toggle AI failed:', error)
     },
   })
 }

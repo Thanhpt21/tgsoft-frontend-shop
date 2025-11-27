@@ -225,20 +225,12 @@ Câu hỏi: "${msg}"`;
     };
     
     if (isCachedResponse) {
-      console.log(`⚡ Response từ cache - không trừ token`);
-      console.log(`📊 Token metadata:`, tokenMetadata);
     } else {
-      console.log(`💳 API used ${actualTokensUsed} tokens (prompt: ${data.usage?.prompt_tokens}, completion: ${data.usage?.completion_tokens})`);
-      console.log(`💳 Deducting ${actualTokensUsed} tokens from admin shop...`);
-      console.log(`📊 Token metadata:`, tokenMetadata);
-      
       // Vẫn update tokens nhưng không check trước
       await updateTokens.mutateAsync({
         tokensUsed: actualTokensUsed,
         tenantId
       });
-
-      console.log(`✅ Tokens deducted successfully`);
     }
 
     return { aiResponse, tokenMetadata };

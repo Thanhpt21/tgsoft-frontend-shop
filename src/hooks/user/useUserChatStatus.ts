@@ -15,15 +15,25 @@ interface UserChatStatusResponse {
   data: UserChatStatus
 }
 
-export const useUserChatStatus = (userId: number) => {
+export const useUserChatStatus = (userId: number, isChatOpen: boolean = false) => {
   return useQuery({
     queryKey: ['user-chat-status', userId],
     queryFn: async (): Promise<UserChatStatusResponse> => {
+      console.log('🔄 Fetching user chat status for user:', userId)
       const res = await api.get(`/users/${userId}/chat-status`)
       return res.data
     },
     enabled: !!userId,
-    staleTime: 2 * 60 * 1000, // 2 phút
-    gcTime: 5 * 60 * 1000, // 5 phút
+    refetchInterval: (query) => {
+      // 🔥 Logic polling thông minh
+      if (!query.state.data) return false // Không polling nếu chưa có data
+      return isChatOpen ? 2000 : 5000 // 2s khi mở, 5s khi đóng
+    },
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    staleTime: 1000, // 1 giây
+    gcTime: 5 * 60 * 1000,
   })
 }

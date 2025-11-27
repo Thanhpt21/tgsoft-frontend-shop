@@ -55,7 +55,9 @@ const useChat = () => {
 // ==================== CHATBOX COMPONENT ====================
 
 export default function ChatBox() {
-  const queryClient = useQueryClient();
+  
+  const TENANT_ID = Number(process.env.NEXT_PUBLIC_TENANT_ID)
+  const queryClientRef = useRef(useQueryClient());
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -86,7 +88,6 @@ export default function ChatBox() {
     enabled: !!userIdNumber,
   });
   const latestConversationId = dbConversationIds[0] ?? null;
-  const AI_URL = process.env.NEXT_PUBLIC_AI_URL!;
   const { data: currentUser } = useCurrent();
   const [isGuest, setIsGuest] = useState(false);
   const { data: products = [], isLoading: isLoadingProducts } = useAllProducts()
@@ -99,7 +100,7 @@ export default function ChatBox() {
   } = useTenantAIConfig(tenantId)
 
   const { data: userChatStatus, isLoading: isLoadingChatStatus } = useUserChatStatus(
-    currentUser?.id || 0
+    currentUser?.id || 0, isChatOpen 
   );
 
   // Kiểm tra nếu chat bị tắt - CHỈ ÁP DỤNG CHO USER ĐÃ LOGIN
@@ -109,13 +110,15 @@ export default function ChatBox() {
   // KHÁCH (guest) LUÔN ĐƯỢC BẬT CHAT
   const computedIsGuest = !currentUser?.id;
 
+
+  console.log("isChatDisabled", isChatDisabled)
+
   const textPromptAi = useMemo(() => {
     return aiConfig?.aiSystemPrompt?.text || '';
   }, [aiConfig?.aiSystemPrompt?.text]);
 
   useEffect(() => {
     if (textPromptAi) {
-      console.log("✅ System Prompt loaded:", textPromptAi.substring(0, 100) + "...");
     }
   }, [textPromptAi]);
 
@@ -221,11 +224,6 @@ export default function ChatBox() {
     if (typeof window !== 'undefined') {
       const isUserAuthenticated = currentUser && currentUser.id;
       
-      console.log('🔐 Auth check:', {
-        isUserAuthenticated: !!isUserAuthenticated,
-        currentUserId: currentUser?.id,
-        currentIsGuest: isGuest
-      });
       
       if (!isUserAuthenticated) {
         // Guest mode
@@ -255,7 +253,6 @@ export default function ChatBox() {
           }
         }
         
-        console.log('🔍 User is GUEST, sessionId:', guestSessionId);
       } else {
         // User authenticated
         if (isGuest) {
@@ -268,7 +265,6 @@ export default function ChatBox() {
         localStorage.removeItem('guestSessionId');
         localStorage.removeItem('guestConversationId');
         
-        console.log('🔍 User is AUTHENTICATED, userId:', currentUser.id);
         
         // Migrate messages sau khi đã chuyển trạng thái
         setTimeout(() => {
@@ -311,7 +307,6 @@ export default function ChatBox() {
 
   const updateMessageStatus = useCallback((tempId: string, newId: string | number, status: 'sent' | 'failed') => {
     if (status === 'failed') {
-      console.log('🔄 Keeping message as sending instead of failed:', tempId);
       return;
     }
     
@@ -329,24 +324,20 @@ export default function ChatBox() {
   const loadMessages = useCallback(async () => {
     // Nếu là guest, không load từ server
     if (isGuest) {
-      console.log('🎭 Guest mode - using local messages');
       return;
     }
     
     // QUAN TRỌNG: Chỉ load messages nếu có conversationId
     const targetConversationId = conversationId || latestConversationId;
     if (!targetConversationId) {
-      console.log('⏳ No conversationId available - skipping message load');
       setHasAttemptedInitialLoad(true);
       return;
     }
     
     if (isLoadingMessagesRef.current) {
-      console.log('⏳ Already loading messages - skipping');
       return;
     }
     
-    console.log('🔄 Loading messages for conversation:', targetConversationId);
     
     isLoadingMessagesRef.current = true;
     try {
@@ -362,11 +353,11 @@ export default function ChatBox() {
       const data = await res.json();
       
       const loadedMessages = Array.isArray(data.messages) ? data.messages : [];
-      console.log('📥 Loaded messages from server:', loadedMessages.length);
       
-      const sortedMessages = loadedMessages.sort((a: any, b: any) => 
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
+      const sortedMessages = loadedMessages.sort((a: any, b: any) => {
+        // Chỉ sắp xếp theo ID - tăng dần (cũ nhất lên đầu)
+        return a.id - b.id;
+      });
       
       // QUAN TRỌNG: Thay thế toàn bộ messages bằng messages từ server
       setMessages(sortedMessages);
@@ -385,7 +376,6 @@ export default function ChatBox() {
   useEffect(() => {
     // Tự động load messages khi có conversationId và user đã login
     if (currentUser?.id && !isGuest && conversationId && !hasAttemptedInitialLoad) {
-      console.log('🔄 Auto-loading messages for conversation:', conversationId);
       
       // Đợi một chút để đảm bảo socket đã kết nối
       const timer = setTimeout(() => {
@@ -410,7 +400,6 @@ export default function ChatBox() {
   const migrateLocalMessagesToServer = useCallback(async () => {
     if (!currentUser?.id || !conversationId || localMessagesRef.current.length === 0) return;
     
-    console.log('🔄 Migrating local messages to server:', localMessagesRef.current.length);
     
     for (const localMsg of localMessagesRef.current) {
       if (localMsg.senderType === 'GUEST' || localMsg.senderType === 'USER') {
@@ -450,25 +439,15 @@ export default function ChatBox() {
   // ==================== CONVERSATION INITIALIZATION ====================
 
   useEffect(() => {
-    console.log('🔄 Conversation init check:', {
-      currentUser: currentUser?.id,
-      isConnected,
-      conversationId,
-      dbConversationIds: dbConversationIds.length,
-      hasAttemptedInitialLoad
-    });
 
     // Chỉ xử lý khi user đã login và socket connected
     if (!currentUser?.id || !isConnected || conversationId) {
       return;
     }
 
-    console.log('🚀 Initializing conversation...');
-
     // Ưu tiên dùng conversation từ database
     if (dbConversationIds.length > 0) {
       const existingConvId = dbConversationIds[0];
-      console.log('👤 Using existing conversation:', existingConvId);
       setConversationId(existingConvId);
       
       // Join conversation và load messages
@@ -479,7 +458,6 @@ export default function ChatBox() {
       // Load messages sau khi set conversationId
       setTimeout(() => loadMessages(), 300);
     } else {
-      console.log('📝 No existing conversation - will create on first message');
       // QUAN TRỌNG: Đánh dấu đã thử load để không bị kẹt ở trạng thái loading
       setHasAttemptedInitialLoad(true);
     }
@@ -508,27 +486,20 @@ export default function ChatBox() {
   // ==================== SOCKET MANAGEMENT ====================
 
   useEffect(() => {
-    console.log('🔌 Socket effect running:', {
-      currentUser: currentUser?.id,
-      isGuest,
-      shouldConnect: currentUser?.id && !isGuest
-    });
+
 
     // QUAN TRỌNG: Chỉ kết nối socket khi có user thật
     const shouldConnectSocket = currentUser?.id && !isGuest;
     
     if (!shouldConnectSocket) {
-      console.log('🎭 Guest mode or no user - Socket disabled');
       setIsConnected(false);
       if (socket) {
-        console.log('🔌 Disconnecting existing socket');
         socket.disconnect();
         setSocket(null);
       }
       return;
     }
 
-    console.log('👤 User detected, creating socket...', currentUser.id);
 
     const socketInstance = getSocket({ 
       reconnectionAttempts: 5,
@@ -536,7 +507,6 @@ export default function ChatBox() {
     });
     
     if (!socketInstance) {
-      console.log('❌ Cannot get socket instance');
       return;
     }
     
@@ -544,14 +514,11 @@ export default function ChatBox() {
 
     const onConnect = () => {
       setIsConnected(true);
-      console.log('✅ Socket connected - User:', currentUser.id);
       
       // QUAN TRỌNG: Load messages ngay sau khi kết nối
       if (conversationId) {
-        console.log('🔄 Loading messages for conversation:', conversationId);
         loadMessages();
       } else if (latestConversationId) {
-        console.log('🔄 Loading messages for latest conversation:', latestConversationId);
         setConversationId(latestConversationId);
         setTimeout(() => loadMessages(), 300);
       } else {
@@ -562,24 +529,20 @@ export default function ChatBox() {
 
     const onDisconnect = (reason: string) => {
       setIsConnected(false);
-      console.log('❌ Socket disconnected:', reason);
     };
 
     const onConnectError = (error: any) => {
-      console.error('🔴 Socket connection error:', error);
       setIsConnected(false);
     };
 
     const onSession = (data: { sessionId: string }) => {
       setSessionId(data.sessionId);
       localStorage.setItem('sessionId', data.sessionId);
-      console.log('🔑 Session initialized:', data.sessionId);
     };
 
     const onConvUpdate = (data: any) => {
       const id = data.conversationId || data.id;
       if (id && id !== conversationId) {
-        console.log('🔄 Conversation updated:', id);
         setConversationId(id);
         localStorage.setItem('conversationId', id.toString());
         
@@ -590,7 +553,6 @@ export default function ChatBox() {
     };
 
     const onConversationCreated = (data: any) => {
-      console.log('✅ Conversation created event:', data);
       const newConversationId = data.conversationId || data.id;
       if (newConversationId) {
         setConversationId(newConversationId);
@@ -604,32 +566,46 @@ export default function ChatBox() {
       }
     };
 
-    const onMessage = (msg: ChatMessage & { tempId?: string }) => {
-      console.log('📨 onMessage received:', { 
-        tempId: msg.tempId, 
-        senderType: msg.senderType, 
-        conversationId: msg.conversationId 
-      });
-      
+    const onMessage = async (msg: ChatMessage & { tempId?: string }) => {
       if (msg.tempId && pendingMessagesRef.current.has(msg.tempId)) {
-        console.log('✅ Message confirmation received:', msg.tempId);
         pendingMessagesRef.current.delete(msg.tempId);
         updateMessageStatus(msg.tempId, msg.id, 'sent');
+
+        let shouldTriggerAI = false;
+        try {
+          await queryClientRef.current.refetchQueries({
+            queryKey: ['chat', 'ai-enabled', TENANT_ID],
+          });
+          
+          const freshAiStatus = queryClientRef.current.getQueryData<boolean>(['chat', 'ai-enabled', TENANT_ID]);
+          // 🔥 FIX: Explicit check for undefined
+          shouldTriggerAI = (freshAiStatus !== undefined ? freshAiStatus : false) && 
+                          ['USER', 'GUEST'].includes(msg.senderType);
+          
+          console.log('🤖 AI Trigger Decision:', { 
+            freshAiStatus, 
+            senderType: msg.senderType,
+            shouldTriggerAI 
+          });
+        } catch (error) {
+          // 🔥 FIX: Explicit check for undefined
+          shouldTriggerAI = (aiChatEnabled !== undefined ? aiChatEnabled : false) && 
+                          ['USER', 'GUEST'].includes(msg.senderType);
+          console.warn('❌ Refetch AI status failed, using cached:', aiChatEnabled);
+        }
         
-        if (aiChatEnabled && ['USER', 'GUEST'].includes(msg.senderType)) {
-          console.log('🤖 Triggering AI response after user message confirmed');
+        if (shouldTriggerAI) {
+          console.log('🚀 Triggering AI response with fresh status');
           setTimeout(() => {
             sendAiMessageRef.current?.(msg.message, msg.conversationId);
           }, 500);
         }
       } else {
-        console.log('💬 New message from backend');
         addMessage(msg);
       }
     };
 
     const onMessageConfirmed = (data: { tempId: string; messageId: string | number }) => {
-      console.log('✅ Message confirmed:', data.tempId, '->', data.messageId);
       if (pendingMessagesRef.current.has(data.tempId)) {
         pendingMessagesRef.current.delete(data.tempId);
         setMessages(prev => 
@@ -643,7 +619,6 @@ export default function ChatBox() {
     };
 
     const onMessageFailed = (data: { tempId: string; error?: string }) => {
-      console.log('❌ Message failed:', data.tempId, data.error);
       if (pendingMessagesRef.current.has(data.tempId)) {
         pendingMessagesRef.current.delete(data.tempId);
         setMessages(prev => 
@@ -676,11 +651,9 @@ export default function ChatBox() {
     socketInstance.on('typing', onTyping);
 
     // Kết nối socket
-    console.log('🔌 Connecting socket...');
     socketInstance.connect();
 
     return () => {
-      console.log('🧹 Cleaning up socket events');
       socketInstance.off('connect', onConnect);
       socketInstance.off('disconnect', onDisconnect);
       socketInstance.off('connect_error', onConnectError);
@@ -696,19 +669,30 @@ export default function ChatBox() {
 
   // ==================== SEND MESSAGE ====================
 
-  const sendMessage = useCallback((message: string, metadata?: any) => {
+  const sendMessage = useCallback(async  (message: string, metadata?: any) => {
     // THÊM: Kiểm tra nếu AI đang xử lý thì không cho gửi
     if (isAiProcessing) {
-      console.log('⏳ AI is processing - please wait');
       return;
     }
 
     if (!message.trim()) {
-      console.log('❌ Cannot send message: empty message');
       return;
     }
-
-    console.log('🔍 Sending message - isGuest:', isGuest, 'currentUser:', currentUser?.id);
+     let latestAiEnabled = aiChatEnabled;
+    try {
+    const result = await queryClientRef.current.refetchQueries({
+      queryKey: ['chat', 'ai-enabled', TENANT_ID],
+    });
+    
+    // Lấy data mới nhất từ cache sau khi refetch
+    const freshData = queryClientRef.current.getQueryData<boolean>(['chat', 'ai-enabled', TENANT_ID]);
+    if (freshData !== undefined) {
+      latestAiEnabled = freshData;
+    }
+  
+  } catch (error) {
+    console.warn('Failed to refetch AI status, using cached:', aiChatEnabled);
+  }
 
     const tempId = `temp-${Date.now()}`;
     const senderType = currentUser && currentUser.id ? 'USER' : 'GUEST';
@@ -716,7 +700,6 @@ export default function ChatBox() {
 
     // Nếu là GUEST -> chỉ lưu local
     if (isGuest) {
-      console.log('🎭 Guest mode - saving message locally');
       
       const userMsg: ChatMessage = {
         id: tempId,
@@ -742,7 +725,7 @@ export default function ChatBox() {
       saveLocalMessages(updatedMessages);
       
       // Gọi AI response nếu enabled
-      if (aiChatEnabled) {
+      if (latestAiEnabled) {
         setTimeout(() => {
           sendAiMessageRef.current?.(message.trim(), null);
         }, 300);
@@ -754,18 +737,12 @@ export default function ChatBox() {
 
     // Nếu là USER đã login
     if (!socket) {
-      console.log('❌ Cannot send message: no socket');
       return;
     }
 
     // QUAN TRỌNG: Nếu chưa có conversationId, backend sẽ tự động tạo
     const effectiveConversationId = conversationId || latestConversationId;
     
-    console.log('📤 Preparing message with:', {
-      hasConversationId: !!effectiveConversationId,
-      conversationId: effectiveConversationId,
-      socketConnected: socket.connected
-    });
 
     const userMsg: ChatMessage = {
       id: tempId,
@@ -805,7 +782,6 @@ export default function ChatBox() {
       console.log('🆕 No conversationId - backend will create one automatically');
     }
 
-    console.log('📤 Emitting send:message:', payload);
     socket.emit('send:message', payload);
     
     // Fallback: Nếu backend không confirm sau 15s
@@ -825,7 +801,6 @@ export default function ChatBox() {
         if (aiChatEnabled) {
           setTimeout(() => {
             const currentConvId = conversationId || latestConversationId;
-            console.log('🤖 Triggering AI with conversationId:', currentConvId);
             sendAiMessageRef.current?.(message.trim(), currentConvId || undefined);
           }, 500);
         }
@@ -841,6 +816,13 @@ export default function ChatBox() {
     }, 100);
     
     setInput('');
+    // 🔥 TRIGGER AI với latestAiEnabled
+    if (latestAiEnabled) {
+      setTimeout(() => {
+        const currentConvId = conversationId || latestConversationId;
+        sendAiMessageRef.current?.(message.trim(), currentConvId || undefined);
+      }, 500);
+    }
   }, [socket, conversationId, latestConversationId, aiChatEnabled, currentUser, addMessage, isGuest, sessionId, messages, saveLocalMessages, tenantId, isAiProcessing]); // THÊM isAiProcessing vào dependencies
 
   // ==================== FALLBACK MESSAGE DISPLAY ====================
@@ -848,7 +830,6 @@ export default function ChatBox() {
   useEffect(() => {
     // Fallback: Nếu socket không kết nối được nhưng có messages trong database, vẫn hiển thị
     if (currentUser?.id && !isGuest && messages.length === 0 && dbConversationIds.length > 0) {
-      console.log('🔄 Fallback: Loading messages directly from database');
       
       const loadMessagesDirectly = async () => {
         try {
@@ -865,7 +846,6 @@ export default function ChatBox() {
             const data = await res.json();
             const loadedMessages = Array.isArray(data.messages) ? data.messages : [];
             if (loadedMessages.length > 0) {
-              console.log('📥 Fallback loaded messages:', loadedMessages.length);
               setMessages(loadedMessages.sort((a: any, b: any) => 
                 new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
               ));

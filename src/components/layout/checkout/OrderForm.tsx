@@ -286,33 +286,55 @@ const OrderForm: React.FC = () => {
         clearSelectedItems();
 
         if (paymentMethod.code === 'VNPAY') {
-          const paymentUrl = `https://api.aiban.vn/payments/vnpay?orderId=${orderId}&amount=${totalAmount}&returnUrl=https://api.aiban.vn/payments/vnpay/callback`
+            try {
+              const returnUrl = `${window.location.origin}/payment-callback`;
+              const baseUrl = process.env.NEXT_PUBLIC_API_URL!;
+              
+              const paymentUrl = `${baseUrl}/payments/vnpay?orderId=${orderId}&amount=${totalAmount}&returnUrl=${encodeURIComponent(returnUrl)}`;
+              
+              console.log('🟡 VNPay Config:', {
+                tmnCode: process.env.NEXT_PUBLIC_VNP_TMN_CODE,
+                secretKey: process.env.NEXT_PUBLIC_VNP_SECRET ? '***' : 'missing',
+                apiUrl: process.env.NEXT_PUBLIC_VNP_API_URL
+              });
 
-          try {
-            const paymentResponse = await axios.get(paymentUrl, {
-              headers: {
-                'x-tenant-id': process.env.NEXT_PUBLIC_TENANT_ID || '1',
-              },
-            })
+              const paymentResponse = await axios.get(paymentUrl, {
+                headers: {
+                  'vnp-tmn-code': process.env.NEXT_PUBLIC_VNP_TMN_CODE || 'P6TZ950J',
+                  'vnp-secret': process.env.NEXT_PUBLIC_VNP_SECRET || 'M7O1ZRIGSGF039E50H1DCNTO2TVHSOOZ',
+                  'vnp-api-url': process.env.NEXT_PUBLIC_VNP_API_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+                  'x-tenant-id': process.env.NEXT_PUBLIC_TENANT_ID || '1',
+                },
+                timeout: 15000,
+              });
 
-            if (paymentResponse?.data?.url) {
-              window.location.href = paymentResponse.data.url
-            } else {
-              message.error('Không nhận được đường dẫn thanh toán từ VNPay!')
+              console.log('🟢 VNPay Response:', paymentResponse.data);
+
+              if (paymentResponse?.data?.url) {
+                console.log('🟢 Redirecting to VNPay...');
+                window.location.href = paymentResponse.data.url;
+              } else {
+                message.error('Không nhận được đường dẫn thanh toán từ VNPay!');
+              }
+            } catch (error: any) {
+              console.error('❌ Lỗi VNPay:', error);
+              if (error.response) {
+                message.error(`Lỗi: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`);
+              } else {
+                message.error('Lỗi kết nối đến VNPay: ' + error.message);
+              }
             }
-          } catch (error) {
-            message.error('Không thể tạo link thanh toán VNPay!')
+          } else {
+            // Xử lý COD thành công
+            setCompletedOrderId(orderId)
+            setOrderCompleted(true)
           }
-        } else {
-          setCompletedOrderId(orderId)
-          setOrderCompleted(true)
-        }
-      },
-      onError: (error) => {
-        message.error('Đặt hàng thất bại!')
-      },
-    })
-  }
+          },
+          onError: (error) => {
+            message.error('Đặt hàng thất bại!')
+          },
+        })
+      }
 
 
   if (orderCompleted) {
