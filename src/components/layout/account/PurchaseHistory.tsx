@@ -6,6 +6,7 @@ import {
   EnvironmentOutlined,
   PhoneOutlined,
   UserOutlined,
+  MessageOutlined,
   StarOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
@@ -18,14 +19,13 @@ import { formatDate } from '@/utils/helpers';
 import { Order } from '@/types/order.type';
 import { getImageUrl } from '@/utils/getImageUrl';
 import Link from 'next/link';
-
+import { GiftProductDisplay } from '../common/GiftProductDisplay';
 
 const PurchaseHistory: React.FC = () => {
   const { data: currentUser } = useCurrent();
   const userId = currentUser?.id;
   const { data: ordersData, isLoading, isError, error } = useOrdersByUser({ userId });
-  const [chatClickedOrders, setChatClickedOrders] = useState<number[]>([]);
- 
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const orders = ordersData?.data ?? [];
 
@@ -81,6 +81,29 @@ const PurchaseHistory: React.FC = () => {
       </div>
     );
   };
+
+  // const handleChatSupport = (order: Order) => {
+  //   if (!isConnected) {
+  //     console.log('Chat chưa được kết nối');
+  //     return;
+  //   }
+
+  //   setIsChatOpen(true);
+
+  //   if (!conversationId) {
+  //     joinConversation(order.id);
+  //   }
+
+  //   const productNames = order.items
+  //     ?.map((item) => item.productVariant?.product?.name)
+  //     .filter((name) => name)
+  //     .join(', ');
+  //   const message = `Hỗ trợ đơn hàng ID: ${order.id}. Sản phẩm: ${productNames || 'Không có sản phẩm'}.`;
+
+  //   setTimeout(() => {
+  //     sendMessage(message, { orderId: order.id });
+  //   }, 500);
+  // };
 
   if (isLoading) {
     return (
@@ -139,7 +162,13 @@ const PurchaseHistory: React.FC = () => {
                       </div>
                     </div>
 
-                  
+                    <div className="flex items-center gap-3">
+                      <div className={`px-4 py-2 rounded-full font-semibold flex items-center gap-2 ${statusConfig.color}`}>
+                        {statusConfig.icon}
+                        {statusConfig.text}
+                      </div>
+                   
+                    </div>
                   </div>
                 </div>
 
@@ -184,7 +213,15 @@ const PurchaseHistory: React.FC = () => {
                               </Button>
                             </Link>
                           )}
-                        </div>
+                           {item.giftProductId && item.giftQuantity && (
+                            <div className="ml-20 mt-2"> {/* Thụt vào để thấy rõ là quà kèm */}
+                              <GiftProductDisplay 
+                                giftProductId={item.giftProductId}
+                                giftQuantity={item.giftQuantity}
+                              />
+                            </div>
+                          )}
+                                          </div>
                       );
                     })}
                     {order.items && order.items.length > 3 && (
@@ -210,7 +247,6 @@ const PurchaseHistory: React.FC = () => {
                       >
                         Xem chi tiết
                       </Button>
-                     
                     </div>
                   </div>
                 </div>
@@ -246,7 +282,6 @@ const PurchaseHistory: React.FC = () => {
           </div>
         }
         onCancel={handleCloseModal}
-        closeIcon={<span className="text-gray-400 hover:text-gray-600 text-xl">×</span>}
         footer={[
           <Button
             key="close"
@@ -326,6 +361,14 @@ const PurchaseHistory: React.FC = () => {
                           {(item.quantity * (item.unitPrice || 0))?.toLocaleString('vi-VN')}₫
                         </div>
                       </div>
+                       {item.giftProductId && item.giftQuantity && (
+                          <div className="ml-24 mt-2"> {/* Thụt vào để thấy rõ là quà kèm */}
+                            <GiftProductDisplay 
+                              giftProductId={item.giftProductId}
+                              giftQuantity={item.giftQuantity}
+                            />
+                          </div>
+                        )}
                     </div>
                   );
                 })}
@@ -346,16 +389,6 @@ const PurchaseHistory: React.FC = () => {
                   {selectedOrder.totalAmount?.toLocaleString('vi-VN')}₫
                 </span>
               </div>
-            </div>
-
-            {/* Close Button at Bottom */}
-            <div className="flex justify-center pt-2">
-              <Button
-                onClick={handleCloseModal}
-                className="h-11 px-8 rounded-lg font-semibold"
-              >
-                Đóng
-              </Button>
             </div>
           </div>
         )}

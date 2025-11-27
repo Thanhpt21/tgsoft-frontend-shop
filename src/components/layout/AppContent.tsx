@@ -15,9 +15,9 @@ interface AppContentProps {
 
 export default function AppContent({ children }: AppContentProps) {
   const pathname = usePathname();
-
-  const { data: configData, isLoading, isError } = useConfigByTenant();
   const isAdminPage = pathname.startsWith('/admin');
+  const { data: configData, isLoading, isError } = useConfigByTenant();
+
 
   if (isLoading) {
     return (
