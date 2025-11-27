@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
 import {
   CheckCircleOutlined,
   TrophyOutlined,
   TeamOutlined,
   RocketOutlined,
-} from '@ant-design/icons';
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
+} from "@ant-design/icons";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 
 export default function AboutUsPage() {
   const [mounted, setMounted] = useState(false);
@@ -15,17 +15,36 @@ export default function AboutUsPage() {
   useEffect(() => setMounted(true), []);
 
   const values = [
-    { icon: <CheckCircleOutlined />, title: 'Chất lượng', description: 'Cam kết mang đến sản phẩm chất lượng cao nhất cho khách hàng.' },
-    { icon: <TrophyOutlined />, title: 'Uy tín', description: 'Xây dựng niềm tin qua từng giao dịch và dịch vụ.' },
-    { icon: <TeamOutlined />, title: 'Tận tâm', description: 'Đội ngũ chuyên nghiệp, luôn lắng nghe và hỗ trợ khách hàng tốt nhất.' },
-    { icon: <RocketOutlined />, title: 'Đổi mới', description: 'Không ngừng cải tiến và phát triển để phục vụ tốt hơn mỗi ngày.' },
+    {
+      icon: <CheckCircleOutlined />,
+      title: "Chất lượng",
+      description:
+        "Cam kết mang đến sản phẩm chất lượng cao nhất cho khách hàng.",
+    },
+    {
+      icon: <TrophyOutlined />,
+      title: "Uy tín",
+      description: "Xây dựng niềm tin qua từng giao dịch và dịch vụ.",
+    },
+    {
+      icon: <TeamOutlined />,
+      title: "Tận tâm",
+      description:
+        "Đội ngũ chuyên nghiệp, luôn lắng nghe và hỗ trợ khách hàng tốt nhất.",
+    },
+    {
+      icon: <RocketOutlined />,
+      title: "Đổi mới",
+      description:
+        "Không ngừng cải tiến và phát triển để phục vụ tốt hơn mỗi ngày.",
+    },
   ];
 
   const stats = [
-    { number: '10K+', label: 'Khách hàng' },
-    { number: '500+', label: 'Sản phẩm' },
-    { number: '50+', label: 'Đối tác' },
-    { number: '99%', label: 'Hài lòng' },
+    { number: "10K+", label: "Khách hàng" },
+    { number: "500+", label: "Sản phẩm" },
+    { number: "50+", label: "Đối tác" },
+    { number: "99%", label: "Hài lòng" },
   ];
 
   if (!mounted) {
@@ -38,6 +57,21 @@ export default function AboutUsPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Breadcrumb */}
+      <div className="border-b border-gray-200">
+        <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-4">
+          <div className="flex items-center gap-2 text-sm">
+            <a
+              href="/"
+              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            >
+              Trang chủ
+            </a>
+            <span className="text-gray-400">/</span>
+            <span className="text-gray-600">Giới thiệu</span>
+          </div>
+        </div>
+      </div>
       {/* Main container - giống width Header */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
         {/* Header */}
@@ -52,7 +86,8 @@ export default function AboutUsPage() {
             Hành trình của TGSOFT
           </h1>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Nơi đam mê công nghệ và sự tận tâm giao thoa để mang lại giá trị tốt nhất cho khách hàng.
+            Nơi đam mê công nghệ và sự tận tâm giao thoa để mang lại giá trị tốt
+            nhất cho khách hàng.
           </p>
         </div>
 
@@ -63,12 +98,14 @@ export default function AboutUsPage() {
               Câu chuyện của chúng tôi
             </h2>
             <p className="text-gray-600 leading-relaxed">
-              Chúng tôi khởi đầu với khát vọng mang đến những sản phẩm và dịch vụ công nghệ chất lượng,
-              giúp doanh nghiệp Việt vươn mình mạnh mẽ hơn trong kỷ nguyên số.
+              Chúng tôi khởi đầu với khát vọng mang đến những sản phẩm và dịch
+              vụ công nghệ chất lượng, giúp doanh nghiệp Việt vươn mình mạnh mẽ
+              hơn trong kỷ nguyên số.
             </p>
             <p className="text-gray-600 leading-relaxed">
-              Với đội ngũ trẻ trung, sáng tạo và tận tâm, TGSOFT không ngừng học hỏi, cải tiến và đổi mới mỗi ngày
-              để đáp ứng nhu cầu khách hàng một cách tốt nhất.
+              Với đội ngũ trẻ trung, sáng tạo và tận tâm, TGSOFT không ngừng học
+              hỏi, cải tiến và đổi mới mỗi ngày để đáp ứng nhu cầu khách hàng
+              một cách tốt nhất.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <div className="flex items-center space-x-2 text-gray-700">
@@ -89,7 +126,7 @@ export default function AboutUsPage() {
               alt="Giới thiệu TGSOFT"
               fill
               priority
-              style={{ objectFit: 'cover' }}
+              style={{ objectFit: "cover" }}
               className="group-hover:scale-110 transition-transform duration-700"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
@@ -124,7 +161,8 @@ export default function AboutUsPage() {
               Những điều chúng tôi trân quý
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Đó là nền tảng giúp TGSOFT không ngừng phát triển và tạo nên giá trị bền vững.
+              Đó là nền tảng giúp TGSOFT không ngừng phát triển và tạo nên giá
+              trị bền vững.
             </p>
           </div>
 

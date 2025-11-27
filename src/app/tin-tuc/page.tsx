@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { Spin, Empty, Breadcrumb } from 'antd';
+import { Spin, Empty } from 'antd';
 
 import { useAllBlogs } from '@/hooks/blog/useAllBlogs';
 
@@ -21,11 +21,32 @@ export default function NewsPage() {
     return blogs?.filter((blog: Blog) => blog.isPublished) || [];
   }, [blogs]);
 
-  // Render Loading Spinner
+  // Render Loading Spinner (giống trang sản phẩm khi bấm danh mục)
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Spin size="large" tip="Đang tải tin tức..." />
+      <div className="min-h-screen bg-white flex flex-col">
+        {/* Breadcrumb */}
+        <div className="border-b border-gray-200">
+          <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-4">
+            <div className="flex items-center gap-2 text-sm">
+              <Link
+                href="/"
+                className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              >
+                Trang chủ
+              </Link>
+              <span className="text-gray-400">/</span>
+              <span className="text-gray-600">Tin tức</span>
+            </div>
+          </div>
+        </div>
+        {/* Spinner Loading */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-gray-300 mb-4"></div>
+            <p className="text-lg text-gray-600 font-medium">Đang tải tin tức...</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -33,41 +54,71 @@ export default function NewsPage() {
   // Render khi có lỗi
   if (isError) {
     return (
-      <div className="flex justify-center items-center h-screen text-red-600 text-xl">
-        Đã có lỗi xảy ra khi tải tin tức. Vui lòng thử lại sau.
+      <div className="min-h-screen bg-white">
+        {/* Breadcrumb */}
+        <div className="border-b border-gray-200">
+          <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-4">
+            <div className="flex items-center gap-2 text-sm">
+              <Link
+                href="/"
+                className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              >
+                Trang chủ
+              </Link>
+              <span className="text-gray-400">/</span>
+              <span className="text-gray-600">Tin tức</span>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-16 md:py-24">
+          <div className="flex justify-center items-center h-[400px]">
+            <div className="text-center">
+              <p className="text-red-600 text-lg font-semibold mb-2">Đã có lỗi xảy ra</p>
+              <p className="text-gray-600">Vui lòng thử lại sau</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container lg:p-12 mx-auto p-4 md:p-8">
-      <div className="mb-8">
-        <Breadcrumb>
-          <Breadcrumb.Item>
-            <Link href="/">Trang chủ</Link>
-          </Breadcrumb.Item>
-          <Breadcrumb.Item>
-            Tin tức
-          </Breadcrumb.Item>
-        </Breadcrumb>
+    <div className="min-h-screen bg-white">
+      {/* Breadcrumb */}
+      <div className="border-b border-gray-200">
+        <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-4">
+          <div className="flex items-center gap-2 text-sm">
+            <Link
+              href="/"
+              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            >
+              Trang chủ
+            </Link>
+            <span className="text-gray-400">/</span>
+            <span className="text-gray-600">Tin tức</span>
+          </div>
+        </div>
       </div>
 
-      {publishedBlogs.length === 0 ? (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={
-            <span className="text-xl text-gray-600">
-              Không tìm thấy bài viết nào phù hợp.
-            </span>
-          }
-        />
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {publishedBlogs.map((blog: Blog) => (
-            <MemoizedBlogCard key={blog.id} blog={blog} />
-          ))}
-        </div>
-      )}
+      {/* Content Area */}
+      <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-16 md:py-24">
+        {publishedBlogs.length === 0 ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={
+              <span className="text-xl text-gray-600">
+                Không tìm thấy bài viết nào phù hợp.
+              </span>
+            }
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {publishedBlogs.map((blog: Blog) => (
+              <MemoizedBlogCard key={blog.id} blog={blog} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

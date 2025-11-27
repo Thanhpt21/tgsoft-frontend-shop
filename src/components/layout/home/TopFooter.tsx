@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+
 
 export default function HeroSection() {
   return (
@@ -29,9 +31,11 @@ export default function HeroSection() {
           ngày đến những outfit sành điệu, chúng tôi có tất cả để nâng tầm phong
           cách của bạn.
         </p>
-        <button className="bg-[#ff5a5a] hover:bg-[#e04747] text-white font-semibold px-6 sm:px-8 py-2.5 sm:py-3 md:py-4 rounded-full text-xs sm:text-sm md:text-base transition-all duration-300 shadow-md hover:shadow-lg active:scale-95">
-          Mua ngay
-        </button>
+        <Link href="/san-pham">
+          <button className="bg-[#ff5a5a] hover:bg-[#e04747] text-white font-semibold px-6 sm:px-8 py-2.5 sm:py-3 md:py-4 rounded-full text-xs sm:text-sm md:text-base transition-all duration-300 shadow-md hover:shadow-lg active:scale-95">
+            Mua ngay
+          </button>
+        </Link>
       </div>
     </section>
   );
