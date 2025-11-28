@@ -292,11 +292,6 @@ const OrderForm: React.FC = () => {
               
               const paymentUrl = `${baseUrl}/payments/vnpay?orderId=${orderId}&amount=${totalAmount}&returnUrl=${encodeURIComponent(returnUrl)}`;
               
-              console.log('🟡 VNPay Config:', {
-                tmnCode: process.env.NEXT_PUBLIC_VNP_TMN_CODE,
-                secretKey: process.env.NEXT_PUBLIC_VNP_SECRET ? '***' : 'missing',
-                apiUrl: process.env.NEXT_PUBLIC_VNP_API_URL
-              });
 
               const paymentResponse = await axios.get(paymentUrl, {
                 headers: {
@@ -308,10 +303,9 @@ const OrderForm: React.FC = () => {
                 timeout: 15000,
               });
 
-              console.log('🟢 VNPay Response:', paymentResponse.data);
 
               if (paymentResponse?.data?.url) {
-                console.log('🟢 Redirecting to VNPay...');
+
                 window.location.href = paymentResponse.data.url;
               } else {
                 message.error('Không nhận được đường dẫn thanh toán từ VNPay!');

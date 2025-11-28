@@ -7,7 +7,6 @@ export const useTenantAdminShopTokens = (tenantId?: number) => {
     queryFn: async () => {
       const validTenantId = tenantId && !isNaN(tenantId) ? tenantId : 1;
       
-      console.log(`🔍 Fetching tokens for tenant: ${validTenantId}`);
       
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/users/tenant/admin-shop/tokens`,
@@ -25,7 +24,6 @@ export const useTenantAdminShopTokens = (tenantId?: number) => {
       }
       
       const data = await res.json();
-      console.log('✅ Tokens data:', data);
       return data.data;
     },
     enabled: !!tenantId && !isNaN(tenantId),

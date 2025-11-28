@@ -111,8 +111,6 @@ export default function ChatBox() {
   const computedIsGuest = !currentUser?.id;
 
 
-  console.log("isChatDisabled", isChatDisabled)
-
   const textPromptAi = useMemo(() => {
     return aiConfig?.aiSystemPrompt?.text || '';
   }, [aiConfig?.aiSystemPrompt?.text]);
@@ -582,11 +580,6 @@ export default function ChatBox() {
           shouldTriggerAI = (freshAiStatus !== undefined ? freshAiStatus : false) && 
                           ['USER', 'GUEST'].includes(msg.senderType);
           
-          console.log('🤖 AI Trigger Decision:', { 
-            freshAiStatus, 
-            senderType: msg.senderType,
-            shouldTriggerAI 
-          });
         } catch (error) {
           // 🔥 FIX: Explicit check for undefined
           shouldTriggerAI = (aiChatEnabled !== undefined ? aiChatEnabled : false) && 
@@ -595,7 +588,6 @@ export default function ChatBox() {
         }
         
         if (shouldTriggerAI) {
-          console.log('🚀 Triggering AI response with fresh status');
           setTimeout(() => {
             sendAiMessageRef.current?.(msg.message, msg.conversationId);
           }, 500);
@@ -779,7 +771,6 @@ export default function ChatBox() {
     if (effectiveConversationId) {
       payload.conversationId = effectiveConversationId;
     } else {
-      console.log('🆕 No conversationId - backend will create one automatically');
     }
 
     socket.emit('send:message', payload);
@@ -816,13 +807,6 @@ export default function ChatBox() {
     }, 100);
     
     setInput('');
-    // 🔥 TRIGGER AI với latestAiEnabled
-    if (latestAiEnabled) {
-      setTimeout(() => {
-        const currentConvId = conversationId || latestConversationId;
-        sendAiMessageRef.current?.(message.trim(), currentConvId || undefined);
-      }, 500);
-    }
   }, [socket, conversationId, latestConversationId, aiChatEnabled, currentUser, addMessage, isGuest, sessionId, messages, saveLocalMessages, tenantId, isAiProcessing]); // THÊM isAiProcessing vào dependencies
 
   // ==================== FALLBACK MESSAGE DISPLAY ====================
@@ -1049,7 +1033,6 @@ export default function ChatBox() {
   const status = getConnectionStatus();
 
   if (isChatDisabled && !computedIsGuest) {
-    console.log('🚫 Chat is disabled for USER:', currentUser?.id);
     return null;
   }
 

@@ -29,14 +29,6 @@ export default function PaymentCallbackPage() {
         const vnp_BankCode = searchParams.get('vnp_BankCode');
         const vnp_PayDate = searchParams.get('vnp_PayDate');
 
-        console.log('VNPay Callback Params:', {
-          vnp_ResponseCode,
-          vnp_TxnRef,
-          vnp_Amount,
-          vnp_TransactionNo,
-          vnp_BankCode,
-          vnp_PayDate
-        });
 
         // 🔥 KIỂM TRA MÃ PHẢN HỒI
         if (vnp_ResponseCode === '00') {

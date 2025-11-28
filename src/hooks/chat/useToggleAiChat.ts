@@ -18,7 +18,6 @@ export const useToggleAiChat = () => {
       return res.data.data.aiChatEnabled
     },
     onSuccess: (newEnabled) => {
-      console.log('✅ Toggle AI success:', newEnabled)
       
       // 1. CẬP NHẬT CACHE NGAY LẬP TỨC
       queryClient.setQueryData(['chat', 'ai-enabled', TENANT_ID], newEnabled)

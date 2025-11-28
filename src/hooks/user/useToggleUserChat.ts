@@ -43,10 +43,7 @@ export const useToggleUserChat = () => {
       return { previousStatus }
     },
     onSuccess: (data, variables, context) => {
-      console.log('✅ Toggle user chat success:', { 
-        userId: variables.userId, 
-        enabled: variables.enabled 
-      })
+
       
       // 🔥 POLLING: Tự động refetch sau 1 giây để đảm bảo data đồng bộ
       setTimeout(() => {

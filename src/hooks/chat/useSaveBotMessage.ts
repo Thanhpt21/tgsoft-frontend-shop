@@ -30,24 +30,18 @@ export const useSaveBotMessage = () => {
       // ✅ Ưu tiên conversationId, nếu không có thì dùng sessionId
       if (conversationId != null) {
         payload.conversationId = conversationId
-        console.log('💾 Saving BOT with conversationId:', conversationId)
       } else if (sessionId) {
         payload.sessionId = sessionId
-        console.log('💾 Saving BOT with sessionId:', sessionId)
       } else {
         throw new Error('Either conversationId or sessionId is required')
       }
 
-      console.log('📤 Payload:', payload)
       const response = await api.post('/chat/save-bot-message', payload)
-
-      console.log('📥 Response:', response.data)
       return response.data
     },
 
     // Tự động refresh tin nhắn sau khi lưu AI
     onSuccess: (data) => {
-      console.log('✅ BOT message saved:', data)
       queryClient.invalidateQueries({ queryKey: ['chat-messages'] })
       queryClient.invalidateQueries({ queryKey: ['conversation'] })
       queryClient.invalidateQueries({ queryKey: ['user-conversation-ids'] })

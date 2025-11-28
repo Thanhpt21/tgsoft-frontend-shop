@@ -19,7 +19,6 @@ export const useUserChatStatus = (userId: number, isChatOpen: boolean = false) =
   return useQuery({
     queryKey: ['user-chat-status', userId],
     queryFn: async (): Promise<UserChatStatusResponse> => {
-      console.log('🔄 Fetching user chat status for user:', userId)
       const res = await api.get(`/users/${userId}/chat-status`)
       return res.data
     },

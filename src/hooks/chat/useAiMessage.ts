@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import { Product } from '@/types/product.type';
 import { ChatMessage } from '@/components/layout/ChatBox';
-import { useUpdateTenantAdminShopTokens } from '@/hooks/user/useUpdateTenantAdminShopTokens';
+// import { useUpdateTenantAdminShopTokens } from '@/hooks/user/useUpdateTenantAdminShopTokens';
 
 interface UseAiMessageProps {
   conversationId: number | null;
@@ -32,7 +32,7 @@ export const useAiMessage = ({
     tenantId = 1
 }: UseAiMessageProps) => {
   const AI_URL = process.env.NEXT_PUBLIC_AI_URL!;
-  const updateTokens = useUpdateTenantAdminShopTokens();
+  // const updateTokens = useUpdateTenantAdminShopTokens();
   const [isAiProcessing, setIsAiProcessing] = useState(false);
 
 
@@ -227,10 +227,10 @@ Câu hỏi: "${msg}"`;
     if (isCachedResponse) {
     } else {
       // Vẫn update tokens nhưng không check trước
-      await updateTokens.mutateAsync({
-        tokensUsed: actualTokensUsed,
-        tenantId
-      });
+      // await updateTokens.mutateAsync({
+      //   tokensUsed: actualTokensUsed,
+      //   tenantId
+      // });
     }
 
     return { aiResponse, tokenMetadata };
@@ -404,7 +404,7 @@ Câu hỏi: "${msg}"`;
     findProductsByKeyword,
     isGuest,
     setIsTyping,
-    updateTokens, // Vẫn giữ updateTokens trong dependencies
+    //updateTokens,
     tenantId,
     setMessages,
     isAiProcessing 
