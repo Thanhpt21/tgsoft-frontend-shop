@@ -483,9 +483,9 @@ export default function ChatBox() {
 
   // ==================== SOCKET MANAGEMENT ====================
 
+  
+
   useEffect(() => {
-
-
     // QUAN TRỌNG: Chỉ kết nối socket khi có user thật
     const shouldConnectSocket = currentUser?.id && !isGuest;
     
@@ -569,6 +569,12 @@ export default function ChatBox() {
         pendingMessagesRef.current.delete(msg.tempId);
         updateMessageStatus(msg.tempId, msg.id, 'sent');
 
+          setTimeout(() => {
+            if (isUserAtBottom.current) {
+              scrollToBottom('smooth');
+            }
+          }, 150);
+
         let shouldTriggerAI = false;
         try {
           await queryClientRef.current.refetchQueries({
@@ -594,8 +600,14 @@ export default function ChatBox() {
         }
       } else {
         addMessage(msg);
+          setTimeout(() => {
+            if (isUserAtBottom.current) {
+              scrollToBottom('smooth');
+            }
+          }, 100);
       }
     };
+
 
     const onMessageConfirmed = (data: { tempId: string; messageId: string | number }) => {
       if (pendingMessagesRef.current.has(data.tempId)) {
@@ -690,6 +702,12 @@ export default function ChatBox() {
     const senderType = currentUser && currentUser.id ? 'USER' : 'GUEST';
     const senderId = currentUser?.id || null;
 
+    //Đảm bảo scroll xuống trước khi gửi tin nhắn mới
+    isUserAtBottom.current = true;
+    setTimeout(() => {
+      scrollToBottom('smooth');
+    }, 50);
+
     // Nếu là GUEST -> chỉ lưu local
     if (isGuest) {
       
@@ -715,6 +733,10 @@ export default function ChatBox() {
       // Lưu vào localStorage
       const updatedMessages = [...messages.filter(msg => msg.id !== tempId), userMsg];
       saveLocalMessages(updatedMessages);
+      // Scroll xuống sau khi thêm tin nhắn
+      setTimeout(() => {
+        scrollToBottom('smooth');
+      }, 100);
       
       // Gọi AI response nếu enabled
       if (latestAiEnabled) {
@@ -756,6 +778,11 @@ export default function ChatBox() {
 
     addMessage(userMsg);
     pendingMessagesRef.current.add(tempId);
+
+    // 🔥 THÊM: Scroll xuống ngay sau khi thêm tin nhắn
+    setTimeout(() => {
+      scrollToBottom('smooth');
+    }, 100);
 
     const payload: any = {
       message: message.trim(), 
@@ -864,8 +891,47 @@ export default function ChatBox() {
   // ==================== SCROLL MANAGEMENT ====================
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
+    messagesEndRef.current?.scrollIntoView({ 
+      behavior,
+      block: 'end',
+      inline: 'nearest'
+    });
   }, []);
+
+  
+    // 🔥 THÊM: Scroll khi AI bắt đầu typing
+  useEffect(() => {
+    if (isTyping.ai && isUserAtBottom.current) {
+      setTimeout(() => {
+        scrollToBottom('smooth');
+      }, 100);
+    }
+  }, [isTyping.ai, scrollToBottom]);
+
+  // 🔥 THÊM: Scroll khi AI kết thúc typing (có tin nhắn mới)
+  useEffect(() => {
+    if (!isTyping.ai && isUserAtBottom.current) {
+      // Đợi một chút để tin nhắn AI được render
+      setTimeout(() => {
+        scrollToBottom('smooth');
+      }, 300);
+    }
+  }, [isTyping.ai, scrollToBottom]);
+
+  // auto-scroll khi có tin nhắn mới
+  useEffect(() => {
+  // Chỉ scroll khi:
+  // 1. Có tin nhắn mới
+  // 2. User đang ở gần bottom
+  // 3. Chat window đang mở
+  if (isChatOpen && isUserAtBottom.current) {
+    // Thêm delay nhỏ để đảm bảo DOM đã update
+    setTimeout(() => {
+      scrollToBottom('smooth');
+    }, 100);
+  }
+}, [messages, isTyping, isChatOpen, scrollToBottom]);
+
 
   useEffect(() => {
     const container = chatContainerRef.current;
@@ -873,19 +939,35 @@ export default function ChatBox() {
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      const atBottom = scrollHeight - scrollTop - clientHeight < 100;
+      const scrollThreshold = 100; // Khoảng cách từ bottom để coi là "ở bottom"
+      const atBottom = scrollHeight - scrollTop - clientHeight <= scrollThreshold;
       isUserAtBottom.current = atBottom;
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [isChatOpen]);
+    if (isChatOpen && messages.length > 0) {
+      setTimeout(() => {
+        scrollToBottom('instant');
+      }, 300);
+    }
+   return () => container.removeEventListener('scroll', handleScroll);
+  }, [isChatOpen,  messages.length, scrollToBottom]);
 
   useEffect(() => {
     if (isUserAtBottom.current) {
       scrollToBottom();
     }
   }, [messages, isTyping, scrollToBottom]);
+
+  useEffect(() => {
+    if (isChatOpen && messages.length > 0) {
+      // Đợi một chút để chat window render xong
+      setTimeout(() => {
+        scrollToBottom('instant');
+        isUserAtBottom.current = true;
+      }, 500);
+    }
+  }, [isChatOpen, scrollToBottom]);
 
   // ==================== UNREAD COUNT ====================
 
@@ -1036,16 +1118,18 @@ export default function ChatBox() {
     return null;
   }
 
-  return (
+return (
     <ChatContext.Provider value={contextValue}>
       {/* Floating Chat Button */}
       <div className="fixed bottom-5 right-5 z-[9999]">
         <button
           onClick={() => setIsChatOpen(!isChatOpen)}
-          className="relative bg-gradient-to-r from-blue-600 to-green-600 text-white px-6 py-3 rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-110 flex items-center gap-2 font-medium"
+          className="relative bg-gradient-to-r from-blue-600 to-green-600 text-white px-4 py-3 md:px-6 md:py-3 rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-110 flex items-center gap-2 font-medium"
         >
           <span className="text-2xl">💬</span>
-          <span>Chat hỗ trợ</span>
+          {/* Ẩn chữ trên mobile, hiện trên desktop */}
+          <span className="hidden md:inline">Chat hỗ trợ</span>
+          
           {isGuest && (
             <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 shadow-md">
               🔄
@@ -1064,9 +1148,9 @@ export default function ChatBox() {
         )}
       </div>
 
-      {/* Chat Window */}
+      {/* Chat Window - Responsive cho mobile */}
       {isChatOpen && (
-        <div className="fixed bottom-24 right-5 w-96 h-[600px] bg-white border border-gray-300 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-[9999] animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed inset-0 md:inset-auto md:bottom-24 md:right-5 md:w-96 md:h-[600px] w-full h-full bg-white border border-gray-300 rounded-none md:rounded-2xl shadow-2xl flex flex-col overflow-hidden z-[9999] animate-in slide-in-from-bottom-5 duration-300">
           {/* Header */}
           <div className="flex justify-between items-center bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 text-white px-4 py-3">
             <div className="flex items-center gap-2">
@@ -1078,7 +1162,10 @@ export default function ChatBox() {
                   ) : (
                     <>
                       <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></span>
-                      {status.text}
+                      <span className="hidden sm:inline">{status.text}</span>
+                      <span className="sm:hidden">
+                        {isConnected ? 'Đã kết nối' : 'Đang kết nối...'}
+                      </span>
                     </>
                   )}
                 </p>
@@ -1096,17 +1183,17 @@ export default function ChatBox() {
           {/* Messages */}
           <div 
             ref={chatContainerRef}
-            className="flex-1 p-3 overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-100 space-y-3"
+            className="flex-1 p-3 md:p-3 overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-100 space-y-3"
           >
             {messages.length === 0 && !isTyping.admin && !isTyping.ai && (
-              <div className="text-center text-gray-500 mt-8">
+              <div className="text-center text-gray-500 mt-8 md:mt-8">
                 <div className="text-5xl mb-3">
                   {currentUser ? '👋' : '🤖'}
                 </div>
                 <p className="text-sm font-medium mb-2">
                   {currentUser ? 'Chào bạn!' : 'Xin chào!'}
                 </p>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-gray-600 px-4">
                   {currentUser 
                     ? 'Hỏi gì cũng được, AI và Admin luôn sẵn sàng!' 
                     : 'Tôi là AI hỗ trợ. Hãy chat với tôi!'
@@ -1126,13 +1213,13 @@ export default function ChatBox() {
                 key={msg.id} 
                 className={`flex ${['USER', 'GUEST'].includes(msg.senderType) ? 'justify-end' : 'justify-start'} animate-in fade-in duration-200`}
               >
-                <div className={getBubbleClass(msg)}>
+                <div className={`${getBubbleClass(msg)} max-w-[85%] md:max-w-[75%]`}>
                   {!['USER', 'GUEST'].includes(msg.senderType) && (
                     <div className="text-xs opacity-80 mb-1 font-semibold">
                       {msg.senderType === 'ADMIN' ? '👨‍💼 Admin' : msg.senderType === 'BOT' ? '🤖 AI' : 'Bạn'}
                     </div>
                   )}
-                  <div className="whitespace-pre-wrap break-words">
+                  <div className="whitespace-pre-wrap break-words text-sm md:text-sm">
                     {renderMessageWithLinks(msg.message)}
                   </div>
                   <div className="text-xs mt-1 opacity-70 flex items-center gap-1">
@@ -1151,20 +1238,20 @@ export default function ChatBox() {
             {/* Typing Indicators */}
             {isTyping.admin && (
               <div className="flex justify-start animate-in fade-in duration-200">
-                <div className="bg-blue-100 text-blue-800 rounded-2xl px-4 py-2 text-sm flex items-center gap-2">
+                <div className="bg-blue-100 text-blue-800 rounded-2xl px-4 py-2 text-sm flex items-center gap-2 max-w-[85%] md:max-w-[75%]">
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                   </div>
-                  <span>Admin đang soạn tin...</span>
+                  <span className="text-sm">Admin đang soạn tin...</span>
                 </div>
               </div>
             )}
 
             {isTyping.ai && (
               <div className="flex justify-start animate-in fade-in duration-200">
-                <div className="bg-green-100 text-green-800 rounded-2xl px-4 py-3 flex items-center gap-3">
+                <div className="bg-green-100 text-green-800 rounded-2xl px-4 py-3 flex items-center gap-3 max-w-[85%] md:max-w-[75%]">
                   <span className="text-sm font-medium">AI đang suy nghĩ {aiTypingDots}</span>
                 </div>
               </div>
@@ -1174,7 +1261,7 @@ export default function ChatBox() {
           </div>
 
           {/* Input Area */}
-          <div className="p-3 border-t bg-white">
+          <div className="p-3 border-t bg-white safe-area-padding-bottom">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -1183,20 +1270,21 @@ export default function ChatBox() {
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={status.inputDisabled}
-                className={`flex-1 border border-gray-300 rounded-full px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition ${
+                className={`flex-1 border border-gray-300 rounded-full px-4 py-3 md:py-2.5 text-sm md:text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition ${
                   status.inputDisabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
                 }`}
               />
               <button
                 onClick={() => sendMessage(input)}
                 disabled={!input.trim() || status.inputDisabled}
-                className={`bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2.5 rounded-full font-medium shadow-md transition flex items-center gap-2 ${
+                className={`bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 md:px-5 py-3 md:py-2.5 rounded-full font-medium shadow-md transition flex items-center gap-1 md:gap-2 ${
                   !input.trim() || status.inputDisabled 
                     ? 'from-gray-300 to-gray-300 cursor-not-allowed' 
                     : 'hover:from-indigo-700 hover:to-purple-700'
                 }`}
               >
-                Gửi
+                <span className="md:hidden">📤</span>
+                <span className="hidden md:inline">Gửi</span>
               </button>
             </div>
             
@@ -1209,6 +1297,13 @@ export default function ChatBox() {
           </div>
         </div>
       )}
+
+      {/* Thêm CSS cho safe area trên mobile */}
+      <style jsx>{`
+        .safe-area-padding-bottom {
+          padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+        }
+      `}</style>
     </ChatContext.Provider>
   );
 }

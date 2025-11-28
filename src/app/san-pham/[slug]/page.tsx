@@ -226,37 +226,34 @@ export default function ProductDetailPage() {
     attributeValueMap,
   ]);
 
-  const handleBuyNow = useCallback(() => {
-    if (!selectedVariant || !product || !isAuthenticated) {
-      if (!isAuthenticated) setIsLoginModalOpen(true);
-      return;
-    }
+const handleBuyNow = useCallback(() => {
+  if (!selectedVariant || !product || !isAuthenticated) {
+    if (!isAuthenticated) setIsLoginModalOpen(true);
+    return;
+  }
 
-    const attributes = Object.fromEntries(
-      Object.entries(selectedVariant.attrValues).map(([attrId, valueId]) => [
-        attributeMap[Number(attrId)] || attrId,
-        attributeValueMap[valueId] || valueId,
-      ])
-    );
-
-    addToCart(
-      { productVariantId: selectedVariant.id, quantity: 1 },
-      {
-        onOptimisticSuccess: () => {
-          message.success("Đã thêm vào giỏ!");
+  addToCart(
+    { productVariantId: selectedVariant.id, quantity: 1 },
+    {
+      onSuccess: () => {
+        message.success("Đã thêm vào giỏ!");
+        // Thêm delay nhỏ để cache kịp update
+        setTimeout(() => {
           router.push("/dat-hang");
-        },
+        }, 300);
+      },
+      onError: () => {
+        message.error("Thêm vào giỏ thất bại!");
       }
-    );
-  }, [
-    selectedVariant,
-    product,
-    isAuthenticated,
-    addToCart,
-    attributeMap,
-    attributeValueMap,
-    router,
-  ]);
+    }
+  );
+}, [
+  selectedVariant,
+  product,
+  isAuthenticated,
+  addToCart,
+  router,
+]);
 
   const handleLoginModalOk = useCallback(() => {
     setIsLoginModalOpen(false);

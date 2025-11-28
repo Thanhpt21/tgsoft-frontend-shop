@@ -157,6 +157,21 @@ const OrderForm: React.FC = () => {
   }, [toggleSelectItem]);
 
 
+  // Tự động select tất cả items khi component mount
+  useEffect(() => {
+    if (items.length > 0 && selectedItems.size === 0) {
+      // Chỉ select tối đa 10 items đầu tiên
+      const idsToSelect = items.slice(0, 10).map(i => i.id);
+      selectAll(true, idsToSelect);
+      
+      // Nếu có nhiều hơn 10 items, hiển thị cảnh báo
+      if (items.length > 10) {
+        message.info(`Đã tự động chọn 10 sản phẩm đầu tiên (tối đa 10 sản phẩm)`);
+      }
+    }
+  }, [items, selectedItems.size, selectAll]);
+
+
   // Tính toán
   const temporaryTotal = getSelectedTotal();
   const currentShippingFee = shippingFee || 0
