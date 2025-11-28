@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Modal, Button, Image, Badge } from 'antd';
+import React, { useState } from "react";
+import { Modal, Button, Image, Badge } from "antd";
 import {
   ShoppingOutlined,
   CalendarOutlined,
@@ -12,19 +12,24 @@ import {
   CheckCircleOutlined,
   TruckOutlined,
   FileTextOutlined,
-} from '@ant-design/icons';
-import { useCurrent } from '@/hooks/auth/useCurrent';
-import { useOrdersByUser } from '@/hooks/order/useOrdersByUser';
-import { formatDate } from '@/utils/helpers';
-import { Order } from '@/types/order.type';
-import { getImageUrl } from '@/utils/getImageUrl';
-import Link from 'next/link';
-import { GiftProductDisplay } from '../common/GiftProductDisplay';
+} from "@ant-design/icons";
+import { useCurrent } from "@/hooks/auth/useCurrent";
+import { useOrdersByUser } from "@/hooks/order/useOrdersByUser";
+import { formatDate } from "@/utils/helpers";
+import { Order } from "@/types/order.type";
+import { getImageUrl } from "@/utils/getImageUrl";
+import Link from "next/link";
+import { GiftProductDisplay } from "../common/GiftProductDisplay";
 
 const PurchaseHistory: React.FC = () => {
   const { data: currentUser } = useCurrent();
   const userId = currentUser?.id;
-  const { data: ordersData, isLoading, isError, error } = useOrdersByUser({ userId });
+  const {
+    data: ordersData,
+    isLoading,
+    isError,
+    error,
+  } = useOrdersByUser({ userId });
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   const orders = ordersData?.data ?? [];
@@ -44,24 +49,48 @@ const PurchaseHistory: React.FC = () => {
 
   const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'DRAFT':
-        return { text: 'Đang soạn đơn', color: 'bg-gray-100 text-gray-700', icon: <FileTextOutlined /> };
-      case 'PENDING':
-        return { text: 'Đang chờ xử lý', color: 'bg-yellow-100 text-yellow-700', icon: <ClockCircleOutlined /> };
-      case 'PAID':
-        return { text: 'Đã thanh toán', color: 'bg-blue-100 text-blue-700', icon: <CheckCircleOutlined /> };
-      case 'SHIPPED':
-        return { text: 'Đang giao hàng', color: 'bg-purple-100 text-purple-700', icon: <TruckOutlined /> };
-      case 'DELIVERED':
-        return { text: 'Đã giao hàng', color: 'bg-green-100 text-green-700', icon: <CheckCircleOutlined /> };
+      case "DRAFT":
+        return {
+          text: "Đang soạn đơn",
+          color: "bg-gray-100 text-gray-700",
+          icon: <FileTextOutlined />,
+        };
+      case "PENDING":
+        return {
+          text: "Đang chờ xử lý",
+          color: "bg-yellow-100 text-yellow-700",
+          icon: <ClockCircleOutlined />,
+        };
+      case "PAID":
+        return {
+          text: "Đã thanh toán",
+          color: "bg-blue-100 text-blue-700",
+          icon: <CheckCircleOutlined />,
+        };
+      case "SHIPPED":
+        return {
+          text: "Đang giao hàng",
+          color: "bg-purple-100 text-purple-700",
+          icon: <TruckOutlined />,
+        };
+      case "DELIVERED":
+        return {
+          text: "Đã giao hàng",
+          color: "bg-green-100 text-green-700",
+          icon: <CheckCircleOutlined />,
+        };
       default:
-        return { text: 'Chưa xác định', color: 'bg-gray-100 text-gray-700', icon: <FileTextOutlined /> };
+        return {
+          text: "Chưa xác định",
+          color: "bg-gray-100 text-gray-700",
+          icon: <FileTextOutlined />,
+        };
     }
   };
 
   const formatShippingInfo = (shippingInfo?: any) => {
-    if (!shippingInfo) return 'Chưa có thông tin giao hàng';
-    
+    if (!shippingInfo) return "Chưa có thông tin giao hàng";
+
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2">
@@ -75,7 +104,11 @@ const PurchaseHistory: React.FC = () => {
         <div className="flex items-start gap-2">
           <EnvironmentOutlined className="text-gray-400 mt-1" />
           <span className="flex-1">
-            {`${shippingInfo.address || ''}, ${shippingInfo.ward_name || ''}, ${shippingInfo.district_name || ''}, ${shippingInfo.province_name || ''}`.replace(/, , /g, ', ').replace(/^, |, $/g, '')}
+            {`${shippingInfo.address || ""}, ${shippingInfo.ward_name || ""}, ${
+              shippingInfo.district_name || ""
+            }, ${shippingInfo.province_name || ""}`
+              .replace(/, , /g, ", ")
+              .replace(/^, |, $/g, "")}
           </span>
         </div>
       </div>
@@ -110,7 +143,9 @@ const PurchaseHistory: React.FC = () => {
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
-          <p className="text-gray-600 font-medium">Đang tải lịch sử đơn hàng...</p>
+          <p className="text-gray-600 font-medium">
+            Đang tải lịch sử đơn hàng...
+          </p>
         </div>
       </div>
     );
@@ -120,7 +155,9 @@ const PurchaseHistory: React.FC = () => {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center bg-red-50 rounded-xl p-8">
-          <p className="text-red-600 font-semibold">Lỗi khi tải đơn hàng: {error?.message}</p>
+          <p className="text-red-600 font-semibold">
+            Lỗi khi tải đơn hàng: {error?.message}
+          </p>
         </div>
       </div>
     );
@@ -130,7 +167,9 @@ const PurchaseHistory: React.FC = () => {
     <div className="w-full">
       {/* Header */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Lịch sử mua hàng</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Lịch sử mua hàng
+        </h2>
         <p className="text-gray-600">
           Quản lý và theo dõi tất cả đơn hàng của bạn ({orders.length} đơn)
         </p>
@@ -163,11 +202,12 @@ const PurchaseHistory: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className={`px-4 py-2 rounded-full font-semibold flex items-center gap-2 ${statusConfig.color}`}>
+                      <div
+                        className={`px-4 py-2 rounded-full font-semibold flex items-center gap-2 ${statusConfig.color}`}
+                      >
                         {statusConfig.icon}
                         {statusConfig.text}
                       </div>
-                   
                     </div>
                   </div>
                 </div>
@@ -178,17 +218,22 @@ const PurchaseHistory: React.FC = () => {
                   <div className="space-y-3 mb-4">
                     {order.items?.slice(0, 3).map((item) => {
                       const imageUrl = getImageUrl(
-                        item.productVariant?.thumb || 
-                        item.productVariant?.product?.thumb || 
-                        null
+                        item.productVariant?.thumb ||
+                          item.productVariant?.product?.thumb ||
+                          null
                       );
-                      
+
                       return (
-                        <div key={item.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                        >
                           <div className="w-16 h-16 rounded-lg overflow-hidden shadow-md flex-shrink-0 bg-white">
                             <Image
-                              src={imageUrl || '/images/no-image.png'}
-                              alt={item.productVariant?.product?.name || 'Sản phẩm'}
+                              src={imageUrl || "/images/no-image.png"}
+                              alt={
+                                item.productVariant?.product?.name || "Sản phẩm"
+                              }
                               preview={false}
                               className="w-full h-full object-cover"
                               fallback="/images/no-image.png"
@@ -199,11 +244,14 @@ const PurchaseHistory: React.FC = () => {
                               {item.productVariant?.product?.name}
                             </h4>
                             <p className="text-sm text-gray-500">
-                              Số lượng: {item.quantity} × {item.unitPrice?.toLocaleString('vi-VN')}₫
+                              Số lượng: {item.quantity} ×{" "}
+                              {item.unitPrice?.toLocaleString("vi-VN")}₫
                             </p>
                           </div>
-                          {order.status === 'DELIVERED' && (
-                            <Link href={`/san-pham/${item.productVariant?.product?.slug}`}>
+                          {order.status === "DELIVERED" && (
+                            <Link
+                              href={`/san-pham/${item.productVariant?.product?.slug}`}
+                            >
                               <Button
                                 type="primary"
                                 icon={<StarOutlined />}
@@ -213,15 +261,17 @@ const PurchaseHistory: React.FC = () => {
                               </Button>
                             </Link>
                           )}
-                           {item.giftProductId && item.giftQuantity && (
-                            <div className="ml-20 mt-2"> {/* Thụt vào để thấy rõ là quà kèm */}
-                              <GiftProductDisplay 
+                          {item.giftProductId && item.giftQuantity && (
+                            <div className="ml-20 mt-2">
+                              {" "}
+                              {/* Thụt vào để thấy rõ là quà kèm */}
+                              <GiftProductDisplay
                                 giftProductId={item.giftProductId}
                                 giftQuantity={item.giftQuantity}
                               />
                             </div>
                           )}
-                                          </div>
+                        </div>
                       );
                     })}
                     {order.items && order.items.length > 3 && (
@@ -238,7 +288,10 @@ const PurchaseHistory: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-4">
                       <span className="text-2xl font-bold text-blue-600">
-                        {order.totalAmount?.toLocaleString('vi-VN')}₫
+                        {(
+                          (order.totalAmount || 0) + (order.shippingFee || 0)
+                        )?.toLocaleString("vi-VN")}
+                        ₫
                       </span>
                       <Button
                         type="primary"
@@ -257,8 +310,12 @@ const PurchaseHistory: React.FC = () => {
       ) : (
         <div className="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
           <ShoppingOutlined className="text-6xl text-gray-300 mb-4" />
-          <p className="text-gray-500 text-lg font-medium mb-2">Chưa có đơn hàng nào</p>
-          <p className="text-gray-400 mb-6">Bắt đầu mua sắm để xem lịch sử đơn hàng</p>
+          <p className="text-gray-500 text-lg font-medium mb-2">
+            Chưa có đơn hàng nào
+          </p>
+          <p className="text-gray-400 mb-6">
+            Bắt đầu mua sắm để xem lịch sử đơn hàng
+          </p>
           <Link href="/san-pham">
             <Button
               type="primary"
@@ -298,16 +355,26 @@ const PurchaseHistory: React.FC = () => {
             {/* Status and Date */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                <div className="text-sm text-gray-600 mb-1">Trạng thái đơn hàng</div>
-                <div className={`inline-flex px-4 py-2 rounded-full font-semibold ${getStatusConfig(selectedOrder.status).color}`}>
+                <div className="text-sm text-gray-600 mb-1">
+                  Trạng thái đơn hàng
+                </div>
+                <div
+                  className={`inline-flex px-4 py-2 rounded-full font-semibold ${
+                    getStatusConfig(selectedOrder.status).color
+                  }`}
+                >
                   {getStatusConfig(selectedOrder.status).icon}
-                  <span className="ml-2">{getStatusConfig(selectedOrder.status).text}</span>
+                  <span className="ml-2">
+                    {getStatusConfig(selectedOrder.status).text}
+                  </span>
                 </div>
               </div>
               <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-                <div className="text-sm text-gray-600 mb-1">Phương thức thanh toán</div>
+                <div className="text-sm text-gray-600 mb-1">
+                  Phương thức thanh toán
+                </div>
                 <div className="font-bold text-gray-900">
-                  {selectedOrder.paymentMethod?.name || 'Chưa xác định'}
+                  {selectedOrder.paymentMethod?.name || "Chưa xác định"}
                 </div>
               </div>
             </div>
@@ -321,54 +388,73 @@ const PurchaseHistory: React.FC = () => {
               {formatShippingInfo(selectedOrder.shippingInfo)}
               {selectedOrder.shippingInfo?.note && (
                 <div className="mt-4 p-3 bg-white/60 rounded-lg border border-purple-200">
-                  <span className="text-sm font-semibold text-gray-700">Ghi chú: </span>
-                  <span className="text-sm text-gray-600">{selectedOrder.shippingInfo.note}</span>
+                  <span className="text-sm font-semibold text-gray-700">
+                    Ghi chú:{" "}
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    {selectedOrder.shippingInfo.note}
+                  </span>
                 </div>
               )}
             </div>
 
             {/* Products */}
             <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Sản phẩm đã mua</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-4">
+                Sản phẩm đã mua
+              </h3>
               <div className="space-y-3">
                 {selectedOrder.items?.map((item: any) => {
                   const imageUrl = getImageUrl(
-                    item.productVariant?.thumb || 
-                    item.productVariant?.product?.thumb || 
-                    null
+                    item.productVariant?.thumb ||
+                      item.productVariant?.product?.thumb ||
+                      null
                   );
-                  
+
                   return (
-                    <div key={item.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200"
+                    >
                       <div className="w-20 h-20 rounded-lg overflow-hidden shadow-md flex-shrink-0 bg-white">
-                        <Image 
-                          src={imageUrl || '/images/no-image.png'} 
-                          alt="Product" 
+                        <Image
+                          src={imageUrl || "/images/no-image.png"}
+                          alt="Product"
                           preview={false}
                           className="w-full h-full object-cover"
                           fallback="/images/no-image.png"
                         />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900">{item.productVariant?.product?.name}</h4>
-                        <p className="text-sm text-gray-500">SKU: {item.productVariant.sku}</p>
+                        <h4 className="font-semibold text-gray-900">
+                          {item.productVariant?.product?.name}
+                        </h4>
+                        <p className="text-sm text-gray-500">
+                          SKU: {item.productVariant.sku}
+                        </p>
                         <p className="text-sm text-gray-600 mt-1">
-                          {item.quantity} × {item.unitPrice?.toLocaleString('vi-VN')}₫
+                          {item.quantity} ×{" "}
+                          {item.unitPrice?.toLocaleString("vi-VN")}₫
                         </p>
                       </div>
                       <div className="text-right">
                         <div className="text-lg font-bold text-blue-600">
-                          {(item.quantity * (item.unitPrice || 0))?.toLocaleString('vi-VN')}₫
+                          {(
+                            item.quantity * (item.unitPrice || 0)
+                          )?.toLocaleString("vi-VN")}
+                          ₫
                         </div>
                       </div>
-                       {item.giftProductId && item.giftQuantity && (
-                          <div className="ml-24 mt-2"> {/* Thụt vào để thấy rõ là quà kèm */}
-                            <GiftProductDisplay 
-                              giftProductId={item.giftProductId}
-                              giftQuantity={item.giftQuantity}
-                            />
-                          </div>
-                        )}
+                      {item.giftProductId && item.giftQuantity && (
+                        <div className="ml-24 mt-2">
+                          {" "}
+                          {/* Thụt vào để thấy rõ là quà kèm */}
+                          <GiftProductDisplay
+                            giftProductId={item.giftProductId}
+                            giftQuantity={item.giftQuantity}
+                          />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -377,16 +463,31 @@ const PurchaseHistory: React.FC = () => {
 
             {/* Total */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 text-white">
+              {/* Tổng tiền hàng */}
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-white/80">Tổng tiền hàng:</span>
+                <span className="font-semibold text-lg">
+                  {(selectedOrder.totalAmount || 0)?.toLocaleString("vi-VN")}₫
+                </span>
+              </div>
+
+              {/* Phí vận chuyển */}
               <div className="flex items-center justify-between mb-3">
                 <span className="text-white/80">Phí vận chuyển:</span>
                 <span className="font-semibold text-lg">
-                  {(selectedOrder.shippingFee || 0)?.toLocaleString('vi-VN')}₫
+                  {(selectedOrder.shippingFee || 0)?.toLocaleString("vi-VN")}₫
                 </span>
               </div>
+
+              {/* Tổng thanh toán (cộng phí ship) */}
               <div className="flex items-center justify-between pt-3 border-t border-white/30">
                 <span className="text-xl font-bold">Tổng thanh toán:</span>
                 <span className="text-3xl font-bold">
-                  {selectedOrder.totalAmount?.toLocaleString('vi-VN')}₫
+                  {(
+                    (selectedOrder.totalAmount || 0) +
+                    (selectedOrder.shippingFee || 0)
+                  )?.toLocaleString("vi-VN")}
+                  ₫
                 </span>
               </div>
             </div>

@@ -85,12 +85,15 @@ export default function ProductDetailPage() {
 
   // useMemo: categoryName
   const categoryName = useMemo(() => {
-    return allCategories?.find((cat: any) => cat.id === currentProduct?.categoryId)?.name;
+    return allCategories?.find(
+      (cat: any) => cat.id === currentProduct?.categoryId
+    )?.name;
   }, [allCategories, currentProduct?.categoryId]);
 
   // useMemo: brandName
   const brandName = useMemo(() => {
-    return allBrands?.find((brand: any) => brand.id === currentProduct?.brandId)?.name;
+    return allBrands?.find((brand: any) => brand.id === currentProduct?.brandId)
+      ?.name;
   }, [allBrands, currentProduct?.brandId]);
 
   // useMemo: images
@@ -226,34 +229,28 @@ export default function ProductDetailPage() {
     attributeValueMap,
   ]);
 
-const handleBuyNow = useCallback(() => {
-  if (!selectedVariant || !product || !isAuthenticated) {
-    if (!isAuthenticated) setIsLoginModalOpen(true);
-    return;
-  }
-
-  addToCart(
-    { productVariantId: selectedVariant.id, quantity: 1 },
-    {
-      onSuccess: () => {
-        message.success("Đã thêm vào giỏ!");
-        // Thêm delay nhỏ để cache kịp update
-        setTimeout(() => {
-          router.push("/dat-hang");
-        }, 300);
-      },
-      onError: () => {
-        message.error("Thêm vào giỏ thất bại!");
-      }
+  const handleBuyNow = useCallback(() => {
+    if (!selectedVariant || !product || !isAuthenticated) {
+      if (!isAuthenticated) setIsLoginModalOpen(true);
+      return;
     }
-  );
-}, [
-  selectedVariant,
-  product,
-  isAuthenticated,
-  addToCart,
-  router,
-]);
+
+    addToCart(
+      { productVariantId: selectedVariant.id, quantity: 1 },
+      {
+        onSuccess: () => {
+          message.success("Đã thêm vào giỏ!");
+          // Thêm delay nhỏ để cache kịp update
+          setTimeout(() => {
+            router.push("/dat-hang");
+          }, 300);
+        },
+        onError: () => {
+          message.error("Thêm vào giỏ thất bại!");
+        },
+      }
+    );
+  }, [selectedVariant, product, isAuthenticated, addToCart, router]);
 
   const handleLoginModalOk = useCallback(() => {
     setIsLoginModalOpen(false);
@@ -293,33 +290,30 @@ const handleBuyNow = useCallback(() => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+    <div className="min-h-screen ">
       <div className="container mx-auto px-2 py-3 md:px-3 lg:px-4 max-w-[1400px]">
         {/* Modern Breadcrumb */}
-        <div className="mb-8 bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/50">
-          <Breadcrumb className="text-sm">
-            <Breadcrumb.Item>
-              <Link
+
+        <div className="border-b border-gray-200 mb-8">
+          <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-4">
+            <div className="flex items-center gap-2 text-sm">
+              <a
                 href="/"
-                className="text-gray-600 hover:text-blue-600 transition-colors font-medium"
+                className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
               >
-                🏠 Trang chủ
-              </Link>
-            </Breadcrumb.Item>
-            <Breadcrumb.Item>
-              <Link
+                Trang chủ
+              </a>
+              <span className="text-gray-400">/</span>
+              <a
                 href="/san-pham"
-                className="text-gray-600 hover:text-blue-600 transition-colors font-medium"
+                className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
               >
-                🛍️ Sản phẩm
-              </Link>
-            </Breadcrumb.Item>
-            <Breadcrumb.Item>
-              <span className="text-blue-600 font-semibold">
-                {currentProduct.name}
-              </span>
-            </Breadcrumb.Item>
-          </Breadcrumb>
+                Sản phẩm
+              </a>
+              <span className="text-gray-400">/</span>
+              <span className="text-gray-600">{currentProduct.name}</span>
+            </div>
+          </div>
         </div>
 
         {/* Main Product Section */}
@@ -372,22 +366,27 @@ const handleBuyNow = useCallback(() => {
               </Title>
             </div>
             <div className="flex items-center gap-1 sm:gap-2 mb-3 sm:mb-4">
-            <Rate
-              disabled
-              allowHalf
-              value={currentProduct.totalRatings}
-              style={{ fontSize: "15px" }}
-              className="text-yellow-400 sm:text-[13px]"
-            />
-            <span className="text-gray-400 text-[9px] sm:text-xs">
-              ({currentProduct.totalReviews} đánh giá)
-            </span>
-          </div>
+              <Rate
+                disabled
+                allowHalf
+                value={currentProduct.totalRatings}
+                style={{ fontSize: "15px" }}
+                className="text-yellow-400 sm:text-[13px]"
+              />
+              <span className="text-gray-400 text-[9px] sm:text-xs">
+                ({currentProduct.totalReviews} đánh giá)
+              </span>
+            </div>
             {/* Badge khuyến mãi nổi bật */}
             {currentProduct.promotionProducts &&
             currentProduct.promotionProducts.length > 0 ? (
               <div className="mb-4 p-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl shadow-lg flex items-center gap-3 animate-pulse">
-                <span className="text-2xl">{currentProduct.promotionProducts[0].promotion.isFlashSale === true ? 'FlashSale' : ''}</span>
+                <span className="text-2xl">
+                  {currentProduct.promotionProducts[0].promotion.isFlashSale ===
+                  true
+                    ? "FlashSale"
+                    : ""}
+                </span>
                 <div className="flex-1">
                   <div className="font-bold text-lg">
                     {currentProduct.promotionProducts[0].promotion.name}
@@ -414,53 +413,65 @@ const handleBuyNow = useCallback(() => {
             )}
 
             {/* Quà tặng kèm */}
-            {currentProduct.promotionProducts && 
-             currentProduct.promotionProducts.length > 0 && 
-             currentProduct.promotionProducts[0].giftProduct && (
-              <div className="mb-4 bg-gradient-to-r from-pink-50 via-purple-50 to-blue-50 rounded-2xl p-5 border-2 border-pink-200 shadow-md">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-2xl">🎁</span>
-                  <span className="font-bold text-lg bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                    Quà tặng kèm
-                  </span>
-                  <span className="ml-auto bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                    MIỄN PHÍ
-                  </span>
-                </div>
-                <div className="flex items-center gap-4 bg-white rounded-xl p-3 shadow-sm">
-                  <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border-2 border-pink-200 shadow-sm">
-                    <img 
-                      src={getImageUrl(currentProduct.promotionProducts[0].giftProduct.thumb) || ''}
-                      alt={currentProduct.promotionProducts[0].giftProduct.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-bl-lg">
-                      x{currentProduct.promotionProducts[0].giftQuantity}
+            {currentProduct.promotionProducts &&
+              currentProduct.promotionProducts.length > 0 &&
+              currentProduct.promotionProducts[0].giftProduct && (
+                <div className="mb-4 bg-gradient-to-r from-pink-50 via-purple-50 to-blue-50 rounded-2xl p-5 border-2 border-pink-200 shadow-md">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-2xl">🎁</span>
+                    <span className="font-bold text-lg bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                      Quà tặng kèm
+                    </span>
+                    <span className="ml-auto bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                      MIỄN PHÍ
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 bg-white rounded-xl p-3 shadow-sm">
+                    <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border-2 border-pink-200 shadow-sm">
+                      <img
+                        src={
+                          getImageUrl(
+                            currentProduct.promotionProducts[0].giftProduct
+                              .thumb
+                          ) || ""
+                        }
+                        alt={
+                          currentProduct.promotionProducts[0].giftProduct.name
+                        }
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-bl-lg">
+                        x{currentProduct.promotionProducts[0].giftQuantity}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-800 mb-1">
+                        {currentProduct.promotionProducts[0].giftProduct.name}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500 line-through">
+                          {currentProduct.promotionProducts[0].giftProduct.basePrice.toLocaleString()}
+                          đ
+                        </span>
+                        <span className="text-sm font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                          Tặng{" "}
+                          {currentProduct.promotionProducts[0].giftQuantity} sản
+                          phẩm
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-gray-800 mb-1">
-                      {currentProduct.promotionProducts[0].giftProduct.name}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500 line-through">
-                        {currentProduct.promotionProducts[0].giftProduct.basePrice.toLocaleString()}đ
-                      </span>
-                      <span className="text-sm font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">
-                        Tặng {currentProduct.promotionProducts[0].giftQuantity} sản phẩm
-                      </span>
-                    </div>
+                  <div className="mt-3 text-center text-sm text-gray-600 bg-white/50 rounded-lg py-2 px-3">
+                    💝 Tự động thêm vào đơn hàng khi mua sản phẩm này
                   </div>
                 </div>
-                <div className="mt-3 text-center text-sm text-gray-600 bg-white/50 rounded-lg py-2 px-3">
-                  💝 Tự động thêm vào đơn hàng khi mua sản phẩm này
-                </div>
-              </div>
-            )}
+              )}
 
             {/* Price Card với khuyến mãi */}
             {currentProduct.promotionProducts &&
-            currentProduct.promotionProducts.length > 0 ? (
+            currentProduct.promotionProducts.length > 0 &&
+            selectedVariant ? (
+              // Hiển thị giá khuyến mãi khi đã chọn biến thể
               <div className="bg-gradient-to-r from-red-600 via-orange-600 to-pink-600 rounded-2xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-300 relative overflow-hidden">
                 {/* Badge chương trình khuyến mãi */}
                 <div className="absolute top-2 right-2 bg-yellow-400 text-red-800 text-xs font-bold px-3 py-1 rounded-full shadow-md animate-pulse">
@@ -499,6 +510,42 @@ const handleBuyNow = useCallback(() => {
                   </span>
                 </div>
               </div>
+            ) : currentProduct.promotionProducts &&
+              currentProduct.promotionProducts.length > 0 &&
+              !selectedVariant ? (
+              // Hiển thị giá gốc + thông báo khi chưa chọn biến thể
+              <div className="space-y-3">
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-sm font-medium opacity-90">
+                      Giá bán:
+                    </span>
+                    <span className="text-4xl font-bold">
+                      {currentProduct.basePrice?.toLocaleString()}
+                    </span>
+                    <span className="text-xl font-medium">VNĐ</span>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-4 border-2 border-yellow-200 shadow-md">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl flex-shrink-0">🎯</span>
+                    <div>
+                      <div className="font-bold text-yellow-800 mb-1">
+                        {currentProduct.promotionProducts[0].promotion.name}
+                      </div>
+                      <div className="text-sm text-yellow-700">
+                        Vui lòng chọn phiên bản sản phẩm để xem giá khuyến mãi
+                      </div>
+                      <div className="text-xs text-yellow-600 mt-1 opacity-80">
+                        Kết thúc:{" "}
+                        {new Date(
+                          currentProduct.promotionProducts[0].promotion.endTime
+                        ).toLocaleString("vi-VN")}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ) : (
               /* Giá thường (không có khuyến mãi) */
               <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-300">
@@ -507,7 +554,9 @@ const handleBuyNow = useCallback(() => {
                     Giá bán:
                   </span>
                   <span className="text-4xl font-bold">
-                    {finalPrice.toLocaleString()}
+                    {selectedVariant
+                      ? finalPrice.toLocaleString()
+                      : currentProduct.basePrice?.toLocaleString()}
                   </span>
                   <span className="text-xl font-medium">VNĐ</span>
                 </div>
