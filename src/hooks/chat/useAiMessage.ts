@@ -1,9 +1,8 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Product } from '@/types/product.type';
 import { ChatMessage } from '@/components/layout/ChatBox';
 import { useTenantAdminShop } from '../user/useTenantAdminShop';
 import { useUpdateTenantAdminShopTokens } from '../user/useUpdateTenantAdminShopTokens';
-
 
 interface UseAiMessageProps {
   conversationId: number | null;
@@ -32,10 +31,10 @@ export const useAiMessage = ({
 }: UseAiMessageProps) => {
   const AI_URL = process.env.NEXT_PUBLIC_AI_URL!;
   const [isAiProcessing, setIsAiProcessing] = useState(false);
-  const tenantId = Number(process.env.NEXT_PUBLIC_TENANT_ID  || 1)
+  const tenantId = Number(process.env.NEXT_PUBLIC_TENANT_ID || 1);
+
   // ✅ Lấy thông tin admin shop
   const { data: adminShop, isLoading: isLoadingAdminShop } = useTenantAdminShop(tenantId);
-  console.log("adminShop", adminShop)
 
   // ✅ Hook update tokens
   const updateTokensMutation = useUpdateTenantAdminShopTokens();
@@ -43,14 +42,12 @@ export const useAiMessage = ({
   // ✅ Hàm kiểm tra token AI
   const checkAiTokensAvailable = useCallback(() => {
     if (!adminShop) {
-      console.warn('⚠️ Admin shop not loaded yet');
       return { available: false, tokens: 0, message: 'Đang tải thông tin token...' };
     }
 
     const availableTokens = adminShop.tokenAI || 0;
     
     if (availableTokens <= 0) {
-      console.warn('❌ No AI tokens available:', availableTokens);
       return { 
         available: false, 
         tokens: availableTokens, 
@@ -58,7 +55,6 @@ export const useAiMessage = ({
       };
     }
 
-    console.log('✅ AI tokens available:', availableTokens);
     return { 
       available: true, 
       tokens: availableTokens, 
@@ -66,22 +62,15 @@ export const useAiMessage = ({
     };
   }, [adminShop]);
 
-  // ✅ Hàm cập nhật token - SỬ DỤNG MUTATION THẬT
+  // ✅ Hàm cập nhật token
   const updateAiTokens = useCallback(async (tokensUsed: number) => {
     if (!adminShop || !tokensUsed || tokensUsed <= 0) return;
 
-    const currentTokens = adminShop.tokenAI || 0;
-    const newTokens = Math.max(0, currentTokens - tokensUsed);
-    
-    console.log(`📊 Updating tokens: ${currentTokens} - ${tokensUsed} = ${newTokens}`);
-    
     try {
-      // ✅ GỌI API UPDATE TOKENS THẬT
       await updateTokensMutation.mutateAsync({
         tokensUsed,
         tenantId
       });
-      
       console.log(`✅ Tokens updated successfully. Used: ${tokensUsed}`);
     } catch (error) {
       console.error('❌ Failed to update tokens:', error);
@@ -89,222 +78,89 @@ export const useAiMessage = ({
     }
   }, [adminShop, tenantId, updateTokensMutation]);
 
-  // Các hàm xử lý tin nhắn đặc biệt (giữ nguyên)
-  const checkMessageType = (msg: string) => {
-    const lowerMsg = msg.toLowerCase().trim();
-    const greetingKeywords = ['xin chào', 'hello', 'hi', 'chào', 'helo', 'hi there'];
-    const thankYouKeywords = ['cảm ơn', 'thanks', 'thank you', 'cám ơn', 'thank'];
-    const goodbyeKeywords = ['tạm biệt', 'goodbye', 'bye', 'see you', 'bai'];
-    
-    return {
-      isGreeting: greetingKeywords.some(keyword => lowerMsg.includes(keyword)),
-      isThankYou: thankYouKeywords.some(keyword => lowerMsg.includes(keyword)),
-      isGoodbye: goodbyeKeywords.some(keyword => lowerMsg.includes(keyword)),
-      isSimpleQuestion: lowerMsg.includes('?') && lowerMsg.length < 30,
-      lowerMsg
-    };
-  };
-
-  const handleGreeting = (currentConvId: number | null, isGuestMode: boolean, tempId: string) => {
-    const greetings = isGuestMode 
-      ? [
-          "Xin chào! 👋 Tôi là AI trợ lý của cửa hàng. Tôi có thể giúp gì cho bạn?",
-          "Chào bạn! 😊 Rất vui được gặp bạn. Bạn cần tìm sản phẩm gì?",
-          "Hello! Tôi ở đây để hỗ trợ bạn. Bạn đang tìm kiếm sản phẩm nào?",
-          "Chào mừng bạn! 🎉 Tôi có thể giúp bạn tìm các sản phẩm phù hợp."
-        ]
-      : [
-          `Xin chào ${currentUser?.name || 'bạn'}! 👋 Tôi là AI trợ lý của cửa hàng. Tôi có thể giúp gì cho bạn?`,
-          `Chào ${currentUser?.name || 'bạn'}! 😊 Rất vui được gặp bạn. Bạn cần tìm sản phẩm gì?`,
-          `Hello ${currentUser?.name || 'bạn'}! Tôi ở đây để hỗ trợ bạn. Bạn đang tìm kiếm sản phẩm nào?`,
-          `Chào mừng ${currentUser?.name || 'bạn'} trở lại! 🎉 Tôi có thể giúp bạn tìm các sản phẩm phù hợp.`
-        ];
-    
-    const finalAiText = greetings[Math.floor(Math.random() * greetings.length)];
-    
-    return {
-      finalAiText,
-      shouldSave: !isGuestMode && !!currentConvId,
-      tempId
-    };
-  };
-
-  const handleThankYou = (currentConvId: number | null, isGuestMode: boolean, tempId: string) => {
-    const thankYouResponses = [
-      "Không có gì! 😊 Rất vui được giúp đỡ bạn. Nếu cần thêm gì, cứ hỏi nhé!",
-      "Cảm ơn bạn! 💖 Nếu bạn có thắc mắc gì khác, tôi luôn sẵn sàng hỗ trợ.",
-      "Rất hân hạnh! 👍 Chúc bạn một ngày tốt lành!",
-      "Không có chi! ✨ Tôi rất vui khi được hỗ trợ bạn."
-    ];
-    
-    const finalAiText = thankYouResponses[Math.floor(Math.random() * thankYouResponses.length)];
-    
-    return {
-      finalAiText,
-      shouldSave: !isGuestMode && !!currentConvId,
-      tempId
-    };
-  };
-
-  const handleGoodbye = (currentConvId: number | null, isGuestMode: boolean, tempId: string) => {
-    const goodbyeResponses = [
-      "Tạm biệt bạn! 👋 Hẹn gặp lại!",
-      "Chúc bạn một ngày tốt lành! 🌟",
-      "Tạm biệt! Cảm ơn bạn đã ghé thăm!",
-      "Hẹn gặp lại bạn! 😊"
-    ];
-    
-    const finalAiText = goodbyeResponses[Math.floor(Math.random() * goodbyeResponses.length)];
-    
-    return {
-      finalAiText,
-      shouldSave: !isGuestMode && !!currentConvId,
-      tempId
-    };
-  };
-
-  const handleSimpleQuestion = (lowerMsg: string, currentConvId: number | null, isGuestMode: boolean, tempId: string) => {
-    const simpleQuestions: { [key: string]: string } = {
-      'giờ mở cửa': 'Cửa hàng mở cửa từ 8:00 đến 22:00 hàng ngày.',
-      'địa chỉ': 'Cửa hàng chúng tôi tại 123 Đường ABC, Quận XYZ, TP.HCM.',
-      'ship hàng': 'Chúng tôi ship hàng toàn quốc, phí ship từ 20.000đ.',
-      'thanh toán': 'Chấp nhận thanh toán tiền mặt, chuyển khoản, ví điện tử.',
-      'đổi trả': 'Chính sách đổi trả trong 7 ngày với sản phẩm còn nguyên tem.',
-      'giá ship': 'Phí ship nội thành 20.000đ, ngoại thành 30.000đ, toàn quốc từ 35.000đ.',
-      'khuyến mãi': 'Hiện đang có nhiều chương trình khuyến mãi. Bạn có thể xem chi tiết trên website!',
-    };
-
-    const matchedQuestion = Object.keys(simpleQuestions).find(question => 
-      lowerMsg.includes(question)
-    );
-
-    if (matchedQuestion) {
-      return {
-        finalAiText: simpleQuestions[matchedQuestion],
-        shouldSave: !isGuestMode && !!currentConvId,
-        tempId
-      };
-    }
-
-    return null;
-  };
-
-  // Gọi AI API - VỚI KIỂM TRA TOKEN
-  const callAiApi = async (msg: string, relevantProducts: Product[]) => {
-    // ✅ KIỂM TRA TOKEN TRƯỚC KHI GỌI AI
-    const tokenCheck = checkAiTokensAvailable();
-    if (!tokenCheck.available) {
-      throw new Error(tokenCheck.message);
-    }
-
+  // ✅ Gọi AI API - SIMPLIFIED VERSION
+  const callAiApi = async (msg: string) => {
     const token = process.env.NEXT_PUBLIC_AI_PUBLIC_TOKEN;
     if (!token) throw new Error('No AI token');
 
-    const productList = relevantProducts.map((product: Product) => 
-      `- ${product.name} (Giá: ${product.basePrice.toLocaleString('vi-VN')}đ) - Link: san-pham/${product.slug}${product.description ? ` - Mô tả: ${product.description}` : ''}${product.promotionProducts && product.promotionProducts.length > 0 ? ' - ĐANG KHUYẾN MÃI' : ''}`
-    ).join('\n');
+    // Backend của bạn cần endpoint /v1/chat
+    const AI_ENDPOINT = `${AI_URL}/chat`;
 
-    let finalPrompt = '';
-    if (textPromptAi) {
-      if (relevantProducts.length > 0) {
-        finalPrompt = `${textPromptAi}
+    console.log('🤖 Calling AI endpoint:', AI_ENDPOINT);
+    console.log('📝 User message:', msg);
 
-DANH SÁCH SẢN PHẨM HIỆN CÓ TRONG CỬA HÀNG:
-${productList}
-
-QUY TẮC BẮT BUỘC TUYỆT ĐỐI:
-1. CHỈ ĐƯỢC gợi ý sản phẩm CÓ TRONG DANH SÁCH TRÊN
-2. TUYỆT ĐỐI KHÔNG được tạo ra, bịa đặt, hoặc gợi ý sản phẩm KHÔNG CÓ trong danh sách
-3. Khi gợi ý sản phẩm, LUÔN đính kèm link theo định dạng: [Xem sản phẩm](san-pham/{slug})
-4. Mỗi tin nhắn chỉ gợi ý tối đa 2 sản phẩm
-5. Nếu không có sản phẩm phù hợp, hãy trả lời lịch sự và đề nghị họ thử từ khóa khác
-6. Luôn đề cập đến giá cả và link sản phẩm khi giới thiệu
-7. Nếu sản phẩm có khuyến mãi, hãy thông báo cho khách hàng
-8. Luôn trả lời thân thiện, nhiệt tình
-
-CÂU HỎI CỦA KHÁCH: "${msg}"
-
-HÃY TƯ VẤN VÀ GỢI Ý SẢN PHẨM (CHỈ TRONG DANH SÁCH TRÊN):`;
-      } else {
-        finalPrompt = `${textPromptAi}
-
-QUY TẮC BẮT BUỘC:
-- Nếu không tìm thấy sản phẩm phù hợp, hãy trả lời lịch sự: "Hiện chưa có sản phẩm phù hợp với yêu cầu của bạn. Vui lòng thử từ khóa khác hoặc liên hệ nhân viên để được hỗ trợ thêm."
-- Luôn giữ thái độ thân thiện, nhiệt tình
-
-CÂU HỎI CỦA KHÁCH: "${msg}"
-
-TRẢ LỜI:`;
-      }
-    } else {
-      finalPrompt = `Bạn là nhân viên tư vấn bán hàng thân thiện và nhiệt tình. CHỈ được gợi ý sản phẩm có trong danh sách được cung cấp. TUYỆT ĐỐI KHÔNG được tạo ra sản phẩm mới.
-
-${relevantProducts.length > 0 ? `DANH SÁCH SẢN PHẨM CÓ SẴN:\n${productList}\n\nHÃY TƯ VẤN:` : 'KHÔNG CÓ SẢN PHẨM PHÙ HỢP. HÃY THÔNG BÁO CHO KHÁCH:'}
-
-Câu hỏi: "${msg}"`;
-    }
-
-    const res = await fetch(`${AI_URL}/chat`, {
+    const res = await fetch(AI_ENDPOINT, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json', 
-        Authorization: `Bearer ${token}` 
+        'Authorization': `Bearer ${token}` 
       },
       body: JSON.stringify({ 
-        prompt: finalPrompt,  
+        prompt: msg,
+        // Thêm metadata nếu backend cần
         metadata: {
-          isGuest: !currentUser,
-          sessionId: sessionId,
-          hasProductsContext: relevantProducts.length > 0,
-          productCount: relevantProducts.length,
-          productLinks: relevantProducts.map((p: Product) => `san-pham/${p.slug}`)
-        } 
+          system: textPromptAi || 'Bạn là trợ lý bán hàng thông minh. Trả lời ngắn gọn, hữu ích.',
+          max_tokens: 200,
+          temperature: 0.2
+        }
       }),
     });
 
-    if (!res.ok) throw new Error('AI failed');
-    const data = await res.json();
-    const aiResponse = data.response?.text || 'Xin lỗi, tôi không thể trả lời ngay lúc này.';
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('❌ AI API error:', {
+        status: res.status,
+        statusText: res.statusText,
+        error: errorText
+      });
+      throw new Error(`AI failed: ${res.status} ${res.statusText}`);
+    }
 
-    // Lấy actual tokens từ API response
+    const data = await res.json();
+    console.log('🤖 AI Response data:', data);
+
+    // Backend của bạn trả về response.text
+    const aiResponse = data.response?.text || data.text || 'Xin lỗi, tôi không thể trả lời ngay lúc này.';
+
+    // Xử lý token usage
     const isCachedResponse = data.cached === true;
-    const actualTokensUsed = data.usage?.total_tokens;
+    const actualTokensUsed = data.usage?.total_tokens || 0;
     
-    // Metadata để tracking token usage
-    const tokenMetadata = {
-      isCached: isCachedResponse,
-      tokensUsed: actualTokensUsed,
-      promptTokens: data.usage?.prompt_tokens || 0,
-      completionTokens: data.usage?.completion_tokens || 0,
-      totalTokens: data.usage?.total_tokens || 0,
-    };
-    
-    // ✅ TRỪ TOKEN NẾU KHÔNG PHẢI CACHED RESPONSE
-    if (!isCachedResponse && actualTokensUsed && actualTokensUsed > 0) {
+    if (!isCachedResponse && actualTokensUsed > 0) {
       await updateAiTokens(actualTokensUsed);
     }
 
-    return { aiResponse, tokenMetadata };
+    return aiResponse;
   };
 
-  // Xử lý tin nhắn AI - VỚI KIỂM TRA TOKEN
+  // ✅ Xử lý tin nhắn AI
   const sendAiMessage = useCallback(async (msg: string, targetConversationId?: number | null) => {
     if (isAiProcessing) {
+      console.log('⏳ AI is already processing, skipping...');
       return;
     }
 
     // ✅ KIỂM TRA ADMIN SHOP ĐÃ LOAD CHƯA
     if (isLoadingAdminShop) {
       console.log('⏳ Waiting for admin shop data...');
+      const waitingMessage: ChatMessage = {
+        id: `waiting-${Date.now()}`,
+        senderType: 'BOT',
+        message: 'Đang khởi tạo hệ thống...',
+        conversationId: isGuest ? null : conversationId || undefined,
+        sessionId,
+        createdAt: new Date().toISOString(),
+        status: isGuest ? 'local' : 'sent'
+      };
+      addMessage(waitingMessage);
       return;
     }
 
-    // ✅ KIỂM TRA TOKEN TRƯỚC KHI XỬ LÝ
+    // ✅ KIỂM TRA TOKEN
     const tokenCheck = checkAiTokensAvailable();
     if (!tokenCheck.available) {
       console.error('❌ Not enough tokens to process AI message');
       
-      // Thêm tin nhắn thông báo hết token
       const errorMessage: ChatMessage = {
         id: `token-error-${Date.now()}`,
         senderType: 'BOT',
@@ -321,22 +177,20 @@ Câu hỏi: "${msg}"`;
 
     let currentConvId = targetConversationId !== undefined ? targetConversationId : conversationId;
     
-    // Nếu chưa có conversationId, đợi một chút
     if (!currentConvId && !isGuest) {
+      console.log('⏳ Waiting for conversation ID...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       currentConvId = conversationId;
-      
       if (!currentConvId) {
+        console.error('❌ No conversation ID available');
         return;
       }
     }
     
-    const { isGreeting, isThankYou, isGoodbye, isSimpleQuestion, lowerMsg } = checkMessageType(msg);
     const isGuestMode = isGuest;
     const tempId = isGuestMode ? `ai-local-${Date.now()}` : `ai-temp-${Date.now()}`;
 
     setIsAiProcessing(true);
-    // Bật trạng thái typing
     setIsTyping(prev => ({ ...prev, ai: true }));
 
     // Thêm tin nhắn pending
@@ -357,72 +211,11 @@ Câu hỏi: "${msg}"`;
     await new Promise(resolve => setTimeout(resolve, isGuestMode ? 500 : 300));
 
     try {
-      // Xử lý các loại tin nhắn đặc biệt
-      let response: { finalAiText: string; shouldSave: boolean; tempId: string } | null = null;
+      console.log('🤖 Processing AI message:', msg);
 
-      if (isGreeting) {
-        response = handleGreeting(currentConvId, isGuestMode, tempId);
-      } else if (isThankYou) {
-        response = handleThankYou(currentConvId, isGuestMode, tempId);
-      } else if (isGoodbye) {
-        response = handleGoodbye(currentConvId, isGuestMode, tempId);
-      } else if (isSimpleQuestion) {
-        response = handleSimpleQuestion(lowerMsg, currentConvId, isGuestMode, tempId);
-      }
-
-      // Nếu có response từ các handler đặc biệt
-      if (response) {
-        setMessages(prev => 
-          prev.map(msg => 
-            msg.tempId === response!.tempId 
-              ? {
-                  ...msg,
-                  id: isGuestMode ? `ai-local-${Date.now()}` : `ai-${Date.now()}`,
-                  message: response!.finalAiText,
-                  tempId: undefined,
-                  status: isGuestMode ? 'local' : 'sent'
-                }
-              : msg
-          )
-        );
-
-        // Lưu vào database nếu cần
-        if (response.shouldSave && currentConvId && !isGuestMode) {
-          saveBotMessage.mutate({ 
-            conversationId: Number(currentConvId),
-            message: response.finalAiText, 
-            sessionId: sessionId || null
-          });
-        }
-         setIsAiProcessing(false);
-         setIsTyping(prev => ({ ...prev, ai: false }));
-        return;
-      }
-
-      // Xử lý bằng AI API cho các tin nhắn phức tạp
-      const relevantProducts = findProductsByKeyword(msg);
-      const aiCallResult = await callAiApi(msg, relevantProducts);
-      let aiText = aiCallResult.aiResponse;
-      const tokenMetadata = aiCallResult.tokenMetadata;
-
-      // Xử lý kết quả từ AI
-      let finalAiText = aiText;
-      if (relevantProducts.length > 0) {
-        const suggestedProducts = relevantProducts.map((p: Product) => p.name);
-        const hasInvalidProduct = suggestedProducts.some((productName: any) => 
-          !aiText.includes(productName)
-        );
-        
-        if (hasInvalidProduct && !aiText.includes('chưa có sản phẩm')) {
-          const safeRecommendations = relevantProducts.slice(0, 2).map((product: Product) => 
-            `- **${product.name}** - Giá: ${product.basePrice.toLocaleString('vi-VN')}đ [Xem sản phẩm](san-pham/${product.slug})${product.description ? ` - ${product.description}` : ''}`
-          ).join('\n');
-          
-          finalAiText = `Chào bạn! Dựa trên yêu cầu của bạn, mình gợi ý một số sản phẩm phù hợp:\n\n${safeRecommendations}\n\nBạn có thể click vào link để xem chi tiết sản phẩm nhé!`;
-        }
-      } else if (relevantProducts.length === 0 && !aiText.includes('chưa có sản phẩm')) {
-        finalAiText = 'Hiện chưa có sản phẩm phù hợp với yêu cầu của bạn. Vui lòng thử từ khóa khác hoặc liên hệ nhân viên để được hỗ trợ thêm.';
-      } 
+      // ✅ Gọi AI API - ĐƠN GIẢN, KHÔNG truyền sản phẩm
+      const aiText = await callAiApi(msg);
+      console.log('🤖 AI Response text:', aiText);
 
       // Cập nhật tin nhắn
       setMessages(prev => 
@@ -431,7 +224,7 @@ Câu hỏi: "${msg}"`;
             ? {
                 ...msg,
                 id: isGuestMode ? `ai-local-${Date.now()}` : `ai-${Date.now()}`,
-                message: finalAiText,
+                message: aiText,
                 tempId: undefined,
                 status: isGuestMode ? 'local' : 'sent'
               }
@@ -439,12 +232,11 @@ Câu hỏi: "${msg}"`;
         )
       );
 
-      // Lưu vào database nếu cần - truyền tokenMetadata vào metadata
-      if (!isGuestMode && currentConvId && finalAiText && finalAiText !== '...' && finalAiText !== 'Xin lỗi, tôi không thể trả lời ngay lúc này.') {
+      // Lưu vào database nếu cần
+      if (!isGuestMode && currentConvId && aiText && aiText !== '...') {
         saveBotMessage.mutate({ 
           conversationId: Number(currentConvId),
-          message: finalAiText,
-          metadata: tokenMetadata,
+          message: aiText,
           sessionId: sessionId || null
         });
       }
@@ -454,9 +246,12 @@ Câu hỏi: "${msg}"`;
 
       let errorMessage = 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau.';
       
-      // ✅ HIỂN THỊ LỖI TOKEN RÕ RÀNG
       if (err.message.includes('token') || err.message.includes('Token')) {
         errorMessage = err.message;
+      } else if (err.message.includes('failed') || err.message.includes('AI failed')) {
+        errorMessage = 'Kết nối AI tạm thời gián đoạn. Vui lòng thử lại sau.';
+      } else if (err.message.includes('401')) {
+        errorMessage = 'Token AI không hợp lệ. Vui lòng liên hệ quản trị viên.';
       }
 
       setMessages(prev => 
@@ -473,26 +268,19 @@ Câu hỏi: "${msg}"`;
       );
     } finally {
       setIsAiProcessing(false);
-      // Tắt trạng thái typing
       setIsTyping(prev => ({ ...prev, ai: false }));
     }
   }, [
-    conversationId,
-    sessionId,
-    currentUser,
-    addMessage,
-    saveBotMessage,
-    textPromptAi,
-    findProductsByKeyword,
-    isGuest,
-    setIsTyping,
-    tenantId,
-    setMessages,
     isAiProcessing,
-    adminShop,
     isLoadingAdminShop,
     checkAiTokensAvailable,
-    updateAiTokens
+    conversationId,
+    isGuest,
+    sessionId,
+    addMessage,
+    setMessages,
+    saveBotMessage,
+    setIsTyping
   ]);
 
   return {
