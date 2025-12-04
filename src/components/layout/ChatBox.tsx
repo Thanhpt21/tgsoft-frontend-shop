@@ -178,43 +178,45 @@ export default function ChatBox() {
     }).slice(0, 4);
   }, [products]);
 
-  const renderMessageWithLinks = (message: string) => {
-    if (!message) return message;
+const renderMessageWithLinks = (message: string) => {
+  if (!message) return message;
 
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    const parts = [];
-    let lastIndex = 0;
-    let match;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+  
+  // Normalize backticks
+  let processed = message
+    .replace(/[´`'ʻ]/g, '`')  // Thay tất cả loại backtick thành standard backtick
+    .replace(/\s+/g, ' ')      // Normalize whitespace
+    .trim();
+  
+  
+  // Pattern 1: (`slug`)
+  processed = processed.replace(/\(`([a-z0-9\-]+)`\)/g, (match, slug) => {
+    const url = `${baseUrl}/san-pham/${slug}`;
+    return ` <a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline font-medium">Xem chi tiết</a>`;
+  });
+  
+  // Pattern 2: `slug`
+  processed = processed.replace(/`([a-z0-9\-]+)`/g, (match, slug) => {
+    if (processed.includes(`/san-pham/${slug}`)) return match;
+    const url = `${baseUrl}/san-pham/${slug}`;
+    return ` <a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline font-medium">Xem chi tiết</a>`;
+  });
+  
+  // Xử lý markdown bold
+  processed = processed.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold">$1</strong>');
+  
+  // Xử lý line breaks
+  processed = processed.replace(/\n/g, '<br/>');
+  
+  return (
+    <div 
+      className="whitespace-pre-wrap break-words text-sm md:text-sm"
+      dangerouslySetInnerHTML={{ __html: processed }}
+    />
+  );
+};
 
-    while ((match = linkRegex.exec(message)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(message.slice(lastIndex, match.index));
-      }
-
-      const linkText = match[1];
-      const linkUrl = match[2];
-      
-      parts.push(
-        <Link 
-          key={match.index}
-          href={`/${linkUrl}`}
-          className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {linkText}
-        </Link>
-      );
-
-      lastIndex = match.index + match[0].length;
-    }
-
-    if (lastIndex < message.length) {
-      parts.push(message.slice(lastIndex));
-    }
-
-    return parts.length > 0 ? parts : message;
-  };
 
   // ==================== AUTH & SESSION MANAGEMENT ====================
 
@@ -1007,11 +1009,11 @@ export default function ChatBox() {
     }
     
     if (msg.senderType === 'ADMIN') {
-      return `${base} bg-blue-600 text-white rounded-bl-none`;
+      return `${base} bg-green-500 text-white rounded-bl-none`;
     }
     
     if (msg.senderType === 'BOT') {
-      return `${base} bg-green-600 text-white rounded-bl-none`;
+      return `${base} bg-green-500 text-white rounded-bl-none`;
     }
     
     return `${base} bg-gray-200 text-gray-800 rounded-bl-none`;
