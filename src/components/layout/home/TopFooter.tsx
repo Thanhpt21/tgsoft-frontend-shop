@@ -3,39 +3,39 @@
 import Image from "next/image";
 import Link from "next/link";
 
-
 export default function HeroSection() {
   return (
-    <section className="relative w-full rounded-3xl overflow-hidden my-10 mx-auto max-w-[calc(100vw-2rem)] sm:max-w-full">
-      {/* Hình nền */}
-      <div className="relative w-full h-[400px] sm:h-[500px] md:h-[600px] z-0">
+    <section className="container mx-auto px-4 max-w-7xl my-16">
+      <div className="relative w-full rounded-2xl overflow-hidden h-[300px] md:h-[400px]">
+        {/* Hình nền */}
         <Image
           src="/image/topfooter.jpg"
-          alt="Shop thời trang"
+          alt="Banner promotion"
           fill
-          className="object-cover object-center"
-          priority
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1200px"
+          className="object-cover"
         />
-        {/* Overlay mờ đen */}
-        <div className="absolute inset-0 bg-black/50"></div>
-      </div>
+        {/* Overlay gradient đen để dễ đọc chữ */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent"></div>
 
-      {/* Nội dung */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 sm:px-6 md:px-8 z-10">
-        <p className="text-white text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 leading-tight">
-          Phong cách mới, mỗi mùa
-        </p>
-        <p className="text-gray-200 max-w-xl sm:max-w-2xl text-xs sm:text-sm md:text-base mb-4 sm:mb-6 px-2 leading-relaxed">
-          Khám phá bộ sưu tập thời trang nam & nữ mới nhất. Từ trang phục thường
-          ngày đến những outfit sành điệu, chúng tôi có tất cả để nâng tầm phong
-          cách của bạn.
-        </p>
-        <Link href="/san-pham">
-          <button className="bg-[#ff5a5a] hover:bg-[#e04747] text-white font-semibold px-6 sm:px-8 py-2.5 sm:py-3 md:py-4 rounded-full text-xs sm:text-sm md:text-base transition-all duration-300 shadow-md hover:shadow-lg active:scale-95">
-            Mua ngay
-          </button>
-        </Link>
+        {/* Nội dung căn trái */}
+        <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16 max-w-2xl">
+          <p className="text-white/80 font-medium tracking-widest text-sm uppercase mb-2">
+            New Collection
+          </p>
+          <h2 className="text-white text-3xl md:text-5xl font-bold mb-4 leading-tight">
+            Phong cách thời thượng <br/> Dẫn đầu xu hướng
+          </h2>
+          <p className="text-gray-300 text-sm md:text-base mb-8 max-w-md leading-relaxed">
+            Khám phá bộ sưu tập mới nhất với ưu đãi đặc biệt dành riêng cho thành viên trong tháng này.
+          </p>
+          <div>
+            <Link href="/san-pham">
+              <button className="bg-white text-gray-900 hover:bg-gray-100 font-semibold px-8 py-3 rounded-lg text-sm transition-colors duration-200">
+                Mua ngay
+              </button>
+            </Link>
+          </div>
+        </div>
       </div>
     </section>
   );

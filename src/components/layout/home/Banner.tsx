@@ -102,7 +102,7 @@ export default function Banner() {
 
   return (
     <section
-      className="relative w-full overflow-hidden select-none bg-gray-100"
+      className="relative w-full overflow-hidden select-none bg-gray-100 z-0"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onMouseDown={handleMouseDown}
