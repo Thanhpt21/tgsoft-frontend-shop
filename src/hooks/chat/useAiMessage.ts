@@ -193,7 +193,7 @@ export const useAiMessage = ({
     if (products.length > 0) {
       return products[0];
     }
-    
+      console.log('🔗 Product từ slug:', products[0]);
     return null;
   }, [findProductsByKeyword]);
 
@@ -310,7 +310,6 @@ export const useAiMessage = ({
         tokensUsed,
         tenantId
       });
-      console.log(`✅ Đã cập nhật token: ${tokensUsed}`);
     } catch (error) {
       console.error('❌ Lỗi cập nhật token:', error);
       throw new Error('Không thể cập nhật token AI');
@@ -347,7 +346,6 @@ export const useAiMessage = ({
     // 🎯 THÊM SLUG NẾU CÓ
     if (productSlug && productSlug !== 'none') {
       metadata.slug = productSlug;
-      console.log(`🎯 Thêm slug vào metadata: ${productSlug}`);
     }
 
     // 🆕 LUÔN GỬI LỊCH SỬ HỘI THOẠI (dù có slug hay không)
@@ -355,15 +353,12 @@ export const useAiMessage = ({
       const conversationHistory = buildConversationHistory(currentMessages);
       if (conversationHistory) {
         metadata.conversationHistory = conversationHistory;
-        console.log(`📜 Gửi lịch sử hội thoại (${currentMessages.slice(-10).length} tin nhắn):
-${conversationHistory.substring(0, 200)}...`);
       }
     }
 
     // 👤 THÊM ownerEmail
     if (adminShop?.ownerEmail) {
       metadata.ownerEmail = adminShop.ownerEmail;
-      console.log(`👤 Thêm ownerEmail: ${adminShop.ownerEmail}`);
     }
 
     // 🆕 THÊM CÁC KEYWORDS ĐÃ PHÂN TÍCH
@@ -381,7 +376,6 @@ ${conversationHistory.substring(0, 200)}...`);
 
       if (extractedKeywords.length > 0) {
         metadata.extracted_keywords = extractedKeywords.slice(0, 10); // Lấy tối đa 10 keywords
-        console.log(`🔑 Keywords từ câu hỏi: ${extractedKeywords.slice(0, 5).join(', ')}`);
       }
 
       // Conversation topic
@@ -400,10 +394,6 @@ ${conversationHistory.substring(0, 200)}...`);
         }
       }
     }
-
-    console.log('📤 Metadata gửi backend:', JSON.stringify(metadata, null, 2));
-    console.log('📝 Loại câu hỏi:', questionType);
-    console.log('🔤 Tin nhắn user:', msg);
 
     // Gửi request
     const res = await fetch(AI_ENDPOINT, {
@@ -426,14 +416,6 @@ ${conversationHistory.substring(0, 200)}...`);
 
     const data = await res.json();
     
-    console.log('🤖 Phản hồi từ backend:', {
-      cached: data.cached,
-      confidence: data.response?.confidence,
-      source: data.response?.source,
-      productCount: data.response?.products?.length || 0,
-      questionCategories: data.response?.metadata?.questionCategories,
-      aiText: data.response?.text?.substring(0, 100) + '...'
-    });
 
     const aiResponse = data.response?.text || data.text || 'Xin lỗi, tôi không thể trả lời ngay lúc này.';
 
@@ -457,13 +439,11 @@ ${conversationHistory.substring(0, 200)}...`);
    */
   const sendAiMessage = useCallback(async (msg: string, targetConversationId?: number | null, currentMessages?: ChatMessage[]) => {
     if (isAiProcessing) {
-      console.log('⏳ AI đang xử lý, bỏ qua...');
       return;
     }
 
     // Kiểm tra admin shop
     if (isLoadingAdminShop) {
-      console.log('⏳ Đang tải thông tin shop...');
       const waitingMessage: ChatMessage = {
         id: `waiting-${Date.now()}`,
         senderType: 'BOT',
@@ -499,7 +479,6 @@ ${conversationHistory.substring(0, 200)}...`);
     let currentConvId = targetConversationId !== undefined ? targetConversationId : conversationId;
     
     if (!currentConvId && !isGuest) {
-      console.log('⏳ Đang chờ conversation ID...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       currentConvId = conversationId;
       if (!currentConvId) {
@@ -511,22 +490,10 @@ ${conversationHistory.substring(0, 200)}...`);
     const isGuestMode = isGuest;
     const tempId = isGuestMode ? `ai-local-${Date.now()}` : `ai-temp-${Date.now()}`;
 
-    // Phân tích context
-    console.log('🔍 Đang phân tích context...');
-    console.log('📊 Số tin nhắn hiện tại:', currentMessages?.length || 0);
     
     const messageContext = analyzeConversationContext(currentMessages || []);
     
     const questionType = determineQuestionType(msg);
-    console.log('✅ Context đã phân tích:', {
-      questionType,
-      topic: messageContext.conversationTopic,
-      keywords: messageContext.extractedKeywords.slice(0, 10).join(', '),
-      keywordCount: messageContext.extractedKeywords.length,
-      products: messageContext.relatedProducts.map(p => p.name),
-      productCount: messageContext.relatedProducts.length,
-      historyLength: currentMessages?.length || 0
-    });
 
     setIsAiProcessing(true);
     setIsTyping(prev => ({ ...prev, ai: true }));
@@ -549,11 +516,9 @@ ${conversationHistory.substring(0, 200)}...`);
     await new Promise(resolve => setTimeout(resolve, isGuestMode ? 500 : 300));
 
     try {
-      console.log('🤖 Đang xử lý tin nhắn AI...');
 
       // Gọi API AI - TRUYỀN currentMessages VÀO
       const aiText = await callAiApi(msg, messageContext, currentMessages);
-      console.log('🤖 AI đã trả lời:', aiText.substring(0, 100) + (aiText.length > 100 ? '...' : ''));
 
       // Cập nhật tin nhắn
       setMessages(prev => 

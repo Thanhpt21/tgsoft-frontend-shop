@@ -399,8 +399,6 @@ const loadMessages = useCallback(async (loadMore = false) => {
       pageSize: pagination.pageSize.toString(),
     });
 
-    console.log(`📥 Loading messages: page=${currentPage}, loadMore=${loadMore}`);
-
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/chat/messages?${queryParams}`,
       {
@@ -413,13 +411,6 @@ const loadMessages = useCallback(async (loadMore = false) => {
     const data = await res.json();
     
     const loadedMessages = Array.isArray(data.messages) ? data.messages : [];
-
-    console.log(`✅ Loaded ${loadedMessages.length} messages`, {
-      page: currentPage,
-      loadMore,
-      hasMore: data.pagination?.hasMore,
-      total: data.pagination?.total
-    });
 
     if (loadMore) {
       // 🆕 THÊM: Delay 500ms để tạo hiệu ứng mượt mà
@@ -508,7 +499,6 @@ useEffect(() => {
       const entry = entries[0];
       // Khi top sentinel xuất hiện và có thể load more
       if (entry.isIntersecting && pagination.hasMore && !pagination.isLoadingMore) {
-        console.log('🔄 Triggering load more...');
         loadMessages(true);
       }
     },
@@ -1127,7 +1117,6 @@ useEffect(() => {
    // Load more khi scroll lên gần top (cách top 150px)
   const nearTop = scrollTop < 150;
     if (nearTop && pagination.hasMore && !pagination.isLoadingMore && !isGuest && conversationId) {
-      console.log('📜 Near top, checking for load more...');
       // Debounce để tránh gọi nhiều lần
       if (loadMoreTimeoutRef.current) {
         clearTimeout(loadMoreTimeoutRef.current);
@@ -1167,7 +1156,6 @@ useEffect(() => {
       const entry = entries[0];
       // Khi top sentinel xuất hiện và có thể load more
       if (entry.isIntersecting && pagination.hasMore && !pagination.isLoadingMore) {
-        console.log('🔄 Triggering load more...');
         loadMessages(true);
       }
     },
