@@ -62,7 +62,7 @@ const CartPreviewDropdown: React.FC<CartPreviewDropdownProps> = ({
   // Loading state
   if (isLoading) {
     return (
-      <div className="w-96 bg-white rounded-xl shadow-2xl border border-gray-100 p-6">
+      <div className="w-full md:w-96 bg-white md:rounded-xl md:shadow-2xl md:border border-gray-100 p-6">
         <div className="flex justify-center items-center h-40">
           <Spin size="large" />
         </div>
@@ -73,7 +73,7 @@ const CartPreviewDropdown: React.FC<CartPreviewDropdownProps> = ({
   // Empty state
   if (!items || items.length === 0) {
     return (
-      <div className="w-96 bg-white rounded-xl shadow-2xl border border-gray-100 p-6">
+      <div className="w-full md:w-96 bg-white md:rounded-xl md:shadow-2xl md:border border-gray-100 p-6">
         <div className="text-center py-8">
           <ShoppingCartOutlined className="text-5xl text-gray-300 mb-4" />
           <p className="text-gray-500 mb-4">Giỏ hàng trống</p>
@@ -92,9 +92,11 @@ const CartPreviewDropdown: React.FC<CartPreviewDropdownProps> = ({
   const hasMore = items.length > 5;
 
   return (
-    <div className="w-[420px] bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden">
+    // FIX: w-full cho mobile, md:w-[420px] cho desktop
+    // FIX: Chỉ bo góc và đổ bóng trên desktop
+    <div className="w-full md:w-[420px] bg-white md:rounded-xl md:shadow-2xl md:border border-gray-100 overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
+      <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50 flex-shrink-0">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-gray-900">
             Giỏ hàng ({items.length})
@@ -104,7 +106,7 @@ const CartPreviewDropdown: React.FC<CartPreviewDropdownProps> = ({
       </div>
 
       {/* Product List */}
-      <div className="max-h-[400px] overflow-y-auto">
+      <div className="max-h-[400px] overflow-y-auto flex-1">
         {displayItems.map((item) => {
           const thumb = item.variant?.thumb || item.variant?.product?.thumb;
           const promotion = item.variant?.product?.promotionProducts?.[0];
@@ -150,27 +152,27 @@ const CartPreviewDropdown: React.FC<CartPreviewDropdownProps> = ({
                     </p>
                   )}
 
-                                      <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        {promotion ? (
-                          <>
-                            <span className="text-sm font-bold text-blue-600">
-                              {formatVND(discountedPrice)}
-                            </span>
-                            <span className="text-xs text-gray-400 line-through">
-                              {formatVND(basePrice)}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-sm font-bold text-gray-900">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      {promotion ? (
+                        <>
+                          <span className="text-sm font-bold text-blue-600">
+                            {formatVND(discountedPrice)}
+                          </span>
+                          <span className="text-xs text-gray-400 line-through">
                             {formatVND(basePrice)}
                           </span>
-                        )}
-                      </div>
-                      <span className="text-xs text-gray-500 mt-1">
-                        SL: {item.quantity}
-                      </span>
+                        </>
+                      ) : (
+                        <span className="text-sm font-bold text-gray-900">
+                          {formatVND(basePrice)}
+                        </span>
+                      )}
                     </div>
+                    <span className="text-xs text-gray-500 mt-1">
+                      SL: {item.quantity}
+                    </span>
+                  </div>
 
                   {/* Item Total */}
                   <div className="mt-2 pt-2 border-t border-gray-100">
@@ -197,7 +199,7 @@ const CartPreviewDropdown: React.FC<CartPreviewDropdownProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="px-5 py-4 bg-gray-50 border-t border-gray-100">
+      <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <span className="text-sm font-medium text-gray-600">Tổng cộng:</span>
           <span className="text-xl font-bold text-blue-600">
