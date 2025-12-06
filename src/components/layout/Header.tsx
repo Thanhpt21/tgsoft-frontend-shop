@@ -8,7 +8,6 @@ import {
   MenuOutlined,
   CloseOutlined,
   SearchOutlined,
-  LeftOutlined,
   LogoutOutlined,
   SettingOutlined
 } from "@ant-design/icons";
@@ -120,7 +119,15 @@ const Header = ({ config }: HeaderProps) => {
   const [mounted, setMounted] = useState(false);
   
   const [isMobile, setIsMobile] = useState(false);
+  
+  // State quản lý đóng mở
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  
+  // State mới: Quản lý Popover giỏ hàng trên Desktop
+  const [isCartPopoverOpen, setIsCartPopoverOpen] = useState(false);
 
   const cartItems = useCartStore((state) => state.items);
   const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
@@ -129,10 +136,6 @@ const Header = ({ config }: HeaderProps) => {
   const { logoutUser, isPending: isLogoutPending } = useLogout();
   const isLoggedInUI = !!currentUser;
   const isAdmin = currentUser?.role === "admin";
-
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   const { data: categories, isLoading: isCategoriesLoading } = useAllCategories();
 
@@ -152,10 +155,19 @@ const Header = ({ config }: HeaderProps) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // QUAN TRỌNG: Tự động đóng tất cả các menu/popup khi chuyển trang
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+    setIsMobileCartOpen(false);
+    setIsCartPopoverOpen(false);
+    setIsSearchOpen(false);
+    setOpenDropdown(null);
+  }, [pathname]);
+
   const handleLogout = () => logoutUser();
   const toggleSearch = () => setIsSearchOpen(!isSearchOpen);
 
-  // Menu Dropdown cho Desktop (đã bỏ icon theo yêu cầu trước)
+  // Menu Dropdown cho Desktop
   const userDropdownMenuItems = [
     isAuthLoading
       ? { key: "loading", label: <Spin indicator={<LoadingOutlined style={{ fontSize: 14 }} spin />} />, disabled: true }
@@ -163,7 +175,7 @@ const Header = ({ config }: HeaderProps) => {
       ? [
           { key: "account", label: <Link href="/tai-khoan" className="flex items-center gap-2">Tài khoản</Link> },
           isAdmin && { key: "admin", label: <Link href="/admin" className="flex items-center gap-2">Quản trị</Link> },
-          { key: "logout", label: <span onClick={handleLogout} className="flex items-center gap-2 text-red-600">{isLogoutPending ? <Spin indicator={<LoadingOutlined style={{ fontSize: 14 }} spin />} /> : <>Đăng xuất</>}</span> },
+          { key: "logout", label: <span onClick={handleLogout} className="flex items-center gap-2 text-red-600 cursor-pointer">{isLogoutPending ? <Spin indicator={<LoadingOutlined style={{ fontSize: 14 }} spin />} /> : <>Đăng xuất</>}</span> },
         ]
       : [{ key: "login", label: <Link href="/login">Đăng nhập</Link> }],
   ];
@@ -276,6 +288,9 @@ const Header = ({ config }: HeaderProps) => {
                    trigger={["hover"]}
                    placement="bottomRight"
                    overlayInnerStyle={{ padding: 0, borderRadius: "12px" }}
+                   // Fix: Kiểm soát trạng thái mở bằng state
+                   open={isCartPopoverOpen}
+                   onOpenChange={setIsCartPopoverOpen}
                  >
                    {CartButton}
                  </Popover>
@@ -330,7 +345,7 @@ const Header = ({ config }: HeaderProps) => {
                   </div>
                 ))}
 
-                {/* 2. Phần User Info (Nằm ngay dưới Liên hệ, không dính đáy) */}
+                {/* 2. Phần User Info */}
                 <div className="mt-4 px-4 pb-6">
                   {isLoggedInUI ? (
                     <div className="space-y-2 pt-4 border-t border-gray-100">

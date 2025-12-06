@@ -254,40 +254,30 @@ export default function ProductDetailPage() {
         - items-center: Căn giữa theo trục dọc (tránh lệch icon).
         - truncate + min-w-0: Tự động cắt chữ "..." nếu tên sản phẩm quá dài.
       */}
-      {/* Breadcrumb - Fix lỗi tràn màn hình và nhảy dòng */}
-        <div className="border-b border-gray-200 mb-6 w-full bg-white sticky top-0 z-10">
-          <div className="container mx-auto px-4 md:px-6 lg:px-8 max-w-[1400px]">
-            <nav className="flex flex-nowrap items-center gap-1 md:gap-2 py-3 md:py-4 text-xs md:text-sm text-gray-600 overflow-hidden">
-              {/* Các phần tử cố định (không được co lại) thì dùng flex-shrink-0 */}
-              <Link
-                href="/"
-                className="hover:text-blue-600 transition-colors whitespace-nowrap flex-shrink-0"
-              >
-                Trang chủ
-              </Link>
-              
-              <span className="text-gray-400 select-none flex-shrink-0">/</span>
-              
-              <Link
-                href="/san-pham"
-                className="hover:text-blue-600 transition-colors whitespace-nowrap flex-shrink-0"
-              >
-                Sản phẩm
-              </Link>
-              
-              <span className="text-gray-400 select-none flex-shrink-0">/</span>
-              
-              {/* QUAN TRỌNG: 
-                  - flex-1: Chiếm toàn bộ khoảng trống còn lại.
-                  - min-w-0: Cho phép flex item co nhỏ hơn nội dung của nó (bắt buộc để truncate hoạt động).
-                  - truncate: Cắt chữ thêm dấu ...
-              */}
-              <span className="font-medium text-gray-800 truncate flex-1 min-w-0 block">
-                {currentProduct.name}
-              </span>
-            </nav>
+       {/* Breadcrumb - Style giống trang danh sách sản phẩm */}
+      <div className="border-b border-gray-200 mb-8">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-4">
+          <div className="flex items-center gap-2 text-sm">
+            <Link
+              href="/"
+              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            >
+              Trang chủ
+            </Link>
+            <span className="text-gray-400">/</span>
+            <Link
+              href="/san-pham"
+              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            >
+              Sản phẩm
+            </Link>
+            <span className="text-gray-400">/</span>
+            <span className="text-gray-600 truncate max-w-[200px] sm:max-w-md">
+              {currentProduct.name}
+            </span>
           </div>
         </div>
+      </div>
 
       <div className="container mx-auto px-4 md:px-8 lg:px-12 max-w-[1400px]">
         {/* Main Product Section */}
