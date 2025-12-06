@@ -199,31 +199,77 @@ const renderMessageWithLinks = (message: string) => {
   if (!message) return message;
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                  (typeof window !== 'undefined' ? window.location.origin : '');
+                  (typeof window !== 'undefined' ? window.location.origin : 'https://demo.aiban.vn');
 
   let processed = message;
   
-  // CHỈ XỬ LÝ MARKDOWN LINK: [text](slug)
+  // 1. XỬ LÝ URL TRỰC TIẾP TRƯỚC
+  const directUrlPattern = /(https?:\/\/[^\s<>"]+)/gi;
+  
+  processed = processed.replace(directUrlPattern, (match, url) => {
+    // Kiểm tra không phải là phần của thẻ HTML đã xử lý
+    if (!processed.includes(`href="${url}"`)) {
+      return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${url}</a>`;
+    }
+    return match;
+  });
+  
+  // 2. XỬ LÝ SLUG TRONG BACKTICKS - QUAN TRỌNG: KHÔNG GIỚI HẠN ĐỘ DÀI
+  // Pattern: Bắt đầu bằng `, kết thúc bằng `, bên trong là ký tự chữ-số và dấu gạch ngang
+  const backtickSlugPattern = /`([^`]+)`/gi;
+  
+  processed = processed.replace(backtickSlugPattern, (match, content) => {
+    const cleanContent = content.trim();
+    
+    // KIỂM TRA XEM CÓ PHẢI SLUG KHÔNG:
+    // 1. Có chứa dấu gạch ngang
+    // 2. Chỉ chứa chữ, số, dấu gạch ngang
+    // 3. Không chứa khoảng trắng
+    const slugRegex = /^[a-z0-9\-]+$/i;
+    
+    if (slugRegex.test(cleanContent) && cleanContent.includes('-')) {
+      // ĐÂY LÀ SLUG - GIỮ NGUYÊN TOÀN BỘ, KHÔNG CẮT BỚT
+      const url = `${baseUrl}/san-pham/${cleanContent}`;
+      return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${cleanContent}</a>`;
+    }
+    
+    // Nếu không phải slug, giữ nguyên backticks
+    return match;
+  });
+  
+  // 3. XỬ LÝ MARKDOWN LINK: [text](slug)
   const markdownLinkPattern = /\[([^\]]+)\]\(([^)]+)\)/gi;
   
   processed = processed.replace(markdownLinkPattern, (match, text, slug) => {
     const cleanSlug = slug.trim();
     
+    // Kiểm tra nếu là URL đầy đủ
     if (cleanSlug.startsWith('http')) {
-      return `<a href="${cleanSlug}" class="text-blue-600 hover:text-blue-800 underline" target="_blank">${text}</a>`;
+      return `<a href="${cleanSlug}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${text}</a>`;
     }
     
-    // QUAN TRỌNG: Không làm gì với slug cả, giữ nguyên 100%
-    const url = `${baseUrl}/san-pham/${cleanSlug}`;
-    return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline" target="_blank">${text}</a>`;
+    // Kiểm tra nếu là slug
+    const slugRegex = /^[a-z0-9\-]+$/i;
+    if (slugRegex.test(cleanSlug) && cleanSlug.includes('-')) {
+      const url = `${baseUrl}/san-pham/${cleanSlug}`;
+      return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    }
+    
+    return match;
   });
   
-  // Xử lý line breaks
+  // 4. Xử lý line breaks
   processed = processed.replace(/\n/g, '<br/>');
   
+  // DEBUG: In ra để kiểm tra
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Input message:', message);
+    console.log('Output processed:', processed);
+  }
+
   return (
     <div 
-      className="whitespace-pre-wrap break-words text-sm leading-relaxed"
+      className="whitespace-pre-wrap break-words text-sm md:text-sm leading-relaxed"
       dangerouslySetInnerHTML={{ __html: processed }}
     />
   );
