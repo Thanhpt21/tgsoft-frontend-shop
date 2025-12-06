@@ -10,7 +10,6 @@ import { useCurrent } from '@/hooks/auth/useCurrent';
 import { useTenantAIConfig } from '@/hooks/tenant/useTenantAIConfig';
 import { useAllProducts } from '@/hooks/product/useAllProducts';
 import { Product } from '@/types/product.type';
-import Link from 'next/link';
 import { useAiMessage } from '@/hooks/chat/useAiMessage';
 import { useUserChatStatus } from '@/hooks/user/useUserChatStatus';
 
@@ -199,32 +198,51 @@ export default function ChatBox() {
 const renderMessageWithLinks = (message: string) => {
   if (!message) return message;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-  
+  // Lấy base URL từ env hoặc sử dụng origin hiện tại
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                  (typeof window !== 'undefined' ? window.location.origin : '');
+
   // Normalize text
   let processed = message
     .replace(/[´`'ʻ]/g, '`')     // Normalize backticks
     .replace(/\s+/g, ' ')         // Collapse multiple spaces into one
     .trim();
   
-  // 🎯 PATTERN 1: Slug trong backticks với/không có ngoặc đơn
-  // Matches: `slug` hoặc (`slug`)
-  const slugPattern = /\(`?([a-z0-9][a-z0-9\-]{8,}[a-z0-9])`?\)/gi;
-  processed = processed.replace(slugPattern, (match, slug) => {
-    const url = `${baseUrl}/san-pham/${slug.toLowerCase()}`;
-    return ` <a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors ml-1">Xem chi tiết</a>`;
-  });
-  
-  // 🎯 PATTERN 2: Slug đơn lẻ trong backticks
-  const standaloneSlugPattern = /`([a-z0-9][a-z0-9\-]{8,}[a-z0-9])`/gi;
-  processed = processed.replace(standaloneSlugPattern, (match, slug) => {
-    // Kiểm tra nếu đã được xử lý bởi pattern 1
-    if (processed.includes(`/san-pham/${slug.toLowerCase()}`)) {
-      return match; // Giữ nguyên nếu đã xử lý
+  // 🎯 PATTERN 1: Slug trong markdown link style
+  // Matches: [text](slug) hoặc [text](`slug`)
+  const markdownLinkPattern = /\[([^\]]+)\]\(`?([^`\s]+)`?\)/gi;
+  processed = processed.replace(markdownLinkPattern, (match, text, slug) => {
+    // Kiểm tra nếu slug đã là URL đầy đủ
+    if (slug.startsWith('http')) {
+      return `<a href="${slug}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank">${text}</a>`;
     }
     
-    const url = `${baseUrl}/san-pham/${slug.toLowerCase()}`;
-    return ` <a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors ml-1">Xem chi tiết</a>`;
+    // Xử lý slug sản phẩm
+    const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9\-]/g, '-');
+    const url = `${baseUrl}/san-pham/${cleanSlug}`;
+    return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank">${text}</a>`;
+  });
+  
+  // 🎯 PATTERN 2: Slug đơn lẻ trong backticks (cho tên sản phẩm)
+  const slugPattern = /`([a-zA-Z0-9][a-zA-Z0-9\-]{5,}[a-zA-Z0-9])`/gi;
+  processed = processed.replace(slugPattern, (match, slug) => {
+    // Kiểm tra nếu đã được xử lý bởi pattern 1
+    if (processed.includes(`href="${baseUrl}/san-pham/${slug.toLowerCase()}"`)) {
+      return match;
+    }
+    
+    const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9\-]/g, '-');
+    const url = `${baseUrl}/san-pham/${cleanSlug}`;
+    return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank">${slug}</a>`;
+  });
+  
+  // 🎯 PATTERN 3: Xử lý các link được gửi từ AI với format đặc biệt
+  // Ví dụ: "Xem chi tiết tại đây: [ao-thun-nam-hoa-tiet-blue-horizon-form-oversize]"
+  const bracketSlugPattern = /\[([a-zA-Z0-9][a-zA-Z0-9\-]{5,}[a-zA-Z0-9])\]/gi;
+  processed = processed.replace(bracketSlugPattern, (match, slug) => {
+    const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9\-]/g, '-');
+    const url = `${baseUrl}/san-pham/${cleanSlug}`;
+    return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank">Xem chi tiết</a>`;
   });
   
   // Xử lý markdown bold
@@ -233,9 +251,8 @@ const renderMessageWithLinks = (message: string) => {
   // Xử lý line breaks
   processed = processed.replace(/\n/g, '<br/>');
   
-  // LOẠI BỎ KHOẢNG TRẮNG THỪA XUNG QUANH LINK
-  processed = processed.replace(/\s+(<a[^>]*>)/g, ' $1'); // Trước link
-  processed = processed.replace(/(<\/a>)\s+/g, '$1 ');    // Sau link
+  // LOẠI BỎ KHOẢNG TRẮNG THỪA
+  processed = processed.trim();
   
   return (
     <div 
@@ -1403,384 +1420,432 @@ const renderLoadingSpinner = () => {
 };
 
 return (
-    <ChatContext.Provider value={contextValue}>
-      {/* Floating Chat Button */}
-      <div className="fixed bottom-5 right-5 z-[9999]">
-        <button
-          onClick={() => setIsChatOpen(!isChatOpen)}
-          className="relative bg-gradient-to-r from-blue-600 to-green-600 text-white px-4 py-3 md:px-6 md:py-3 rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-110 flex items-center gap-2 font-medium"
-        >
-          <span className="text-2xl">💬</span>
-          {/* Ẩn chữ trên mobile, hiện trên desktop */}
-          <span className="hidden md:inline">Chat hỗ trợ</span>
-          
-          {isGuest && (
-            <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 shadow-md">
-              🔄
-            </span>
-          )}
-        </button>
-
-        {!isGuest && !isConnected && (
-          <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-pulse border border-white"></span>
-        )}
-
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 shadow-md animate-bounce">
-            {unreadCount > 99 ? '99+' : unreadCount}
+  <ChatContext.Provider value={contextValue}>
+    {/* Floating Chat Button - Cải thiện cho mobile */}
+    <div className="fixed bottom-5 right-5 z-[9999]">
+      <button
+        onClick={() => setIsChatOpen(!isChatOpen)}
+        className="relative bg-gradient-to-r from-blue-600 to-green-600 text-white px-4 py-3 md:px-6 md:py-3 rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 font-medium touch-manipulation"
+        style={{ WebkitTapHighlightColor: 'transparent' }}
+      >
+        <span className="text-2xl">💬</span>
+        <span className="hidden md:inline">Chat hỗ trợ</span>
+        
+        {isGuest && (
+          <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 shadow-md">
+            🔄
           </span>
         )}
-      </div>
+      </button>
 
-      {/* Chat Window - Responsive cho mobile */}
-      {isChatOpen && (
-        <div className="fixed inset-0 md:inset-auto md:bottom-24 md:right-5 md:w-96 md:h-[600px] w-full h-full bg-white border border-gray-300 rounded-none md:rounded-2xl shadow-2xl flex flex-col overflow-hidden z-[9999] animate-in slide-in-from-bottom-5 duration-300">
-          {/* Header */}
-          <div className="flex justify-between items-center bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 text-white px-4 py-3">
-            <div className="flex items-center gap-2">
-              <div>
-                <h3 className="font-bold text-lg text-white">Tư vấn trực tuyến</h3>
-                <p className="text-xs flex items-center gap-1">
-                  {isGuest ? (
-                    <span className="text-yellow-300">Đăng nhập để lưu lịch sử chat</span>
-                  ) : (
-                    <>
-                      <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></span>
-                      <span className="hidden sm:inline">{status.text}</span>
-                      <span className="sm:hidden">
-                        {isConnected ? 'Đã kết nối' : 'Đang kết nối...'}
-                      </span>
-                    </>
-                  )}
-                </p>
-              </div>
-            </div>
-            
-            <button 
-              onClick={() => setIsChatOpen(false)} 
-              className="text-white hover:bg-white/20 w-8 h-8 rounded-full flex items-center justify-center text-2xl transition-colors"
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Messages */}
-          <div 
-            ref={chatContainerRef}
-            className="flex-1 p-3 md:p-3 overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-100 space-y-3"
-          >
-             {/* Top Sentinel cho infinite scroll */}
-            <div ref={topSentinelRef} className="h-2" />
-
-             {/* 🆕 Loading Spinner khi đang load more */}
-            {renderLoadingSpinner()}
-            
-
-              {/* 🆕 NÚT "TẢI THÊM TIN NHẮN CŨ" - THÊM Ở ĐÂY
-            {pagination.hasMore && messages.length > 0 && !pagination.isLoadingMore && !showLoadingSpinner && (
-              <div className="text-center py-3 sticky top-0 z-10 bg-gradient-to-b from-white via-white/90 to-transparent pb-4">
-                <button
-                  onClick={() => loadMessages(true)}
-                  disabled={pagination.isLoadingMore}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-medium rounded-full hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed animate-in fade-in duration-300"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                  </svg>
-                  Tải thêm tin nhắn cũ
-                </button>
-                <p className="text-xs text-gray-500 mt-2">
-                  Đang hiển thị {messages.length}/{pagination.totalMessages} tin nhắn
-                </p>
-              </div>
-            )} */}
-                      
-             {/* Thông báo đã load hết */}
-            {/* {!pagination.hasMore && messages.length > 0 && pagination.totalMessages > pagination.pageSize && (
-              <div className="text-center py-3">
-                <div className="inline-flex items-center gap-2 text-gray-400 text-xs bg-gray-100 px-3 py-1 rounded-full">
-                  <span className="text-gray-400">📜</span>
-                  Đã hiển thị tất cả {pagination.totalMessages} tin nhắn
-                </div>
-              </div>
-            )} */}
-            {messages.length === 0 && !isTyping.admin && !isTyping.ai && (
-              <div className="text-center text-gray-500 mt-8 md:mt-8">
-                <div className="text-5xl mb-3">
-                  {currentUser ? '👋' : '🤖'}
-                </div>
-                <p className="text-sm font-medium mb-2">
-                  {currentUser ? 'Chào bạn!' : 'Xin chào!'}
-                </p>
-                <p className="text-xs text-gray-600 px-4">
-                  {currentUser 
-                    ? 'Bạn cần tư vấn gì, chúng tôi sẽ hổ trợ bạn' 
-                    : 'Tôi là AI hỗ trợ. Hãy chat với tôi!'
-                  }
-                </p>
-                {/* Hiển thị trạng thái cho user mới */}
-                {currentUser && !conversationId && (
-                  <p className="text-xs text-blue-600 mt-2 font-medium">
-                    💡 Nhập tin nhắn đầu tiên để tạo hội thoại mới
-                  </p>
-                )}
-              </div>
-            )}
-
-            {messages.map((msg, index) => {
-              // Xác định xem tin nhắn có phải là mới không
-              // Tin nhắn mới là những tin nhắn thuộc 3 tin nhắn cuối cùng
-              const isNewMessage = index >= messages.length - 3;
-              // Tính toán delay dựa trên vị trí trong danh sách mới
-              const messageDelay = Math.min((messages.length - 1 - index) * 0.1, 0.3);
-              
-              return (
-                <div 
-                  key={msg.id} 
-                  className={`flex ${['USER', 'GUEST'].includes(msg.senderType) ? 'justify-end' : 'justify-start'} ${
-                    isNewMessage ? 'animate-in fade-in slide-in-from-bottom-2' : ''
-                  }`}
-                  style={{
-                    animationDuration: isNewMessage ? '0.4s' : '0.2s',
-                    animationDelay: isNewMessage ? `${messageDelay}s` : '0s',
-                    animationFillMode: 'both'
-                  }}
-                >
-                  <div className={`${getBubbleClass(msg)} max-w-[85%] md:max-w-[75%] ${
-                    isNewMessage ? 'transform transition-transform duration-300 hover:scale-[1.02]' : ''
-                  }`}>
-                    {!['USER', 'GUEST'].includes(msg.senderType) && (
-                      <div className="text-xs opacity-80 mb-1 font-semibold">
-                        {msg.senderType === 'ADMIN' ? '👨‍💼 Admin' : msg.senderType === 'BOT' ? '👩‍💼 Nhân viên sale' : 'Bạn'}
-                      </div>
-                    )}
-                    <div className="whitespace-pre-wrap break-words text-sm md:text-sm">
-                      {renderMessageWithLinks(msg.message)}
-                    </div>
-                    <div className="text-xs mt-1 opacity-70 flex items-center gap-1">
-                      {formatTime(msg.createdAt)}
-                      {msg.status === 'sending' && (
-                        <span className="flex items-center gap-1">
-                          <span className="w-2 h-2 bg-current rounded-full opacity-60 animate-pulse"></span>
-                          <span className="text-xs opacity-70">đang gửi...</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Typing Indicators */}
-            {isTyping.admin && (
-              <div className="flex justify-start animate-in fade-in duration-200">
-                <div className="bg-blue-100 text-blue-800 rounded-2xl px-4 py-2 text-sm flex items-center gap-2 max-w-[85%] md:max-w-[75%]">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                  </div>
-                  <span className="text-sm">Admin đang soạn tin...</span>
-                </div>
-              </div>
-            )}
-
-            {isTyping.ai && (
-              <div className="flex justify-start animate-in fade-in duration-200">
-                <div className="bg-green-100 text-green-800 rounded-2xl px-4 py-3 flex items-center gap-3 max-w-[85%] md:max-w-[75%]">
-                  <span className="text-sm font-medium">AI đang suy nghĩ {aiTypingDots}</span>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input Area */}
-          <div className="p-3 border-t bg-white safe-area-padding-bottom">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder={status.placeholder}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={status.inputDisabled}
-                className={`flex-1 border border-gray-300 rounded-full px-4 py-3 md:py-2.5 text-sm md:text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition ${
-                  status.inputDisabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
-                }`}
-              />
-              <button
-                onClick={() => sendMessage(input)}
-                disabled={!input.trim() || status.inputDisabled}
-                className={`bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 md:px-5 py-3 md:py-2.5 rounded-full font-medium shadow-md transition flex items-center gap-1 md:gap-2 ${
-                  !input.trim() || status.inputDisabled 
-                    ? 'from-gray-300 to-gray-300 cursor-not-allowed' 
-                    : 'hover:from-indigo-700 hover:to-purple-700'
-                }`}
-              >
-                <span className="md:hidden">📤</span>
-                <span className="hidden md:inline">Gửi</span>
-              </button>
-            </div>
-            
-            {/* THÊM: Hiển thị thông báo khi AI đang xử lý */}
-            {isAiProcessing && (
-              <div className="mt-2 text-xs text-blue-600 text-center">
-                ⏳ Đang chờ AI trả lời, vui lòng đợi...
-              </div>
-            )}
-            {showScrollToBottom && (
-              <button
-                onClick={() => {
-                  scrollToBottom('smooth');
-                  setShowScrollToBottom(false);
-                }}
-                className="fixed md:absolute bottom-20 right-4 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors z-10 animate-bounce"
-                title="Cuộn xuống tin nhắn mới nhất"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
+      {!isGuest && !isConnected && (
+        <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-pulse border border-white"></span>
       )}
 
-          <style jsx>{`
-        .safe-area-padding-bottom {
-          padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
-        }
-        
-        /* 🆕 Style cho product links */
-        :global(.product-link) {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.25rem;
-          color: #2563eb;
-          text-decoration: underline;
-          font-weight: 500;
-          transition: all 0.2s ease;
-        }
-        
-        :global(.product-link:hover) {
-          color: #1d4ed8;
-          text-decoration-thickness: 2px;
-        }
-        
-        :global(.product-link svg) {
-          width: 0.75rem;
-          height: 0.75rem;
-          transition: transform 0.2s ease;
-        }
-        
-        :global(.product-link:hover svg) {
-          transform: translateX(2px) translateY(-2px);
-        }
+      {unreadCount > 0 && (
+        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 shadow-md animate-bounce">
+          {unreadCount > 99 ? '99+' : unreadCount}
+        </span>
+      )}
+    </div>
 
-         @keyframes spin-reverse {
-            from {
-              transform: rotate(360deg);
-            }
-            to {
-              transform: rotate(0deg);
-            }
-          }
+    {/* Chat Window - Responsive cải thiện cho iPhone */}
+    {isChatOpen && (
+      <div className="fixed inset-0 md:inset-auto md:bottom-24 md:right-5 md:w-96 md:h-[600px] w-full h-full bg-white md:rounded-2xl md:shadow-2xl flex flex-col overflow-hidden z-[9999] animate-in slide-in-from-bottom-full md:slide-in-from-bottom-5 duration-300 overscroll-contain"
+        style={{
+          // Fix cho iOS Safari
+          WebkitOverflowScrolling: 'touch',
+          maxHeight: '-webkit-fill-available',
+        }}
+      >
+        {/* Header với safe area cho iPhone */}
+        <div className="flex justify-between items-center bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 text-white px-4 py-3 safe-area-top-padding">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-lg text-white truncate">Tư vấn trực tuyến</h3>
+              <p className="text-xs flex items-center gap-1 truncate">
+                {isGuest ? (
+                  <span className="text-yellow-300 truncate">Đăng nhập để lưu lịch sử chat</span>
+                ) : (
+                  <>
+                    <span className={`flex-shrink-0 w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></span>
+                    <span className="truncate">{status.text}</span>
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
           
-          .animate-spin-reverse {
-            animation: spin-reverse 1s linear infinite;
-          }
-          
-          .loading-pulse {
-            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-          }
-          
-          @keyframes pulse {
-            0%, 100% {
-              opacity: 1;
-            }
-            50% {
-              opacity: 0.5;
-            }
-          }
-          
-          /* Smooth transitions for loading states */
-          .loading-transition {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          }
+          <button 
+            onClick={() => setIsChatOpen(false)} 
+            className="flex-shrink-0 text-white hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center text-2xl transition-colors active:bg-white/30 touch-manipulation"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+            aria-label="Đóng chat"
+          >
+            ×
+          </button>
+        </div>
 
-           /* Animation cho tin nhắn mới */
-          @keyframes messageSlideIn {
-            from {
-              opacity: 0;
-              transform: translateY(10px) scale(0.95);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0) scale(1);
-            }
-          }
-          
-          @keyframes messageSlideInRight {
-            from {
-              opacity: 0;
-              transform: translateX(20px) scale(0.95);
-            }
-            to {
-              opacity: 1;
-              transform: translateX(0) scale(1);
-            }
-          }
-          
-          @keyframes messageSlideInLeft {
-            from {
-              opacity: 0;
-              transform: translateX(-20px) scale(0.95);
-            }
-            to {
-              opacity: 1;
-              transform: translateX(0) scale(1);
-            }
-          }
-          
-          @keyframes bubblePulse {
-            0%, 100% {
-              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            }
-            50% {
-              box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            }
-          }
-          
-          .message-slide-in {
-            animation: messageSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-          }
-          
-          .message-slide-in-right {
-            animation: messageSlideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-          }
-          
-          .message-slide-in-left {
-            animation: messageSlideInLeft 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-          }
-          
-          .bubble-pulse {
-            animation: bubblePulse 1s ease-in-out;
-          }
-          
-          /* Smooth transition cho bubble hover */
-          .message-bubble {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          }
-          
-          .message-bubble:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-          }
-      `}</style>
-    </ChatContext.Provider>
-  );
+        {/* Messages container với cải thiện scroll cho iOS */}
+        <div 
+          ref={chatContainerRef}
+          className="flex-1 p-3 md:p-3 overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-100 space-y-3 overscroll-contain"
+          style={{
+            // Fix scroll cho iOS
+            WebkitOverflowScrolling: 'touch',
+            overflowAnchor: 'none',
+          }}
+        >
+          {/* Top Sentinel cho infinite scroll */}
+          <div ref={topSentinelRef} className="h-2" />
 
+          {/* Loading Spinner khi đang load more */}
+          {renderLoadingSpinner()}
+
+          {/* Empty state */}
+          {messages.length === 0 && !isTyping.admin && !isTyping.ai && (
+            <div className="text-center text-gray-500 mt-8 md:mt-12 px-4">
+              <div className="text-5xl mb-3">
+                {currentUser ? '👋' : '🤖'}
+              </div>
+              <p className="text-sm font-medium mb-2">
+                {currentUser ? 'Chào bạn!' : 'Xin chào!'}
+              </p>
+              <p className="text-xs text-gray-600">
+                {currentUser 
+                  ? 'Bạn cần tư vấn gì, chúng tôi sẽ hỗ trợ bạn' 
+                  : 'Tôi là AI hỗ trợ. Hãy chat với tôi!'
+                }
+              </p>
+              {currentUser && !conversationId && (
+                <p className="text-xs text-blue-600 mt-2 font-medium">
+                  💡 Nhập tin nhắn đầu tiên để tạo hội thoại mới
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Messages list */}
+          {messages.map((msg, index) => {
+            const isNewMessage = index >= messages.length - 3;
+            const messageDelay = Math.min((messages.length - 1 - index) * 0.1, 0.3);
+            
+            return (
+              <div 
+                key={msg.id} 
+                className={`flex ${['USER', 'GUEST'].includes(msg.senderType) ? 'justify-end' : 'justify-start'} ${
+                  isNewMessage ? 'animate-in fade-in slide-in-from-bottom-2' : ''
+                }`}
+                style={{
+                  animationDuration: isNewMessage ? '0.4s' : '0.2s',
+                  animationDelay: isNewMessage ? `${messageDelay}s` : '0s',
+                  animationFillMode: 'both'
+                }}
+              >
+                <div className={`${getBubbleClass(msg)} max-w-[85%] md:max-w-[75%] break-words ${
+                  isNewMessage ? 'transform transition-transform duration-300 active:scale-[0.98]' : ''
+                }`}>
+                  {!['USER', 'GUEST'].includes(msg.senderType) && (
+                    <div className="text-xs opacity-80 mb-1 font-semibold truncate">
+                      {msg.senderType === 'ADMIN' ? '👨‍💼 Admin' : msg.senderType === 'BOT' ? '👩‍💼 Nhân viên sale' : 'Bạn'}
+                    </div>
+                  )}
+                  <div className="whitespace-pre-wrap break-words text-sm md:text-sm leading-relaxed">
+                    {renderMessageWithLinks(msg.message)}
+                  </div>
+                  <div className="text-xs mt-1 opacity-70 flex items-center gap-1">
+                    {formatTime(msg.createdAt)}
+                    {msg.status === 'sending' && (
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-current rounded-full opacity-60 animate-pulse"></span>
+                        <span className="text-xs opacity-70">đang gửi...</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Typing Indicators */}
+          {isTyping.admin && (
+            <div className="flex justify-start animate-in fade-in duration-200">
+              <div className="bg-blue-100 text-blue-800 rounded-2xl px-4 py-2 text-sm flex items-center gap-2 max-w-[85%] md:max-w-[75%]">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+                <span className="text-sm">Admin đang soạn tin...</span>
+              </div>
+            </div>
+          )}
+
+          {isTyping.ai && (
+            <div className="flex justify-start animate-in fade-in duration-200">
+              <div className="bg-green-100 text-green-800 rounded-2xl px-4 py-3 flex items-center gap-3 max-w-[85%] md:max-w-[75%]">
+                <span className="text-sm font-medium">AI đang suy nghĩ {aiTypingDots}</span>
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input Area với safe area cho iPhone */}
+        <div className="p-3 md:p-3 border-t bg-white safe-area-padding-bottom">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder={status.placeholder}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={status.inputDisabled}
+              className={`flex-1 border border-gray-300 rounded-full px-4 py-3 md:py-2.5 text-base md:text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition ${
+                status.inputDisabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
+              }`}
+              style={{
+                // Fix cho iOS
+                WebkitAppearance: 'none',
+                fontSize: '16px', // Ngăn iOS zoom khi focus
+              }}
+            />
+            <button
+              onClick={() => sendMessage(input)}
+              disabled={!input.trim() || status.inputDisabled}
+              className={`bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 md:px-5 py-3 md:py-2.5 rounded-full font-medium shadow-md transition flex items-center justify-center min-w-[44px] min-h-[44px] ${
+                !input.trim() || status.inputDisabled 
+                  ? 'from-gray-300 to-gray-300 cursor-not-allowed' 
+                  : 'hover:from-indigo-700 hover:to-purple-700 active:scale-95'
+              }`}
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              <span className="md:hidden">📤</span>
+              <span className="hidden md:inline">Gửi</span>
+            </button>
+          </div>
+          
+          {/* Thông báo khi AI đang xử lý */}
+          {isAiProcessing && (
+            <div className="mt-2 text-xs text-blue-600 text-center">
+              ⏳ Đang chờ AI trả lời, vui lòng đợi...
+            </div>
+          )}
+          
+          {/* Nút scroll to bottom */}
+          {showScrollToBottom && (
+            <button
+              onClick={() => {
+                scrollToBottom('smooth');
+                setShowScrollToBottom(false);
+              }}
+              className="fixed md:absolute bottom-20 right-4 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors z-10 animate-bounce min-w-[44px] min-h-[44px] flex items-center justify-center"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+              title="Cuộn xuống tin nhắn mới nhất"
+              aria-label="Cuộn xuống cuối"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+    )}
+
+    <style jsx global>{`
+      /* Safe area handling cho iPhone với notch */
+      .safe-area-top-padding {
+        padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
+        padding-left: calc(1rem + env(safe-area-inset-left, 0px));
+        padding-right: calc(1rem + env(safe-area-inset-right, 0px));
+      }
+      
+      .safe-area-padding-bottom {
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+        padding-left: calc(1rem + env(safe-area-inset-left, 0px));
+        padding-right: calc(1rem + env(safe-area-inset-right, 0px));
+      }
+      
+      /* Fix cho iOS scroll bounce */
+      body.chat-open {
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+        height: 100%;
+      }
+      
+      /* Tối ưu hiệu suất cho mobile */
+      .message-bubble {
+        will-change: transform;
+        backface-visibility: hidden;
+      }
+      
+      /* Ngăn chặn text selection không mong muốn trên mobile */
+      .touch-manipulation {
+        touch-action: manipulation;
+      }
+      
+      /* Fix cho button active states trên iOS */
+      button:active {
+        opacity: 0.8;
+      }
+      
+      /* Style cho product links */
+      .product-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        color: #2563eb;
+        text-decoration: underline;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+      
+      .product-link:hover {
+        color: #1d4ed8;
+        text-decoration-thickness: 2px;
+      }
+      
+      /* Optimize animations cho mobile */
+      @media (prefers-reduced-motion: reduce) {
+        .animate-in,
+        .animate-bounce,
+        .animate-pulse,
+        .animate-spin,
+        .animate-spin-reverse {
+          animation: none !important;
+        }
+      }
+      
+      /* Fix cho input font size trên iOS */
+      input, textarea {
+        font-size: 16px !important;
+      }
+      
+      /* Improve tap targets cho mobile */
+      @media (max-width: 768px) {
+        button, 
+        a, 
+        [role="button"] {
+          min-height: 44px;
+          min-width: 44px;
+        }
+      }
+      
+      /* Custom animation classes */
+      @keyframes spin-reverse {
+        from {
+          transform: rotate(360deg);
+        }
+        to {
+          transform: rotate(0deg);
+        }
+      }
+      
+      .animate-spin-reverse {
+        animation: spin-reverse 1s linear infinite;
+      }
+      
+      .loading-pulse {
+        animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+      
+      @keyframes messageSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      
+      @keyframes messageSlideInRight {
+        from {
+          opacity: 0;
+          transform: translateX(20px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0) scale(1);
+        }
+      }
+      
+      @keyframes messageSlideInLeft {
+        from {
+          opacity: 0;
+          transform: translateX(-20px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0) scale(1);
+        }
+      }
+      
+      @keyframes bubblePulse {
+        0%, 100% {
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        50% {
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+      }
+      
+      .message-slide-in {
+        animation: messageSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      }
+      
+      .message-slide-in-right {
+        animation: messageSlideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      }
+      
+      .message-slide-in-left {
+        animation: messageSlideInLeft 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      }
+      
+      .bubble-pulse {
+        animation: bubblePulse 1s ease-in-out;
+      }
+      
+      /* Tối ưu cho slide in animation trên mobile */
+      @media (max-width: 768px) {
+        .animate-in {
+          animation-duration: 0.3s !important;
+        }
+        
+        .slide-in-from-bottom-full {
+          animation-name: slideInFromBottomFull;
+        }
+        
+        @keyframes slideInFromBottomFull {
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+      }
+      
+      /* Fix cho viewport height trên mobile */
+      .h-screen-mobile {
+        height: 100vh;
+        height: -webkit-fill-available;
+      }
+    `}</style>
+  </ChatContext.Provider>
+);
   
 }
