@@ -1597,7 +1597,7 @@ return (
           {isTyping.ai && (
             <div className="flex justify-start animate-in fade-in duration-200">
               <div className="bg-green-100 text-green-800 rounded-2xl px-4 py-3 flex items-center gap-3 max-w-[85%] md:max-w-[75%]">
-                <span className="text-sm font-medium">AI đang suy nghĩ {aiTypingDots}</span>
+                <span className="text-sm font-medium">đang suy nghĩ {aiTypingDots}</span>
               </div>
             </div>
           )}
@@ -1642,7 +1642,7 @@ return (
           {/* Thông báo khi AI đang xử lý */}
           {isAiProcessing && (
             <div className="mt-2 text-xs text-blue-600 text-center">
-              ⏳ Đang chờ AI trả lời, vui lòng đợi...
+              ⏳ Đang chờ trả lời, vui lòng đợi...
             </div>
           )}
           
