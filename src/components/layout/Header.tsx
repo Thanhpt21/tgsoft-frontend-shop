@@ -1,28 +1,26 @@
 'use client';
 
-// Import các thư viện và components cần thiết
-import { Menu, Dropdown, Badge, Spin, Avatar, Drawer, Collapse } from 'antd';
+import { Menu, Dropdown, Spin, Avatar, Drawer, Collapse, Popover } from 'antd';
 import { ShoppingCartOutlined, UserOutlined, LoadingOutlined, MenuOutlined, CloseOutlined, SearchOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Config } from '@/types/config.type';
 import { useLogout } from '@/hooks/auth/useLogout';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getImageUrl } from '@/utils/getImageUrl';
+import { formatVND } from '@/utils/helpers';
 import { useCartStore } from '@/stores/cartStore';
-import SearchBar from './common/SearchBar';
 import { useAllCategories } from '@/hooks/category/useAllCategories';
+import CartPreviewDropdown from '@/components/layout/cart/CartPreviewDropdown';
 
 const { Panel } = Collapse;
 
-// Định nghĩa interface cho props
 interface HeaderProps {
   config: Config;
 }
 
-// Định nghĩa interface cho Category
 interface Category {
   id: number;
   name: string;
@@ -30,41 +28,116 @@ interface Category {
   thumb?: string;
 }
 
+// ==================== SEARCH BAR COMPONENT ====================
+const SearchBar = () => {
+  const [searchValue, setSearchValue] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const router = useRouter();
+  const searchRef = useRef<HTMLDivElement>(null);
+  
+  const { data: categories } = useAllCategories();
+  
+  // Giới hạn tối đa 8 categories
+  const displayCategories = categories?.slice(0, 8) || [];
+
+  // Đóng dropdown khi click bên ngoài
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsFocused(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchValue.trim()) {
+      router.push(`/san-pham?search=${encodeURIComponent(searchValue.trim())}`);
+      setIsFocused(false);
+      setSearchValue('');
+    }
+  };
+
+  return (
+    <div ref={searchRef} className="relative w-full">
+      <form onSubmit={handleSearch} className="relative">
+        <input
+          type="text"
+          placeholder="Tìm sản phẩm..."
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          className="w-full h-9 sm:h-10 pl-4 pr-10 text-sm border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+        />
+        <button
+          type="submit"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <SearchOutlined className="text-base" />
+        </button>
+      </form>
+
+      {/* Category Dropdown */}
+      {(isFocused || searchValue) && displayCategories.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden z-50 animate-fadeIn">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🔥</span>
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                TÌM KIẾM NHIỀU NHẤT
+              </h3>
+            </div>
+          </div>
+          <div className="p-4">
+            <div className="flex flex-wrap gap-2">
+              {displayCategories.map((category: any) => (
+                <Link
+                  key={category.id}
+                  href={`/san-pham?categoryId=${category.id}`}
+                  onClick={() => setIsFocused(false)}
+                  className="px-3 py-1.5 text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-gray-200 hover:border-blue-200"
+                >
+                  {category.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==================== HEADER COMPONENT ====================
 const Header = ({ config }: HeaderProps) => {
-  // Lấy pathname và router từ Next.js
   const pathname = usePathname();
   const router = useRouter();
   
-  // State quản lý trạng thái scroll
   const [scrolled, setScrolled] = useState(false);
-  
-  // State kiểm tra component đã mount chưa (tránh hydration mismatch)
   const [mounted, setMounted] = useState(false);
+  const [isCartPopoverOpen, setIsCartPopoverOpen] = useState(false);
 
-  // Lấy dữ liệu giỏ hàng từ store
   const cartItems = useCartStore((state) => state.items);
   const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
-  // Lấy thông tin user và trạng thái đăng nhập
   const { currentUser, isLoading: isAuthLoading } = useAuth();
   const { logoutUser, isPending: isLogoutPending } = useLogout();
   const isLoggedInUI = !!currentUser;
   const isAdmin = currentUser?.role === 'admin';
 
-  // State quản lý menu mobile và search
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   
-  // Lấy danh sách categories từ API
   const { data: categories, isLoading: isCategoriesLoading } = useAllCategories();
 
-  // Đảm bảo component đã mount trước khi hiển thị các phần tử interactive
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Xử lý sự kiện scroll để thay đổi style header
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
@@ -73,15 +146,12 @@ const Header = ({ config }: HeaderProps) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Hàm xử lý đăng xuất
   const handleLogout = () => logoutUser();
 
-  // Hàm toggle search bar
   const toggleSearch = () => {
     setIsSearchOpen(!isSearchOpen);
   };
 
-  // Cấu hình menu dropdown cho user
   const userDropdownMenuItems = [
     isAuthLoading
       ? {
@@ -120,45 +190,40 @@ const Header = ({ config }: HeaderProps) => {
       ]
   ];
 
-  // Lọc và tạo menu dropdown
   const filteredUserDropdownMenuItems = userDropdownMenuItems.flat().filter((item) => item !== false);
   const userDropdownMenu = <Menu items={filteredUserDropdownMenuItems} className="!rounded-xl !shadow-xl !border-0" />;
 
-  // Xây dựng mega menu động từ danh sách categories
   const buildMegaMenu = () => {
-    // Nếu không có categories, trả về menu mặc định
     if (!categories || categories.length === 0) {
-      return [
-        {
-          links: [
-            { label: 'Tất cả sản phẩm', href: '/san-pham' },
-          ]
-        }
-      ];
+      return {
+        layout: 'single',
+        links: [{ label: 'Tất cả sản phẩm', href: '/san-pham' }]
+      };
     }
 
-    // Chia categories thành 2 cột
-    const halfLength = Math.ceil(categories.length / 2);
-    const firstHalf = categories.slice(0, halfLength);
-    const secondHalf = categories.slice(halfLength);
+    const allLinks = categories.map((cat: Category) => ({
+      label: cat.name,
+      href: `/san-pham?categoryId=${cat.id}`
+    }));
 
-    return [
-      {
-        links: firstHalf.map((cat: Category) => ({
-          label: cat.name,
-          href: `/san-pham?categoryId=${cat.id}`
-        }))
-      },
-      {
-        links: secondHalf.map((cat: Category) => ({
-          label: cat.name,
-          href: `/san-pham?categoryId=${cat.id}`
-        }))
-      }
-    ];
+    // <= 10: 1 cột thẳng hàng
+    if (categories.length <= 10) {
+      return {
+        layout: 'single',
+        links: allLinks
+      };
+    } 
+    // >= 11: 2 cột dọc
+    else {
+      const halfLength = Math.ceil(categories.length / 2);
+      return {
+        layout: 'columns',
+        firstHalf: allLinks.slice(0, halfLength),
+        secondHalf: allLinks.slice(halfLength)
+      };
+    }
   };
 
-  // Cấu hình các menu items chính
   const mainMenuItems = [
     { label: 'Trang chủ', href: '/', hasDropdown: false },
     { 
@@ -182,18 +247,16 @@ const Header = ({ config }: HeaderProps) => {
         }`}
       >
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Hàng header chính */}
           <div className="flex items-center justify-between h-16 sm:h-[70px]">
-            {/* Phần Logo */}
-             <Link
+            {/* Logo */}
+            <Link
               href="/"
               className="flex items-center flex-shrink-0 hover:opacity-80 transition-opacity"
             >
               {config?.logo ? (
-                // Hiển thị logo ảnh
                 <div className="relative h-10 sm:h-12 w-32">
                   <Image
-                    src={getImageUrl(config.logo) || "/default-logo.png"} // fallback tránh crash
+                    src={getImageUrl(config.logo) || "/default-logo.png"}
                     alt={config?.name || "Logo"}
                     fill
                     className="object-contain"
@@ -203,24 +266,23 @@ const Header = ({ config }: HeaderProps) => {
                   />
                 </div>
               ) : (
-                // Fallback: hiển thị tên nếu không có logo
                 <span className="text-xl font-semibold">
                   {config?.name || "My Website"}
                 </span>
               )}
             </Link>
 
-            {/* Desktop: Thanh tìm kiếm ở giữa (khi được mở) */}
-            <div className={`hidden lg:flex flex-1 justify-center mx-8 transition-all duration-300 ${
+            {/* Search Bar - Desktop */}
+            <div className={`hidden lg:flex flex-1 justify-center mx-4 transition-all duration-300 ${
               isSearchOpen ? 'opacity-100 visible' : 'opacity-0 invisible absolute'
             }`}>
-              <div className="w-full max-w-2xl">
+              <div className="w-full max-w-xl">
                 <SearchBar />
               </div>
             </div>
 
-            {/* Desktop: Menu điều hướng (ẩn khi search mở) - SỬA LỖI: xóa mounted check */}
-            <nav className={`hidden lg:flex items-center space-x-1 flex-1 justify-center mx-8 transition-all duration-300 ${
+            {/* Main Navigation - Desktop */}
+            <nav className={`hidden lg:flex items-center space-x-1 flex-1 justify-center mx-4 transition-all duration-300 ${
               isSearchOpen ? 'opacity-0 invisible absolute' : 'opacity-100 visible'
             }`}>
               {mainMenuItems.map((item) => (
@@ -253,7 +315,6 @@ const Header = ({ config }: HeaderProps) => {
                     )}
                   </Link>
 
-                  {/* Mega Menu Dropdown */}
                   {item.hasDropdown && item.megaMenu && (
                     <div 
                       className={`absolute left-1/2 -translate-x-1/2 top-full pt-2 transition-all duration-200 ${
@@ -262,32 +323,60 @@ const Header = ({ config }: HeaderProps) => {
                           : 'opacity-0 invisible'
                       }`}
                     >
-                      <div className="bg-white rounded-lg shadow-xl border border-gray-100 p-6 min-w-[600px]">
+                      <div className={`bg-white rounded-lg shadow-xl border border-gray-100 p-6 ${
+                        item.megaMenu.layout === 'columns' ? 'min-w-[600px]' : 'min-w-auto max-w-full'
+                      }`}>
                         {isCategoriesLoading ? (
-                          // Loading spinner khi đang tải categories
                           <div className="flex justify-center items-center py-8">
                             <Spin size="small" />
                           </div>
-                        ) : (
-                          // Hiển thị categories dạng 2 cột
-                          <div className="grid grid-cols-2 gap-8">
-                            {item.megaMenu.map((section, idx) => (
-                              <div key={idx}>
-                                <ul className="space-y-2">
-                                  {section.links.map((link: any) => (
-                                    <li key={link.href}>
-                                      <Link
-                                        href={link.href}
-                                        className="block px-3 py-2 text-sm text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded-md transition-colors"
-                                        onClick={() => setOpenDropdown(null)}
-                                      >
-                                        {link.label}
-                                      </Link>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
+                        ) : item.megaMenu.layout === 'single' ? (
+                          // 1 cột thẳng hàng tự wrap (cho <= 10 categories)
+                          <div className="flex flex-wrap gap-2">
+                            {item.megaMenu.links?.map((link: any) => (
+                              <Link
+                                key={link.href}
+                                href={link.href}
+                                className="px-3 py-1.5 text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-gray-200 hover:border-blue-200 whitespace-nowrap"
+                                onClick={() => setOpenDropdown(null)}
+                              >
+                                {link.label}
+                              </Link>
                             ))}
+                          </div>
+                        ) : (
+                          // 2 cột dọc cho >= 11 categories
+                          <div className="grid grid-cols-2 gap-8">
+                            <div>
+                              <ul className="space-y-2">
+                                {item.megaMenu.firstHalf?.map((link: any) => (
+                                  <li key={link.href}>
+                                    <Link
+                                      href={link.href}
+                                      className="block px-3 py-2 text-sm text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded-md transition-colors"
+                                      onClick={() => setOpenDropdown(null)}
+                                    >
+                                      {link.label}
+                                    </Link>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div>
+                              <ul className="space-y-2">
+                                {item.megaMenu.secondHalf?.map((link: any) => (
+                                  <li key={link.href}>
+                                    <Link
+                                      href={link.href}
+                                      className="block px-3 py-2 text-sm text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded-md transition-colors"
+                                      onClick={() => setOpenDropdown(null)}
+                                    >
+                                      {link.label}
+                                    </Link>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -297,9 +386,9 @@ const Header = ({ config }: HeaderProps) => {
               ))}
             </nav>
 
-            {/* Phần bên phải: Các nút action */}
+            {/* Action Buttons */}
             <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-              {/* Nút Search */}
+              {/* Search Toggle Button */}
               <button
                 onClick={toggleSearch}
                 className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full transition-colors duration-200 ${
@@ -315,8 +404,24 @@ const Header = ({ config }: HeaderProps) => {
                 )}
               </button>
 
-              {/* Nút Giỏ hàng */}
-              <Link href="/gio-hang">
+              {/* Cart Button with Popover */}
+              <Popover
+                content={
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <CartPreviewDropdown
+                      items={cartItems as any[]}
+                      isLoading={false}
+                      getImageUrl={(url?: string) => getImageUrl(url) as string}
+                      formatVND={formatVND}
+                    />
+                  </div>
+                }
+                trigger={['hover', 'click']}
+                placement="bottomRight"
+                overlayClassName="cart-popover"
+                open={isCartPopoverOpen}
+                onOpenChange={setIsCartPopoverOpen}
+              >
                 <button className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-transparent text-gray-600 hover:bg-gray-100 transition-colors duration-200">
                   <ShoppingCartOutlined className="text-base sm:text-lg" />
                   {cartItemCount > 0 && (
@@ -325,12 +430,11 @@ const Header = ({ config }: HeaderProps) => {
                     </span>
                   )}
                 </button>
-              </Link>
+              </Popover>
 
-              {/* Menu User - Desktop */}
+              {/* User Menu - Desktop */}
               <div className="hidden md:block">
                 {isLoggedInUI ? (
-                  // Hiển thị avatar khi đã đăng nhập
                   <Dropdown overlay={userDropdownMenu} trigger={['click']} placement="bottomRight">
                     <button
                       className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 transition-colors duration-200 disabled:opacity-50"
@@ -351,7 +455,6 @@ const Header = ({ config }: HeaderProps) => {
                     </button>
                   </Dropdown>
                 ) : (
-                  // Hiển thị nút đăng nhập khi chưa đăng nhập
                   <button
                     onClick={() => router.push('/login')}
                     disabled={isAuthLoading || isLogoutPending}
@@ -362,7 +465,7 @@ const Header = ({ config }: HeaderProps) => {
                 )}
               </div>
 
-              {/* Nút Menu Mobile */}
+              {/* Mobile Menu Button */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
                 className="lg:hidden flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-transparent text-gray-600 hover:bg-gray-100 transition-colors duration-200"
@@ -372,7 +475,7 @@ const Header = ({ config }: HeaderProps) => {
             </div>
           </div>
 
-          {/* Thanh tìm kiếm Mobile (hiển thị khi được toggle) */}
+          {/* Search Bar - Mobile */}
           <div
             className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out ${
               isSearchOpen ? 'max-h-20 opacity-100 pb-3' : 'max-h-0 opacity-0'
@@ -384,7 +487,7 @@ const Header = ({ config }: HeaderProps) => {
           </div>
         </div>
 
-        {/* Drawer Menu Mobile - SỬA LỖI: chỉ render sau khi mounted */}
+        {/* Mobile Drawer */}
         {mounted && (
           <Drawer
             title={
@@ -400,12 +503,10 @@ const Header = ({ config }: HeaderProps) => {
             bodyStyle={{ padding: 0 }}
           >
             <div className="flex flex-col h-full">
-              {/* Menu điều hướng */}
               <nav className="flex-1 py-2 overflow-y-auto">
                 {mainMenuItems.map((item) => (
                   <div key={item.href}>
                     {item.hasDropdown && item.megaMenu ? (
-                      // Menu có dropdown (Collapse)
                       <Collapse 
                         ghost 
                         expandIconPosition="end"
@@ -428,22 +529,32 @@ const Header = ({ config }: HeaderProps) => {
                             </div>
                           ) : (
                             <div className="space-y-1 pl-4">
-                              {categories && categories.map((cat: Category) => (
-                                <Link
-                                  key={cat.id}
-                                  href={`/san-pham?categoryId=${cat.id}`}
-                                  onClick={() => setIsMobileMenuOpen(false)}
-                                  className="block px-3 py-2 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded-md transition-colors"
-                                >
-                                  {cat.name}
-                                </Link>
-                              ))}
+                              {(() => {
+                                // Lấy tất cả links dựa vào layout
+                                let allLinks: any[] = [];
+                                
+                                if (item.megaMenu.layout === 'single' && item.megaMenu.links) {
+                                  allLinks = item.megaMenu.links;
+                                } else if (item.megaMenu.layout === 'columns' && item.megaMenu.firstHalf && item.megaMenu.secondHalf) {
+                                  allLinks = [...item.megaMenu.firstHalf, ...item.megaMenu.secondHalf];
+                                }
+                                
+                                return allLinks.map((cat: any) => (
+                                  <Link
+                                    key={cat.href}
+                                    href={cat.href}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="block px-3 py-2 text-xs sm:text-sm text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded-md transition-colors"
+                                  >
+                                    {cat.label}
+                                  </Link>
+                                ));
+                              })()}
                             </div>
                           )}
                         </Panel>
                       </Collapse>
                     ) : (
-                      // Menu link thông thường
                       <Link
                         href={item.href}
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -459,16 +570,10 @@ const Header = ({ config }: HeaderProps) => {
                   </div>
                 ))}
 
-                
-             
-
-                {/* Phần thông tin tài khoản - Nằm trong nav để có thể scroll */}
                 <div className="mt-2 px-3 pb-2">
                   <div className="border-t border-gray-200 pt-3">
                     {isLoggedInUI ? (
-                      // Hiển thị thông tin user khi đã đăng nhập
                       <div className="space-y-2">
-                        {/* Card thông tin user */}
                         <div className="flex items-center space-x-2 sm:space-x-3 p-2.5 sm:p-3 bg-gray-50 rounded-lg">
                           {currentUser?.avatar ? (
                             <Avatar src={getImageUrl(currentUser.avatar)} size={36} />
@@ -487,7 +592,6 @@ const Header = ({ config }: HeaderProps) => {
                           </div>
                         </div>
 
-                        {/* Link Tài khoản */}
                         <Link
                           href="/tai-khoan"
                           onClick={() => setIsMobileMenuOpen(false)}
@@ -497,7 +601,6 @@ const Header = ({ config }: HeaderProps) => {
                           <span>Tài khoản</span>
                         </Link>
                         
-                        {/* Link Quản trị (chỉ hiển thị cho admin) */}
                         {isAdmin && (
                           <Link
                             href="/admin"
@@ -509,7 +612,6 @@ const Header = ({ config }: HeaderProps) => {
                           </Link>
                         )}
 
-                        {/* Nút Đăng xuất */}
                         <button
                           onClick={() => {
                             handleLogout();
@@ -529,7 +631,6 @@ const Header = ({ config }: HeaderProps) => {
                         </button>
                       </div>
                     ) : (
-                      // Nút Đăng nhập khi chưa đăng nhập
                       <button
                         onClick={() => {
                           router.push('/login');
@@ -548,7 +649,6 @@ const Header = ({ config }: HeaderProps) => {
         )}
       </header>
 
-      {/* Styles cho mobile menu collapse */}
       <style jsx global>{`
         .mobile-menu-collapse .ant-collapse-header {
           padding: 12px 16px !important;
@@ -560,6 +660,21 @@ const Header = ({ config }: HeaderProps) => {
           .mobile-menu-collapse .ant-collapse-header {
             padding: 14px 16px !important;
           }
+        }
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
         }
       `}</style>
     </>

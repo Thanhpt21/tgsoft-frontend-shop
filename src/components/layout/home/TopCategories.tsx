@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Image, Spin } from 'antd'
+import { Image } from 'antd'
 import { getImageUrl } from '@/utils/getImageUrl'
 import { useAllCategories } from '@/hooks/category/useAllCategories'
 import Link from 'next/link'
@@ -14,80 +14,36 @@ interface Category {
 }
 
 export default function TopCategories() {
-  // Gọi API để lấy danh sách categories
-  const { data: categories, isLoading, isError } = useAllCategories()
+  const { data: categories, isLoading } = useAllCategories()
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <section className="py-10 bg-white">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-semibold mb-6 text-gray-800 text-center">
-            🏷️ Top Categories
-          </h2>
-          <div className="flex justify-center items-center min-h-[200px]">
-            <Spin size="large" />
-          </div>
-        </div>
-      </section>
-    )
-  }
-
-  // Error state
-  if (isError) {
-    return (
-      <section className="py-10 bg-white">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-semibold mb-6 text-gray-800 text-center">
-            🏷️ Top Categories
-          </h2>
-          <div className="text-center text-red-500">
-            Không thể tải danh mục. Vui lòng thử lại sau.
-          </div>
-        </div>
-      </section>
-    )
-  }
-
-  // Empty state
-  if (!categories || categories.length === 0) {
-    return (
-      <section className="py-10 bg-white">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-semibold mb-6 text-gray-800 text-center">
-            🏷️ Top Categories
-          </h2>
-          <div className="text-center text-gray-500">
-            Chưa có danh mục nào.
-          </div>
-        </div>
-      </section>
-    )
-  }
+  if (isLoading || !categories || categories.length === 0) return null;
 
   return (
-    <section className="py-10 bg-white">
-      <div className="container mx-auto px-4">
-        <h2 className="text-2xl font-semibold mb-6 text-gray-800 text-center">
-          🏷️ Top Categories
+    <section className="py-12 bg-white border-b border-gray-100">
+      <div className="container mx-auto px-4 max-w-7xl">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-8 text-center uppercase tracking-wide">
+          Danh mục sản phẩm
         </h2>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-6">
           {categories.map((cat: Category) => (
             <Link
               key={cat.id}
               href={`/san-pham?categoryId=${cat.id}`}
-              className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow-md hover:bg-blue-50 transition-all duration-300 cursor-pointer group"
+              className="group flex flex-col items-center cursor-pointer"
             >
-              <div className="w-20 h-20 mb-2 rounded-full overflow-hidden ring-2 ring-gray-200 group-hover:ring-blue-400 transition-all">
-                <Image
-                  src={getImageUrl(cat.thumb ?? null) || '/images/no-image.png'}
-                  alt={cat.name}
-                  preview={false}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+              <div className="w-20 h-20 sm:w-24 sm:h-24 mb-3 rounded-full bg-gray-50 border border-gray-200 group-hover:border-black transition-colors duration-300 flex items-center justify-center p-2 overflow-hidden">
+                 <div className="relative w-full h-full rounded-full overflow-hidden">
+                    <Image
+                      src={getImageUrl(cat.thumb ?? null) || '/images/no-image.png'}
+                      alt={cat.name}
+                      preview={false}
+                      className="group-hover:scale-105 transition-transform duration-500"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                 </div>
               </div>
-              <span className="text-center text-sm font-medium text-gray-700 group-hover:text-blue-600 truncate w-full transition-colors">
+              <span className="text-center text-sm font-semibold text-gray-600 group-hover:text-black transition-colors line-clamp-1">
                 {cat.name}
               </span>
             </Link>

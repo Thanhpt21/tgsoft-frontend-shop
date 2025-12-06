@@ -5,6 +5,7 @@ import { persist } from 'zustand/middleware';
 interface CartStore {
   items: CartItem[];
   selectedItems: Set<number>;
+  isHydrated: boolean;
 
   // Actions
   syncFromServer: (serverItems: any[]) => void;
@@ -26,90 +27,121 @@ interface CartStore {
   getSelectedTotal: () => number;
 }
 
+const createEmptyProduct = (): Product => ({
+  id: 0,
+  tenantId: 0,
+  name: 'Sản phẩm không xác định',
+  slug: '',
+  description: '',
+  basePrice: 0,
+  thumb: '',
+  images: [],
+  status: 'ACTIVE',
+  isPublished: false,
+  isFeatured: false,
+  totalRatings: 0,
+  totalReviews: 0,
+  numberSold: 0,
+  categoryId: 0,
+  brandId: 0,
+  createdById: 0,
+  weight: 0,
+  length: 0,
+  width: 0,
+  height: 0,
+  createdAt: '',
+  updatedAt: '',
+  promotionProducts: [],
+  seoTitle: '',
+  seoDescription: '',
+  seoKeywords: '',
+});
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
       selectedItems: new Set<number>(),
+      isHydrated: false,
 
       // Sync items from server
       syncFromServer: (serverItems) => {
-  const mapped: CartItem[] = serverItems.map((item: any) => {
-    const productServer = item.variant?.product || {};
+        const mapped: CartItem[] = serverItems.map((item: any) => {
+          const productServer = item.variant?.product || {};
 
-    // Clone sạch product
-    const product: Product = {
-      id: productServer.id || 0,
-      tenantId: productServer.tenantId || 0,
-      name: productServer.name || 'Sản phẩm không xác định',
-      slug: productServer.slug || '',
-      description: productServer.description || '',
-      basePrice: productServer.basePrice || 0,
-      thumb: productServer.thumb || '',
-      images: productServer.images || [],
-      status: productServer.status || 'ACTIVE',
-      isPublished: productServer.isPublished ?? false,
-      isFeatured: productServer.isFeatured ?? false,
-      totalRatings: productServer.totalRatings || 0,
-      totalReviews: productServer.totalReviews || 0,
-      numberSold: productServer.numberSold || 0,
-      categoryId: productServer.categoryId || 0,
-      brandId: productServer.brandId || 0,
-      createdById: productServer.createdById || 0,
-      weight: productServer.weight || 0,
-      length: productServer.length || 0,
-      width: productServer.width || 0,
-      height: productServer.height || 0,
-      createdAt: productServer.createdAt || '',
-      updatedAt: productServer.updatedAt || '',
-      promotionProducts: Array.isArray(productServer.promotionProducts)
-        ? [...productServer.promotionProducts] // clone sạch
-        : [],
-      seoTitle: productServer.seoTitle || '',
-      seoDescription: productServer.seoDescription || '',
-      seoKeywords: productServer.seoKeywords || '',
-    };
+          // Clone sạch product
+          const product: Product = {
+            id: productServer.id || 0,
+            tenantId: productServer.tenantId || 0,
+            name: productServer.name || 'Sản phẩm không xác định',
+            slug: productServer.slug || '',
+            description: productServer.description || '',
+            basePrice: productServer.basePrice || 0,
+            thumb: productServer.thumb || '',
+            images: productServer.images || [],
+            status: productServer.status || 'ACTIVE',
+            isPublished: productServer.isPublished ?? false,
+            isFeatured: productServer.isFeatured ?? false,
+            totalRatings: productServer.totalRatings || 0,
+            totalReviews: productServer.totalReviews || 0,
+            numberSold: productServer.numberSold || 0,
+            categoryId: productServer.categoryId || 0,
+            brandId: productServer.brandId || 0,
+            createdById: productServer.createdById || 0,
+            weight: productServer.weight || 0,
+            length: productServer.length || 0,
+            width: productServer.width || 0,
+            height: productServer.height || 0,
+            createdAt: productServer.createdAt || '',
+            updatedAt: productServer.updatedAt || '',
+            promotionProducts: Array.isArray(productServer.promotionProducts)
+              ? [...productServer.promotionProducts]
+              : [],
+            seoTitle: productServer.seoTitle || '',
+            seoDescription: productServer.seoDescription || '',
+            seoKeywords: productServer.seoKeywords || '',
+          };
 
-    const basePrice = item.variant?.priceDelta ?? product.basePrice;
+          const basePrice = item.variant?.priceDelta ?? product.basePrice;
 
-    const finalPrice = product.promotionProducts.length
-      ? product.promotionProducts[0].discountType === 'PERCENT'
-        ? basePrice * (1 - product.promotionProducts[0].discountValue / 100)
-        : Math.max(0, basePrice - product.promotionProducts[0].discountValue)
-      : basePrice;
+          const finalPrice = product.promotionProducts.length
+            ? product.promotionProducts[0].discountType === 'PERCENT'
+              ? basePrice * (1 - product.promotionProducts[0].discountValue / 100)
+              : Math.max(0, basePrice - product.promotionProducts[0].discountValue)
+            : basePrice;
 
-    return {
-      id: item.id,
-      cartId: item.cartId,
-      productVariantId: item.productVariantId,
-      quantity: item.quantity,
-      priceAtAdd: item.priceAtAdd,
-      finalPrice,
-      createdAt: item.createdAt || '',
-      updatedAt: item.updatedAt || '',
-      variant: {
-        id: item.variant?.id || 0,
-        productId: product.id,
-        sku: item.variant?.sku || '',
-        barcode: item.variant?.barcode || '',
-        priceDelta: item.variant?.priceDelta || 0,
-        price: item.variant?.price ?? null,
-        attrValues: item.variant?.attrValues || {},
-        thumb: item.variant?.thumb || null,
-        warehouseId: item.variant?.warehouseId ?? null,
-        product, // object clone sạch
+          return {
+            id: item.id,
+            cartId: item.cartId,
+            productVariantId: item.productVariantId,
+            quantity: item.quantity,
+            priceAtAdd: item.priceAtAdd,
+            finalPrice,
+            createdAt: item.createdAt || '',
+            updatedAt: item.updatedAt || '',
+            variant: {
+              id: item.variant?.id || 0,
+              productId: product.id,
+              sku: item.variant?.sku || '',
+              barcode: item.variant?.barcode || '',
+              priceDelta: item.variant?.priceDelta || 0,
+              price: item.variant?.price ?? null,
+              attrValues: item.variant?.attrValues || {},
+              thumb: item.variant?.thumb || null,
+              warehouseId: item.variant?.warehouseId ?? null,
+              product,
+            },
+          };
+        });
+
+        // Keep only valid selected items
+        const currentSelected = get().selectedItems;
+        const validSelected = new Set(
+          mapped.filter((item) => currentSelected.has(item.id)).map((i) => i.id)
+        );
+
+        set({ items: mapped, selectedItems: validSelected, isHydrated: true });
       },
-    };
-  });
-
-  // Keep only valid selected items
-  const currentSelected = get().selectedItems;
-  const validSelected = new Set(
-    mapped.filter((item) => currentSelected.has(item.id)).map((i) => i.id)
-  );
-
-  set({ items: mapped, selectedItems: validSelected });
-},
 
       addItemOptimistic: (newItem) =>
         set((state) => {
@@ -187,15 +219,43 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'cart-storage',
+      version: 1,
       partialize: (state) => ({
-        items: state.items,
+        items: state.items.map((item) => ({
+          ...item,
+          variant: {
+            ...item.variant,
+            product: item.variant?.product ? { ...item.variant.product } : createEmptyProduct(),
+          },
+        })),
         selectedItems: Array.from(state.selectedItems),
       }),
       merge: (persistedState: any, currentState: CartStore): CartStore => {
-        const selected = persistedState?.selectedItems
+        if (!persistedState) {
+          return { ...currentState, isHydrated: true };
+        }
+
+        const selectedItems = persistedState?.selectedItems
           ? new Set<number>(persistedState.selectedItems)
           : new Set<number>();
-        return { ...currentState, selectedItems: selected };
+
+        const items = persistedState?.items || [];
+
+        // Ensure product exists in each item variant
+        const validatedItems: CartItem[] = items.map((item: any) => ({
+          ...item,
+          variant: {
+            ...item.variant,
+            product: item.variant?.product || createEmptyProduct(),
+          },
+        }));
+
+        return {
+          ...currentState,
+          items: validatedItems,
+          selectedItems,
+          isHydrated: true,
+        };
       },
     }
   )
