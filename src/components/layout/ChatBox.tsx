@@ -198,65 +198,32 @@ export default function ChatBox() {
 const renderMessageWithLinks = (message: string) => {
   if (!message) return message;
 
-  // Lấy base URL từ env hoặc sử dụng origin hiện tại
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
                   (typeof window !== 'undefined' ? window.location.origin : '');
 
-  // Normalize text
-  let processed = message
-    .replace(/[´`'ʻ]/g, '`')     // Normalize backticks
-    .replace(/\s+/g, ' ')         // Collapse multiple spaces into one
-    .trim();
+  let processed = message;
   
-  // 🎯 PATTERN 1: Slug trong markdown link style
-  // Matches: [text](slug) hoặc [text](`slug`)
-  const markdownLinkPattern = /\[([^\]]+)\]\(`?([^`\s]+)`?\)/gi;
+  // CHỈ XỬ LÝ MARKDOWN LINK: [text](slug)
+  const markdownLinkPattern = /\[([^\]]+)\]\(([^)]+)\)/gi;
+  
   processed = processed.replace(markdownLinkPattern, (match, text, slug) => {
-    // Kiểm tra nếu slug đã là URL đầy đủ
-    if (slug.startsWith('http')) {
-      return `<a href="${slug}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank">${text}</a>`;
+    const cleanSlug = slug.trim();
+    
+    if (cleanSlug.startsWith('http')) {
+      return `<a href="${cleanSlug}" class="text-blue-600 hover:text-blue-800 underline" target="_blank">${text}</a>`;
     }
     
-    // Xử lý slug sản phẩm
-    const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9\-]/g, '-');
+    // QUAN TRỌNG: Không làm gì với slug cả, giữ nguyên 100%
     const url = `${baseUrl}/san-pham/${cleanSlug}`;
-    return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank">${text}</a>`;
+    return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline" target="_blank">${text}</a>`;
   });
-  
-  // 🎯 PATTERN 2: Slug đơn lẻ trong backticks (cho tên sản phẩm)
-  const slugPattern = /`([a-zA-Z0-9][a-zA-Z0-9\-]{5,}[a-zA-Z0-9])`/gi;
-  processed = processed.replace(slugPattern, (match, slug) => {
-    // Kiểm tra nếu đã được xử lý bởi pattern 1
-    if (processed.includes(`href="${baseUrl}/san-pham/${slug.toLowerCase()}"`)) {
-      return match;
-    }
-    
-    const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9\-]/g, '-');
-    const url = `${baseUrl}/san-pham/${cleanSlug}`;
-    return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank">${slug}</a>`;
-  });
-  
-  // 🎯 PATTERN 3: Xử lý các link được gửi từ AI với format đặc biệt
-  // Ví dụ: "Xem chi tiết tại đây: [ao-thun-nam-hoa-tiet-blue-horizon-form-oversize]"
-  const bracketSlugPattern = /\[([a-zA-Z0-9][a-zA-Z0-9\-]{5,}[a-zA-Z0-9])\]/gi;
-  processed = processed.replace(bracketSlugPattern, (match, slug) => {
-    const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9\-]/g, '-');
-    const url = `${baseUrl}/san-pham/${cleanSlug}`;
-    return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank">Xem chi tiết</a>`;
-  });
-  
-  // Xử lý markdown bold
-  processed = processed.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold">$1</strong>');
   
   // Xử lý line breaks
   processed = processed.replace(/\n/g, '<br/>');
   
-  // LOẠI BỎ KHOẢNG TRẮNG THỪA
-  processed = processed.trim();
-  
   return (
     <div 
-      className="whitespace-pre-wrap break-words text-sm md:text-sm leading-relaxed"
+      className="whitespace-pre-wrap break-words text-sm leading-relaxed"
       dangerouslySetInnerHTML={{ __html: processed }}
     />
   );
