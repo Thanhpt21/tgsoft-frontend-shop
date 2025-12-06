@@ -1,26 +1,19 @@
-"use client";
+'use client';
 
-import { Menu, Dropdown, Spin, Avatar, Drawer, Collapse, Popover } from "antd";
-import {
-  ShoppingCartOutlined,
-  UserOutlined,
-  LoadingOutlined,
-  MenuOutlined,
-  CloseOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
-import Link from "next/link";
-import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
-import { Config } from "@/types/config.type";
-import { useLogout } from "@/hooks/auth/useLogout";
-import { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { getImageUrl } from "@/utils/getImageUrl";
-import { formatVND } from "@/utils/helpers";
-import { useCartStore } from "@/stores/cartStore";
-import { useAllCategories } from "@/hooks/category/useAllCategories";
-import CartPreviewDropdown from "@/components/layout/cart/CartPreviewDropdown";
+import { Menu, Dropdown, Spin, Avatar, Drawer, Collapse, Popover } from 'antd';
+import { ShoppingCartOutlined, UserOutlined, LoadingOutlined, MenuOutlined, CloseOutlined, SearchOutlined } from '@ant-design/icons';
+import Link from 'next/link';
+import Image from 'next/image';
+import { usePathname, useRouter } from 'next/navigation';
+import { Config } from '@/types/config.type';
+import { useLogout } from '@/hooks/auth/useLogout';
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { getImageUrl } from '@/utils/getImageUrl';
+import { formatVND } from '@/utils/helpers';
+import { useCartStore } from '@/stores/cartStore';
+import { useAllCategories } from '@/hooks/category/useAllCategories';
+import CartPreviewDropdown from '@/components/layout/cart/CartPreviewDropdown';
 
 const { Panel } = Collapse;
 
@@ -37,29 +30,26 @@ interface Category {
 
 // ==================== SEARCH BAR COMPONENT ====================
 const SearchBar = () => {
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const router = useRouter();
   const searchRef = useRef<HTMLDivElement>(null);
-
+  
   const { data: categories } = useAllCategories();
-
+  
   // Giới hạn tối đa 8 categories
   const displayCategories = categories?.slice(0, 8) || [];
 
   // Đóng dropdown khi click bên ngoài
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        searchRef.current &&
-        !searchRef.current.contains(event.target as Node)
-      ) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setIsFocused(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -67,7 +57,7 @@ const SearchBar = () => {
     if (searchValue.trim()) {
       router.push(`/san-pham?search=${encodeURIComponent(searchValue.trim())}`);
       setIsFocused(false);
-      setSearchValue("");
+      setSearchValue('');
     }
   };
 
@@ -125,28 +115,24 @@ const SearchBar = () => {
 const Header = ({ config }: HeaderProps) => {
   const pathname = usePathname();
   const router = useRouter();
-
+  
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isCartPopoverOpen, setIsCartPopoverOpen] = useState(false);
 
   const cartItems = useCartStore((state) => state.items);
-  const cartItemCount = cartItems.reduce(
-    (total, item) => total + item.quantity,
-    0
-  );
+  const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const { currentUser, isLoading: isAuthLoading } = useAuth();
   const { logoutUser, isPending: isLogoutPending } = useLogout();
   const isLoggedInUI = !!currentUser;
-  const isAdmin = currentUser?.role === "admin";
+  const isAdmin = currentUser?.role === 'admin';
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-
-  const { data: categories, isLoading: isCategoriesLoading } =
-    useAllCategories();
+  
+  const { data: categories, isLoading: isCategoriesLoading } = useAllCategories();
 
   useEffect(() => {
     setMounted(true);
@@ -156,8 +142,8 @@ const Header = ({ config }: HeaderProps) => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const handleLogout = () => logoutUser();
@@ -169,45 +155,26 @@ const Header = ({ config }: HeaderProps) => {
   const userDropdownMenuItems = [
     isAuthLoading
       ? {
-          key: "loading",
-          label: (
-            <Spin
-              indicator={<LoadingOutlined style={{ fontSize: 14 }} spin />}
-            />
-          ),
+          key: 'loading',
+          label: <Spin indicator={<LoadingOutlined style={{ fontSize: 14 }} spin />} />,
           disabled: true,
         }
       : isLoggedInUI
       ? [
           {
-            key: "account",
-            label: (
-              <Link href="/tai-khoan" className="flex items-center gap-2">
-                <UserOutlined /> Tài khoản
-              </Link>
-            ),
+            key: 'account',
+            label: <Link href="/tai-khoan" className="flex items-center gap-2"><UserOutlined /> Tài khoản</Link>,
           },
           isAdmin && {
-            key: "admin",
-            label: (
-              <Link href="/admin" className="flex items-center gap-2">
-                ⚙️ Quản trị
-              </Link>
-            ),
+            key: 'admin',
+            label: <Link href="/admin" className="flex items-center gap-2">⚙️ Quản trị</Link>,
           },
           {
-            key: "logout",
+            key: 'logout',
             label: (
-              <span
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-red-600"
-              >
+              <span onClick={handleLogout} className="flex items-center gap-2 text-red-600">
                 {isLogoutPending ? (
-                  <Spin
-                    indicator={
-                      <LoadingOutlined style={{ fontSize: 14 }} spin />
-                    }
-                  />
+                  <Spin indicator={<LoadingOutlined style={{ fontSize: 14 }} spin />} />
                 ) : (
                   <>🚪 Đăng xuất</>
                 )}
@@ -217,73 +184,66 @@ const Header = ({ config }: HeaderProps) => {
         ]
       : [
           {
-            key: "login",
+            key: 'login',
             label: <Link href="/login">Đăng nhập</Link>,
           },
-        ],
+      ]
   ];
 
-  const filteredUserDropdownMenuItems = userDropdownMenuItems
-    .flat()
-    .filter((item) => item !== false);
-  const userDropdownMenu = (
-    <Menu
-      items={filteredUserDropdownMenuItems}
-      className="!rounded-xl !shadow-xl !border-0"
-    />
-  );
+  const filteredUserDropdownMenuItems = userDropdownMenuItems.flat().filter((item) => item !== false);
+  const userDropdownMenu = <Menu items={filteredUserDropdownMenuItems} className="!rounded-xl !shadow-xl !border-0" />;
 
   const buildMegaMenu = () => {
     if (!categories || categories.length === 0) {
       return {
-        layout: "single",
-        links: [{ label: "Tất cả sản phẩm", href: "/san-pham" }],
+        layout: 'single',
+        links: [{ label: 'Tất cả sản phẩm', href: '/san-pham' }]
       };
     }
 
     const allLinks = categories.map((cat: Category) => ({
       label: cat.name,
-      href: `/san-pham?categoryId=${cat.id}`,
+      href: `/san-pham?categoryId=${cat.id}`
     }));
 
     // <= 10: 1 cột thẳng hàng
     if (categories.length <= 10) {
       return {
-        layout: "single",
-        links: allLinks,
+        layout: 'single',
+        links: allLinks
       };
-    }
+    } 
     // >= 11: 2 cột dọc
     else {
       const halfLength = Math.ceil(categories.length / 2);
       return {
-        layout: "columns",
+        layout: 'columns',
         firstHalf: allLinks.slice(0, halfLength),
-        secondHalf: allLinks.slice(halfLength),
+        secondHalf: allLinks.slice(halfLength)
       };
     }
   };
 
   const mainMenuItems = [
-    { label: "Trang chủ", href: "/", hasDropdown: false },
-    {
-      label: "Danh mục",
-      href: "/san-pham",
+    { label: 'Trang chủ', href: '/', hasDropdown: false },
+    { 
+      label: 'Danh mục', 
+      href: '/san-pham', 
       hasDropdown: true,
-      megaMenu: buildMegaMenu(),
+      megaMenu: buildMegaMenu()
     },
-    { label: "Về chúng tôi", href: "/gioi-thieu", hasDropdown: false },
-    { label: "Tin tức", href: "/tin-tuc", hasDropdown: false },
-    { label: "Liên hệ", href: "/lien-he", hasDropdown: false },
+    { label: 'Về chúng tôi', href: '/gioi-thieu', hasDropdown: false },
+    { label: 'Tin tức', href: '/tin-tuc', hasDropdown: false },
+    { label: 'Liên hệ', href: '/lien-he', hasDropdown: false },
   ];
 
   return (
     <>
-      <header
+      <header 
         className={`sticky top-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "bg-white shadow-md border-b border-gray-200"
-            : "bg-white shadow-sm border-b border-gray-100"
+          scrolled 
+            ? 'bg-white shadow-md border-b border-gray-200' 
+            : 'bg-white shadow-sm border-b border-gray-100'
         }`}
       >
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -313,83 +273,64 @@ const Header = ({ config }: HeaderProps) => {
             </Link>
 
             {/* Search Bar - Desktop */}
-            <div
-              className={`hidden lg:flex flex-1 justify-center mx-4 transition-all duration-300 ${
-                isSearchOpen
-                  ? "opacity-100 visible"
-                  : "opacity-0 invisible absolute"
-              }`}
-            >
+            <div className={`hidden lg:flex flex-1 justify-center mx-4 transition-all duration-300 ${
+              isSearchOpen ? 'opacity-100 visible' : 'opacity-0 invisible absolute'
+            }`}>
               <div className="w-full max-w-xl">
                 <SearchBar />
               </div>
             </div>
 
             {/* Main Navigation - Desktop */}
-            <nav
-              className={`hidden lg:flex items-center space-x-1 flex-1 justify-center mx-4 transition-all duration-300 ${
-                isSearchOpen
-                  ? "opacity-0 invisible absolute"
-                  : "opacity-100 visible"
-              }`}
-            >
+            <nav className={`hidden lg:flex items-center space-x-1 flex-1 justify-center mx-4 transition-all duration-300 ${
+              isSearchOpen ? 'opacity-0 invisible absolute' : 'opacity-100 visible'
+            }`}>
               {mainMenuItems.map((item) => (
-                <div
+                <div 
                   key={item.href}
                   className="relative"
-                  onMouseEnter={() =>
-                    item.hasDropdown && setOpenDropdown(item.label)
-                  }
+                  onMouseEnter={() => item.hasDropdown && setOpenDropdown(item.label)}
                   onMouseLeave={() => item.hasDropdown && setOpenDropdown(null)}
                 >
                   <Link
                     href={item.href}
                     className={`flex items-center gap-1 px-4 py-2 text-[15px] font-medium transition-colors duration-200 ${
                       pathname === item.href
-                        ? "text-gray-900"
-                        : "text-gray-600 hover:text-gray-900"
+                        ? 'text-gray-900'
+                        : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     {item.label}
                     {item.hasDropdown && (
-                      <svg
+                      <svg 
                         className={`w-4 h-4 transition-transform duration-200 ${
-                          openDropdown === item.label ? "rotate-180" : ""
+                          openDropdown === item.label ? 'rotate-180' : ''
                         }`}
-                        fill="none"
-                        stroke="currentColor"
+                        fill="none" 
+                        stroke="currentColor" 
                         viewBox="0 0 24 24"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     )}
                   </Link>
 
                   {item.hasDropdown && item.megaMenu && (
-                    <div
+                    <div 
                       className={`absolute left-1/2 -translate-x-1/2 top-full pt-2 transition-all duration-200 ${
-                        openDropdown === item.label
-                          ? "opacity-100 visible"
-                          : "opacity-0 invisible"
+                        openDropdown === item.label 
+                          ? 'opacity-100 visible' 
+                          : 'opacity-0 invisible'
                       }`}
                     >
-                      <div
-                        className={`bg-white rounded-lg shadow-xl border border-gray-100 p-6 ${
-                          item.megaMenu.layout === "columns"
-                            ? "min-w-[600px]"
-                            : "min-w-auto max-w-full"
-                        }`}
-                      >
+                      <div className={`bg-white rounded-lg shadow-xl border border-gray-100 p-6 ${
+                        item.megaMenu.layout === 'columns' ? 'min-w-[600px]' : 'min-w-auto max-w-full'
+                      }`}>
                         {isCategoriesLoading ? (
                           <div className="flex justify-center items-center py-8">
                             <Spin size="small" />
                           </div>
-                        ) : item.megaMenu.layout === "single" ? (
+                        ) : item.megaMenu.layout === 'single' ? (
                           // 1 cột thẳng hàng tự wrap (cho <= 10 categories)
                           <div className="flex flex-wrap gap-2">
                             {item.megaMenu.links?.map((link: any) => (
@@ -452,8 +393,8 @@ const Header = ({ config }: HeaderProps) => {
                 onClick={toggleSearch}
                 className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full transition-colors duration-200 ${
                   isSearchOpen
-                    ? "bg-gray-900 text-white"
-                    : "bg-transparent text-gray-600 hover:bg-gray-100"
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-transparent text-gray-600 hover:bg-gray-100'
                 }`}
               >
                 {isSearchOpen ? (
@@ -475,25 +416,11 @@ const Header = ({ config }: HeaderProps) => {
                     />
                   </div>
                 }
-                trigger={["hover", "click"]}
-                placement="bottom"
+                trigger={['hover', 'click']}
+                placement="bottomRight"
                 overlayClassName="cart-popover"
                 open={isCartPopoverOpen}
                 onOpenChange={setIsCartPopoverOpen}
-                align={{
-                  offset: [0, 8],
-                }}
-                overlayInnerStyle={{
-                  padding: 0,
-                  maxWidth:
-                    typeof window !== "undefined" && window.innerWidth < 640
-                      ? "95vw"
-                      : "400px",
-                  width:
-                    typeof window !== "undefined" && window.innerWidth < 640
-                      ? "95vw"
-                      : "auto",
-                }}
               >
                 <button className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-transparent text-gray-600 hover:bg-gray-100 transition-colors duration-200">
                   <ShoppingCartOutlined className="text-base sm:text-lg" />
@@ -508,24 +435,16 @@ const Header = ({ config }: HeaderProps) => {
               {/* User Menu - Desktop */}
               <div className="hidden md:block">
                 {isLoggedInUI ? (
-                  <Dropdown
-                    overlay={userDropdownMenu}
-                    trigger={["click"]}
-                    placement="bottomRight"
-                  >
+                  <Dropdown overlay={userDropdownMenu} trigger={['click']} placement="bottomRight">
                     <button
                       className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 transition-colors duration-200 disabled:opacity-50"
                       disabled={isAuthLoading || isLogoutPending}
                     >
                       {isLogoutPending ? (
-                        <Spin
-                          indicator={
-                            <LoadingOutlined style={{ fontSize: 20 }} spin />
-                          }
-                        />
+                        <Spin indicator={<LoadingOutlined style={{ fontSize: 20 }} spin />} />
                       ) : currentUser?.avatar ? (
-                        <Avatar
-                          src={getImageUrl(currentUser.avatar)}
+                        <Avatar 
+                          src={getImageUrl(currentUser.avatar)} 
                           size={32}
                         />
                       ) : (
@@ -537,7 +456,7 @@ const Header = ({ config }: HeaderProps) => {
                   </Dropdown>
                 ) : (
                   <button
-                    onClick={() => router.push("/login")}
+                    onClick={() => router.push('/login')}
                     disabled={isAuthLoading || isLogoutPending}
                     className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-transparent text-gray-600 hover:bg-gray-100 transition-colors duration-200 disabled:opacity-50"
                   >
@@ -559,7 +478,7 @@ const Header = ({ config }: HeaderProps) => {
           {/* Search Bar - Mobile */}
           <div
             className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-              isSearchOpen ? "max-h-20 opacity-100 pb-3" : "max-h-0 opacity-0"
+              isSearchOpen ? 'max-h-20 opacity-100 pb-3' : 'max-h-0 opacity-0'
             }`}
           >
             <div className="border-t border-gray-100 pt-3">
@@ -579,10 +498,7 @@ const Header = ({ config }: HeaderProps) => {
             placement="right"
             onClose={() => setIsMobileMenuOpen(false)}
             open={isMobileMenuOpen}
-            width={Math.min(
-              320,
-              typeof window !== "undefined" ? window.innerWidth - 40 : 320
-            )}
+            width={Math.min(320, typeof window !== 'undefined' ? window.innerWidth - 40 : 320)}
             closeIcon={<CloseOutlined className="text-gray-600" />}
             bodyStyle={{ padding: 0 }}
           >
@@ -591,23 +507,19 @@ const Header = ({ config }: HeaderProps) => {
                 {mainMenuItems.map((item) => (
                   <div key={item.href}>
                     {item.hasDropdown && item.megaMenu ? (
-                      <Collapse
-                        ghost
+                      <Collapse 
+                        ghost 
                         expandIconPosition="end"
                         className="mobile-menu-collapse"
                       >
-                        <Panel
+                        <Panel 
                           header={
-                            <span
-                              className={`text-sm sm:text-[15px] font-medium ${
-                                pathname === item.href
-                                  ? "text-gray-900"
-                                  : "text-gray-600"
-                              }`}
-                            >
+                            <span className={`text-sm sm:text-[15px] font-medium ${
+                              pathname === item.href ? 'text-gray-900' : 'text-gray-600'
+                            }`}>
                               {item.label}
                             </span>
-                          }
+                          } 
                           key="1"
                           className="border-0"
                         >
@@ -620,23 +532,13 @@ const Header = ({ config }: HeaderProps) => {
                               {(() => {
                                 // Lấy tất cả links dựa vào layout
                                 let allLinks: any[] = [];
-
-                                if (
-                                  item.megaMenu.layout === "single" &&
-                                  item.megaMenu.links
-                                ) {
+                                
+                                if (item.megaMenu.layout === 'single' && item.megaMenu.links) {
                                   allLinks = item.megaMenu.links;
-                                } else if (
-                                  item.megaMenu.layout === "columns" &&
-                                  item.megaMenu.firstHalf &&
-                                  item.megaMenu.secondHalf
-                                ) {
-                                  allLinks = [
-                                    ...item.megaMenu.firstHalf,
-                                    ...item.megaMenu.secondHalf,
-                                  ];
+                                } else if (item.megaMenu.layout === 'columns' && item.megaMenu.firstHalf && item.megaMenu.secondHalf) {
+                                  allLinks = [...item.megaMenu.firstHalf, ...item.megaMenu.secondHalf];
                                 }
-
+                                
                                 return allLinks.map((cat: any) => (
                                   <Link
                                     key={cat.href}
@@ -658,8 +560,8 @@ const Header = ({ config }: HeaderProps) => {
                         onClick={() => setIsMobileMenuOpen(false)}
                         className={`flex items-center justify-between px-4 py-3 text-sm sm:text-[15px] font-medium transition-colors duration-200 ${
                           pathname === item.href
-                            ? "text-gray-900 bg-gray-50"
-                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                            ? 'text-gray-900 bg-gray-50'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                         }`}
                       >
                         <span>{item.label}</span>
@@ -674,10 +576,7 @@ const Header = ({ config }: HeaderProps) => {
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2 sm:space-x-3 p-2.5 sm:p-3 bg-gray-50 rounded-lg">
                           {currentUser?.avatar ? (
-                            <Avatar
-                              src={getImageUrl(currentUser.avatar)}
-                              size={36}
-                            />
+                            <Avatar src={getImageUrl(currentUser.avatar)} size={36} />
                           ) : (
                             <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
                               <UserOutlined className="text-sm" />
@@ -685,7 +584,7 @@ const Header = ({ config }: HeaderProps) => {
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
-                              {currentUser?.name || "Người dùng"}
+                              {currentUser?.name || 'Người dùng'}
                             </p>
                             <p className="text-[10px] sm:text-xs text-gray-500 truncate">
                               {currentUser?.email}
@@ -701,7 +600,7 @@ const Header = ({ config }: HeaderProps) => {
                           <UserOutlined className="text-sm" />
                           <span>Tài khoản</span>
                         </Link>
-
+                        
                         {isAdmin && (
                           <Link
                             href="/admin"
@@ -722,14 +621,7 @@ const Header = ({ config }: HeaderProps) => {
                           className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-red-600 bg-white hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 border border-gray-200"
                         >
                           {isLogoutPending ? (
-                            <Spin
-                              indicator={
-                                <LoadingOutlined
-                                  style={{ fontSize: 14 }}
-                                  spin
-                                />
-                              }
-                            />
+                            <Spin indicator={<LoadingOutlined style={{ fontSize: 14 }} spin />} />
                           ) : (
                             <>
                               <span>🚪</span>
@@ -741,7 +633,7 @@ const Header = ({ config }: HeaderProps) => {
                     ) : (
                       <button
                         onClick={() => {
-                          router.push("/login");
+                          router.push('/login');
                           setIsMobileMenuOpen(false);
                         }}
                         className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 transition-colors"
@@ -769,7 +661,7 @@ const Header = ({ config }: HeaderProps) => {
             padding: 14px 16px !important;
           }
         }
-
+        
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -783,49 +675,6 @@ const Header = ({ config }: HeaderProps) => {
 
         .animate-fadeIn {
           animation: fadeIn 0.2s ease-out;
-        }
-
-        .mobile-menu-collapse .ant-collapse-header {
-          padding: 12px 16px !important;
-        }
-        .mobile-menu-collapse .ant-collapse-content-box {
-          padding: 8px 0 !important;
-        }
-        @media (min-width: 640px) {
-          .mobile-menu-collapse .ant-collapse-header {
-            padding: 14px 16px !important;
-          }
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-out;
-        }
-
-        /* Cart Popover Mobile Fix */
-        .cart-popover {
-          z-index: 1050 !important;
-        }
-
-        @media (max-width: 639px) {
-          .cart-popover .ant-popover-inner {
-            max-width: 95vw !important;
-            width: 95vw !important;
-          }
-
-          .cart-popover .ant-popover-arrow {
-            right: 20px !important;
-          }
         }
       `}</style>
     </>

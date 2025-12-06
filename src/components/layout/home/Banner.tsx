@@ -3,76 +3,61 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useConfigByTenant } from "@/hooks/config/useConfigByTenant";
-import Image from "next/image";
+
+interface Slide {
+  id: number;
+  img: string;
+  clickable: boolean;
+}
 
 export default function Banner() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
-  const [firstImageLoaded, setFirstImageLoaded] = useState(false);
   const startX = useRef(0);
   const moved = useRef(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   const { data: config, isLoading, isError } = useConfigByTenant();
 
-  const slides = config?.banner?.map((url: string, idx: number) => ({
-    id: idx + 1,
-    img: url,
-    clickable: true,
-  })) || [];
+  // Lấy banner từ config
+  const slides: Slide[] =
+    config?.banner?.map((url: string, idx: number) => ({
+      id: idx + 1,
+      img: url,
+      clickable: true,
+    })) || [];
 
-  // Hydration check
+  // Preload images
   useEffect(() => {
-    setIsHydrated(true);
-  }, []);
+    slides.forEach((slide) => {
+      const img = new window.Image();
+      img.src = slide.img;
+    });
+  }, [slides]);
 
-  // Hiển thị ngay khi có slides, không cần chờ load ảnh
-  useEffect(() => {
-    if (slides.length > 0 && isHydrated) {
-      setFirstImageLoaded(true);
-    }
-  }, [slides, isHydrated]);
+  // ⚙️ Hàm tự chạy
+  const startAutoPlay = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setIndex((i) => (i + 1) % Math.max(slides.length, 1));
+    }, 4000);
+  };
 
-  // Auto play effect
-  useEffect(() => {
-    if (!isHydrated || slides.length === 0) return;
-    
-    const startAutoPlay = () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = setInterval(() => {
-        setIndex((i) => (i + 1) % slides.length);
-      }, 4000);
-    };
-
-    const stopAutoPlay = () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-
-    if (!paused && !dragging) startAutoPlay();
-    else stopAutoPlay();
-    
-    return stopAutoPlay;
-  }, [paused, dragging, isHydrated, slides.length]);
-
-  // Early returns after all hooks
-  if (isLoading || isError || !config) {
-    return (
-      <div className="w-full h-[250px] sm:h-[350px] md:h-[500px] bg-gray-200" />
-    );
-  }
-
-  if (slides.length === 0) {
-    return (
-      <div className="w-full h-[250px] sm:h-[350px] md:h-[500px] bg-gray-200" />
-    );
-  }
-
+  // ⏸️ Dừng chạy
   const stopAutoPlay = () => {
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
+  // Điều khiển autoplay - không chờ hydration
+  useEffect(() => {
+    if (slides.length === 0) return;
+    if (!paused && !dragging) startAutoPlay();
+    else stopAutoPlay();
+    return stopAutoPlay;
+  }, [paused, dragging, slides.length]);
+
+  // 🖱️ Xử lý kéo slide
   const handleMouseDown = (e: React.MouseEvent) => {
     setDragging(true);
     startX.current = e.clientX;
@@ -86,7 +71,7 @@ export default function Banner() {
   };
 
   const handleMouseUp = (e: React.MouseEvent) => {
-    if (!dragging) return;
+    if (!dragging || slides.length === 0) return;
     const diff = e.clientX - startX.current;
     if (Math.abs(diff) > 50) {
       if (diff > 0) setIndex((i) => (i - 1 + slides.length) % slides.length);
@@ -95,33 +80,34 @@ export default function Banner() {
     setDragging(false);
   };
 
-  const handleClick = (slide: { clickable: boolean }) => {
+  // 🖱️ Click slide → sang trang /san-pham
+  const handleClick = (slide: Slide) => {
     if (moved.current || !slide.clickable) return;
     router.push("/san-pham");
   };
 
+  // Loading state
+  if (isLoading || isError || !config || slides.length === 0) {
+    return (
+      <div className="w-full h-[200px] sm:h-[350px] md:h-[500px] bg-gradient-to-r from-gray-200 to-gray-300 animate-pulse" />
+    );
+  }
+
   return (
     <section
-      className="relative w-full overflow-hidden select-none bg-gray-100 z-0"
+      className="relative w-full overflow-hidden select-none"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
-      style={{ 
-        minHeight: '200px',
-        height: 'auto'
-      }}
     >
       {/* Dải slide */}
       <div
-        className="flex"
-        style={{ 
-          transform: `translateX(-${index * 100}%)`,
-          transition: "transform 0.7s ease-in-out"
-        }}
+        className="flex transition-transform duration-700 ease-in-out"
+        style={{ transform: `translateX(-${index * 100}%)` }}
       >
-        {slides.map((s: { id: number; img: string; clickable: boolean }, idx: number) => (
+        {slides.map((s: Slide) => (
           <div
             key={s.id}
             className={`w-full flex-shrink-0 relative ${
@@ -132,42 +118,42 @@ export default function Banner() {
             <img
               src={s.img}
               alt={`Slide ${s.id}`}
-              loading={idx === 0 ? "eager" : "lazy"}
-              className="w-full h-[200px] sm:h-[350px] md:h-[500px] object-cover block"
-              style={{ 
-                imageRendering: idx === 0 ? 'crisp-edges' : 'auto',
-                display: 'block'
-              }}
+              className="w-full h-[200px] sm:h-[350px] md:h-[500px] object-cover"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
             />
           </div>
         ))}
       </div>
 
-      {/* Nút điều hướng */}
+      {/* Nút điều hướng - trái */}
       <button
         onClick={() => {
           stopAutoPlay();
           setIndex((i) => (i - 1 + slides.length) % slides.length);
         }}
         aria-label="Slide trước"
-        className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 hover:bg-black/70 transition z-10"
+        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white rounded-full p-2 sm:p-3 transition z-10 text-xl sm:text-2xl"
       >
         ‹
       </button>
+
+      {/* Nút điều hướng - phải */}
       <button
         onClick={() => {
           stopAutoPlay();
           setIndex((i) => (i + 1) % slides.length);
         }}
         aria-label="Slide tiếp theo"
-        className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 hover:bg-black/70 transition z-10"
+        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white rounded-full p-2 sm:p-3 transition z-10 text-xl sm:text-2xl"
       >
         ›
       </button>
 
-      {/* Chấm chỉ báo */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-        {slides.map((_: any, i: number) => (
+      {/* Chấm chỉ báo - Ẩn trên mobile */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 gap-1.5 z-10 hidden md:flex">
+        {slides.map((_: Slide, i: number) => (
           <button
             key={i}
             onClick={() => {
@@ -175,9 +161,14 @@ export default function Banner() {
               setIndex(i);
             }}
             aria-label={`Chuyển đến slide ${i + 1}`}
-            className={`w-3 h-3 rounded-full cursor-pointer transition-all duration-300 ${
-              i === index ? "bg-white scale-110" : "bg-white/50"
-            }`}
+            style={{
+              width: i === index ? "12px" : "6px",
+              height: "6px",
+              backgroundColor: i === index ? "white" : "rgba(255,255,255,0.5)",
+              borderRadius: "9999px",
+              transition: "all 0.3s",
+              cursor: "pointer",
+            }}
           />
         ))}
       </div>

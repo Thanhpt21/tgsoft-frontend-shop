@@ -71,11 +71,9 @@ export default function ProductCardPromoted({
 
         {/* Image */}
         <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 aspect-[4/5] overflow-hidden">
-          {/* ✅ Badge container - Hiển thị cả HOT (top 2) VÀ Featured */}
+          {/* Badge container */}
           <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 flex flex-col items-end gap-1.5 sm:gap-2">
-           
-
-            {/* ✅ Badge Featured (nếu isFeatured = true) */}
+            {/* Badge Featured */}
             {p.isFeatured && (
               <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-amber-600 text-white text-[10px] sm:text-xs font-bold px-2 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-lg">
                 <Star className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 fill-white" />
@@ -139,12 +137,14 @@ export default function ProductCardPromoted({
 
           {/* Giá */}
           <div className="mt-auto pt-2 sm:pt-3 border-t border-gray-100">
-            <div className="flex items-center gap-2">
-              <span className="text-transparent bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 bg-clip-text font-black text-base sm:text-2xl">
+            <div className="flex items-center flex-wrap gap-2">
+              {/* Đã giảm size: text-sm sm:text-xl và thêm whitespace-nowrap */}
+              <span className="text-transparent bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 bg-clip-text font-black text-sm sm:text-xl whitespace-nowrap">
                 {formatVND(discountedPrice)}
               </span>
+              
               {showOriginalPrice && discountedPrice < originalPrice && (
-                <span className="text-gray-400 line-through text-xs sm:text-sm">
+                <span className="text-gray-400 line-through text-xs sm:text-sm whitespace-nowrap">
                   {formatVND(originalPrice)}
                 </span>
               )}

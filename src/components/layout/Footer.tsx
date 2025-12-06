@@ -10,28 +10,19 @@ import {
   YoutubeOutlined,
   TwitterOutlined,
   GlobalOutlined,
-  SendOutlined,
   RightOutlined,
   ShoppingOutlined,
   HeartOutlined,
   StarOutlined,
   SafetyOutlined,
 } from "@ant-design/icons";
-import { Input, Button } from "antd";
 import { Config } from "@/types/config.type";
-import { useState } from "react";
 
 interface FooterProps {
   config: Config;
 }
 
 const Footer = ({ config }: FooterProps) => {
-  const [email, setEmail] = useState("");
-
-  const handleSubscribe = () => {
-    setEmail("");
-  };
-
   const socialLinks = [
     {
       icon: <FacebookOutlined />,
@@ -234,33 +225,12 @@ const Footer = ({ config }: FooterProps) => {
             </ul>
           </div>
 
-          {/* Column 4: Newsletter & Info */}
+          {/* Column 4: Company Info */}
           <div>
             <h6 className="text-gray-800 font-bold mb-6 text-sm uppercase tracking-wider flex items-center gap-2">
               <span className="w-1 h-4 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full"></span>
-              Đăng ký nhận tin
+              Thông tin liên hệ
             </h6>
-
-            <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-              Nhận thông tin khuyến mãi và sản phẩm mới nhất qua email
-            </p>
-
-            <div className="relative mb-8">
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email của bạn"
-                className="h-12 rounded-xl bg-gray-100 border-gray-200 text-gray-800 placeholder:text-gray-400 focus:bg-gray-100 focus:border-blue-400 pr-14"
-                onPressEnter={handleSubscribe}
-              />
-              <Button
-                type="primary"
-                onClick={handleSubscribe}
-                icon={<SendOutlined />}
-                className="absolute right-1 top-1 w-10 h-10 flex items-center justify-center bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 rounded-lg shadow-lg"
-              />
-            </div>
 
             <div className="bg-gray-100 rounded-2xl p-5 border border-gray-200 space-y-3">
               <p className="text-gray-800 font-bold text-sm">
@@ -316,13 +286,6 @@ const Footer = ({ config }: FooterProps) => {
               >
                 Cookies
               </Link>
-              <span className="text-gray-300">•</span>
-              <Link
-                href="/sitemap"
-                className="hover:text-gray-800 transition-colors"
-              >
-                Sitemap
-              </Link>
             </div>
           </div>
         </div>
@@ -343,14 +306,6 @@ const Footer = ({ config }: FooterProps) => {
 
         .animate-pulse-slow {
           animation: pulse-slow 8s ease-in-out infinite;
-        }
-
-        .ant-input::placeholder {
-          color: rgba(107, 114, 128, 0.7) !important;
-        }
-
-        .ant-input:focus {
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
         }
       `}</style>
     </footer>
