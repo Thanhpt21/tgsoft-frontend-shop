@@ -9,6 +9,7 @@ import { useAllCategories } from '@/hooks/category/useAllCategories'
 import { useAllAttributes } from '@/hooks/attribute/useAllAttributes'
 import type { UploadFile } from 'antd/es/upload/interface'
 import { createImageUploadValidator, ACCEPTED_IMAGE_TYPES, MAX_IMAGE_SIZE_MB } from '@/utils/upload.utils'
+import DynamicRichTextEditor from '@/components/common/RichTextEditor'
 
 interface ProductCreateModalProps {
   open: boolean
@@ -21,6 +22,7 @@ export const ProductCreateModal = ({ open, onClose, refetch }: ProductCreateModa
   const [thumbFile, setThumbFile] = useState<UploadFile[]>([])
   const [imageFiles, setImageFiles] = useState<UploadFile[]>([])
   const { mutateAsync, isPending } = useCreateProduct()
+  const [description, setDescription] = useState<string>('')
 
   const { data: brands } = useAllBrands()
   const { data: categories } = useAllCategories()
@@ -31,7 +33,6 @@ export const ProductCreateModal = ({ open, onClose, refetch }: ProductCreateModa
       const formData = new FormData()
       formData.append('name', values.name)
       formData.append('slug', values.slug)
-      formData.append('description', values.description || '')
       formData.append('basePrice', values.basePrice?.toString() || '0')
       formData.append('status', values.status)
       formData.append('isPublished', values.isPublished ? 'true' : 'false')
@@ -45,6 +46,7 @@ export const ProductCreateModal = ({ open, onClose, refetch }: ProductCreateModa
       formData.append('length', values.length?.toString() || '0')
       formData.append('width', values.width?.toString() || '0')
       formData.append('height', values.height?.toString() || '0')
+      formData.append('description', description || '') 
       
       if (thumbFile[0]?.originFileObj) formData.append('thumb', thumbFile[0].originFileObj)
       imageFiles.forEach(file => { if (file.originFileObj) formData.append('images', file.originFileObj) })
@@ -67,8 +69,14 @@ export const ProductCreateModal = ({ open, onClose, refetch }: ProductCreateModa
   }
 
   useEffect(() => {
-    if (!open) { form.resetFields(); setThumbFile([]); setImageFiles([]) }
+    if (!open) { form.resetFields(); setThumbFile([]); setImageFiles([]); setDescription('') }
   }, [open, form])
+
+  const handleDescriptionChange = (value: string) => {
+    setDescription(value)
+    // Đồng bộ với form nếu cần
+    form.setFieldValue('description', value)
+  }
 
   return (
     <Modal title="Tạo sản phẩm mới" open={open} onCancel={onClose} footer={null} destroyOnClose width={800}>
@@ -156,8 +164,17 @@ export const ProductCreateModal = ({ open, onClose, refetch }: ProductCreateModa
           </Col>
         </Row>
 
-        <Form.Item label="Mô tả" name="description">
-          <Input.TextArea rows={3} />
+       <Form.Item label="Mô tả sản phẩm">
+          <div style={{ border: '1px solid #d9d9d9', borderRadius: '4px', overflow: 'hidden' }}>
+            <DynamicRichTextEditor
+              value={description}
+              onChange={handleDescriptionChange}
+              height={300}
+            />
+          </div>
+          <Form.Item name="description" hidden>
+            <Input />
+          </Form.Item>
         </Form.Item>
 
 

@@ -12,6 +12,7 @@ import { useAllAttributes } from '@/hooks/attribute/useAllAttributes'
 import type { UploadFile } from 'antd/es/upload/interface'
 import { Category } from '@/types/category.type'
 import { Brand } from '@/types/brand.type'
+import DynamicRichTextEditor from '@/components/common/RichTextEditor'
 
 interface ProductUpdateModalProps {
   open: boolean
@@ -25,6 +26,7 @@ export const ProductUpdateModal = ({ open, onClose, product, refetch }: ProductU
   const [thumbFile, setThumbFile] = useState<UploadFile[]>([])
   const [imageFiles, setImageFiles] = useState<UploadFile[]>([])
   const { mutateAsync, isPending } = useUpdateProduct()
+  const [description, setDescription] = useState<string>('')
 
   const { data: brands } = useAllBrands()
   const { data: categories } = useAllCategories()
@@ -68,6 +70,8 @@ export const ProductUpdateModal = ({ open, onClose, product, refetch }: ProductU
         height: product.height || 0,
       })
 
+      setDescription(product.description || '')
+
       if (product.thumb) setThumbFile([{ uid: '-1', name: product.thumb.split('/').pop() || 'thumb.png', status: 'done', url: getImageUrl(product.thumb) }])
       if (product.images?.length) {
         setImageFiles(product.images.map((url, idx) => ({ uid: idx.toString(), name: `img${idx}.png`, status: 'done', url: getImageUrl(url) })))
@@ -76,8 +80,13 @@ export const ProductUpdateModal = ({ open, onClose, product, refetch }: ProductU
       form.resetFields()
       setThumbFile([])
       setImageFiles([])
+      setDescription('') 
     }
   }, [product, open, form])
+
+  const handleDescriptionChange = (value: string) => {
+    setDescription(value)
+  }
 
   const onFinish = async (values: any) => {
     if (!product) return
@@ -85,7 +94,7 @@ export const ProductUpdateModal = ({ open, onClose, product, refetch }: ProductU
       const formData = new FormData()
       formData.append('name', values.name)
       formData.append('slug', values.slug)
-      formData.append('description', values.description || '')
+      formData.append('description', description || '')
       formData.append('basePrice', values.basePrice?.toString() || '0')
       formData.append('status', values.status)
       formData.append('isPublished', values.isPublished ? 'true' : 'false')
@@ -170,7 +179,11 @@ export const ProductUpdateModal = ({ open, onClose, product, refetch }: ProductU
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item label="Giá cơ bản" name="basePrice" rules={[{ required: true }]}>
-              <InputNumber min={0} style={{ width: '100%' }} />
+              <InputNumber 
+                min={0} 
+                style={{ width: '100%' }} 
+                formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              />
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -204,8 +217,17 @@ export const ProductUpdateModal = ({ open, onClose, product, refetch }: ProductU
           </Col>
         </Row>
 
-        <Form.Item label="Mô tả" name="description">
-          <Input.TextArea rows={3} />
+        <Form.Item label="Mô tả sản phẩm">
+          <div style={{ border: '1px solid #d9d9d9', borderRadius: '4px', overflow: 'hidden' }}>
+            <DynamicRichTextEditor
+              value={description}
+              onChange={handleDescriptionChange}
+              height={300}
+            />
+          </div>
+          <Form.Item name="description" hidden>
+            <Input />
+          </Form.Item>
         </Form.Item>
 
         {/* Row 5: Checkboxes */}
