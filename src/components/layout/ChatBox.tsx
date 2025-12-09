@@ -209,7 +209,7 @@ const renderMessageWithLinks = (message: string) => {
   processed = processed.replace(directUrlPattern, (match, url) => {
     // Kiểm tra không phải là phần của thẻ HTML đã xử lý
     if (!processed.includes(`href="${url}"`)) {
-      return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${url}</a>`;
+      return `<a href="${url}" class="text-white-600 hover:text-white-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${url}</a>`;
     }
     return match;
   });
@@ -230,7 +230,7 @@ const renderMessageWithLinks = (message: string) => {
     if (slugRegex.test(cleanContent) && cleanContent.includes('-')) {
       // ĐÂY LÀ SLUG - GIỮ NGUYÊN TOÀN BỘ, KHÔNG CẮT BỚT
       const url = `${baseUrl}/san-pham/${cleanContent}`;
-      return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${cleanContent}</a>`;
+      return `<a href="${url}" class="text-white-600 hover:text-white-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${cleanContent}</a>`;
     }
     
     // Nếu không phải slug, giữ nguyên backticks

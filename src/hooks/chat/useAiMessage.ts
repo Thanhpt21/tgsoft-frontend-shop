@@ -18,13 +18,6 @@ interface UseAiMessageProps {
   setIsTyping: React.Dispatch<React.SetStateAction<{ admin: boolean; ai: boolean }>>;
 }
 
-interface MessageContext {
-  recentMessages: ChatMessage[];
-  extractedKeywords: string[];
-  relatedProducts: Product[];
-  conversationTopic: string;
-}
-
 export const useAiMessage = ({
   conversationId,
   sessionId,
@@ -46,123 +39,6 @@ export const useAiMessage = ({
 
   // ✅ Hook update tokens
   const updateTokensMutation = useUpdateTenantAdminShopTokens();
-
-  // ========================================
-  // 🔑 CỤM TỪ KHÓA CHO PHÂN LOẠI CÂU HỎI
-  // ========================================
-
-  const QUESTION_KEYWORDS = {
-    // 🎯 SẢN PHẨM
-    PRODUCT: [
-      'áo', 'quần', 'giày', 'dép', 'mũ', 'nón', 'túi', 'ví', 'váy', 'đầm',
-      'thun', 'sơ mi', 'jeans', 'kaki', 'short', 'hoodie', 'jacket',
-      'vớ', 'tất', 'phụ kiện', 'thắt lưng', 'khăn', 'găng tay'
-    ],
-    
-    // 💰 GIÁ CẢ & MUA HÀNG
-    PRICE: [
-      'giá', 'bao nhiêu tiền', 'bao nhiêu', 'giá cả', 'cost', 'price',
-      'rẻ', 'đắt', 'giá trị', 'chi phí', 'hết bao nhiêu'
-    ],
-    
-    // 🛒 MUA HÀNG & THANH TOÁN
-    PURCHASE: [
-      'mua', 'đặt hàng', 'order', 'thanh toán', 'payment', 'checkout',
-      'giỏ hàng', 'cart', 'mua ở đâu', 'mua đâu', 'ở đâu bán', 'có bán', 'bán không'
-    ],
-    
-    // 📦 VẬN CHUYỂN
-    SHIPPING: [
-      'giao hàng', 'ship', 'vận chuyển', 'delivery', 'phí ship',
-      'thời gian giao', 'bao lâu nhận', 'freeship', 'miễn phí ship'
-    ],
-    
-    // 🔄 ĐỔI TRẢ & BẢO HÀNH
-    RETURN: [
-      'đổi', 'trả', 'hoàn', 'return', 'exchange', 'refund',
-      'bảo hành', 'warranty', 'lỗi', 'hư', 'hỏng', 'sai size'
-    ],
-    
-    // 📏 KÍCH THƯỚC & FIT
-    SIZE: [
-      'size', 'kích thước', 'form dáng', 'đo', 'mặc vừa',
-      'nhỏ', 'lớn', 'vừa', 'fit', 'oversize', 'ôm'
-    ],
-    
-    // 🎨 MÀU SẮC & CHẤT LIỆU
-    STYLE: [
-      'màu', 'màu sắc', 'màu gì', 'color', 'colour',
-      'chất liệu', 'vải', 'làm bằng', 'material', 'fabric',
-      'cotton', 'len', 'da', 'jeans', 'kaki'
-    ],
-    
-    // ❓ TƯ VẤN & GỢI Ý
-    ADVICE: [
-      'tư vấn', 'giới thiệu', 'recommend', 'suggest', 'nên mua',
-      'phù hợp', 'dành cho', 'ai mặc', 'mặc đi đâu', 'phong cách'
-    ],
-    
-    // ⚙️ TÍNH NĂNG & CHẤT LƯỢNG
-    FEATURE: [
-      'tính năng', 'đặc điểm', 'ưu điểm', 'có gì', 'feature',
-      'tốt không', 'có tốt không', 'chất lượng', 'độ bền'
-    ],
-    
-    // 🧼 BẢO QUẢN & SỬ DỤNG
-    CARE: [
-      'bảo quản', 'giặt', 'sử dụng', 'care', 'wash',
-      'ủi', 'là', 'phơi', 'tẩy', 'dry clean'
-    ],
-    
-    // 👥 CHÍNH SÁCH & HỖ TRỢ
-    POLICY: [
-      'chính sách', 'policy', 'điều khoản', 'terms',
-      'hỗ trợ', 'support', 'liên hệ', 'contact',
-      'hotline', 'email', 'zalo', 'facebook'
-    ],
-    
-    // 🎁 KHUYẾN MÃI & ƯU ĐÃI
-    PROMOTION: [
-      'khuyến mãi', 'sale', 'discount', 'giảm giá',
-      'ưu đãi', 'promotion', 'deal', 'voucher', 'coupon'
-    ],
-    
-    // 📝 ĐĂNG KÝ & TÀI KHOẢN
-    ACCOUNT: [
-      'đăng ký', 'register', 'tài khoản', 'account',
-      'đăng nhập', 'login', 'đăng xuất', 'logout',
-      'thông tin', 'profile', 'thay đổi mật khẩu'
-    ],
-    
-    // 🔄 FOLLOW-UP ĐƠN GIẢN
-    FOLLOW_UP: [
-      'nó', 'cái này', 'sản phẩm này', 'cái đó',
-      'được không', 'đc không', 'thế nào', 'ra sao'
-    ]
-  };
-
-  // ========================================
-  // 🔍 HELPER FUNCTIONS
-  // ========================================
-
-  /**
-   * 📊 Xác định loại câu hỏi
-   */
-  const determineQuestionType = useCallback((message: string): string => {
-    const normalized = message.toLowerCase().trim();
-    
-    // Kiểm tra từng nhóm keywords
-    const questionTypes = Object.entries(QUESTION_KEYWORDS);
-    
-    for (const [type, keywords] of questionTypes) {
-      if (keywords.some(keyword => normalized.includes(keyword))) {
-        return type.toLowerCase();
-      }
-    }
-    
-    // Mặc định
-    return normalized.length < 25 ? 'short_question' : 'general';
-  }, []);
 
   /**
    * 🔗 Trích xuất slug từ URL
@@ -191,81 +67,29 @@ export const useAiMessage = ({
     const products = findProductsByKeyword(slugKeyword);
     
     if (products.length > 0) {
+      console.log('🔗 Product từ slug:', products[0]);
       return products[0];
     }
-      console.log('🔗 Product từ slug:', products[0]);
+    
     return null;
   }, [findProductsByKeyword]);
 
   /**
-   * 📌 Phân tích ngữ cảnh hội thoại
-   */
-  const analyzeConversationContext = useCallback((messages: ChatMessage[]): MessageContext => {
-    const recentMessages = messages.slice(-8);
-    
-    const keywords: string[] = [];
-    const productMap = new Map<number, Product>();
-    
-    // Trích xuất keywords từ tin nhắn user
-    recentMessages.forEach(msg => {
-      if (msg.senderType === 'USER' || msg.senderType === 'GUEST') {
-        const messageLower = msg.message.toLowerCase();
-        
-        // Tìm keywords trong message
-        Object.values(QUESTION_KEYWORDS).flat().forEach(keyword => {
-          if (messageLower.includes(keyword)) {
-            if (!keywords.includes(keyword)) {
-              keywords.push(keyword);
-            }
-          }
-        });
-        
-        // Tìm sản phẩm liên quan
-        const foundProducts = findProductsByKeyword(msg.message);
-        foundProducts.forEach(product => {
-          if (!productMap.has(product.id as number)) {
-            productMap.set(product.id as number, product);
-          }
-        });
-      }
-    });
-    
-    // Xác định chủ đề
-    let conversationTopic = 'sản phẩm chung';
-    if (keywords.length > 0) {
-      conversationTopic = keywords.slice(0, 3).join(', ');
-    }
-    
-    return {
-      recentMessages,
-      extractedKeywords: keywords,
-      relatedProducts: Array.from(productMap.values()),
-      conversationTopic
-    };
-  }, [findProductsByKeyword]);
-
-  /**
-   * 🆕 Tạo conversation history CHI TIẾT để gửi lên backend
+   * 🆕 Tạo conversation history đơn giản
    */
   const buildConversationHistory = useCallback((messages: ChatMessage[]): string => {
-    // Lấy tối đa 10 tin nhắn gần nhất
-    const recentMessages = messages.slice(-10);
+    // Lấy tối đa 5 tin nhắn gần nhất (đơn giản hóa)
+    const recentMessages = messages.slice(-5);
     
     if (recentMessages.length === 0) {
       return '';
     }
 
-    // Format với timestamp để backend dễ phân tích
+    // Format đơn giản
     return recentMessages
-      .map((msg, index) => {
+      .map(msg => {
         const role = msg.senderType === 'BOT' || msg.senderType === 'AI' ? 'Bot' : 'Khách';
-        const timestamp = new Date(msg.createdAt).toLocaleTimeString('vi-VN', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        });
-        
-        // Format: [Thời gian] Role: Message
-        return `[${timestamp}] ${role}: ${msg.message}`;
+        return `${role}: ${msg.message}`;
       })
       .join('\n');
   }, []);
@@ -317,38 +141,32 @@ export const useAiMessage = ({
   }, [adminShop, tenantId, updateTokensMutation]);
 
   // ========================================
-  // 🤖 AI API CALL - CẢI TIẾN
+  // 🤖 AI API CALL - ĐƠN GIẢN HÓA
   // ========================================
 
   /**
-   * Gọi API AI với metadata tối ưu
+   * Gọi API AI với metadata đơn giản
    */
-  const callAiApi = useCallback(async (msg: string, messageContext?: MessageContext, currentMessages?: ChatMessage[]) => {
+  const callAiApi = useCallback(async (msg: string, currentMessages?: ChatMessage[]) => {
     const token = process.env.NEXT_PUBLIC_AI_PUBLIC_TOKEN;
     if (!token) throw new Error('Không có token AI');
 
     const AI_ENDPOINT = `${AI_URL}/chat`;
     
-    // Xác định loại câu hỏi
-    const questionType = determineQuestionType(msg);
-    
-    // Lấy slug từ URL
+    // Lấy slug từ URL (nếu có)
     const productSlug = getProductSlugFromUrl();
     
-    // 🆕 Tạo metadata đầy đủ hơn
+    // Tạo metadata đơn giản - backend sẽ tự phân tích
     const metadata: any = {
-      max_tokens: 150,
-      temperature: 0.75, // 🆕 Tăng lên để AI linh hoạt hơn (giống backend)
-      question_type: questionType,
       timestamp: new Date().toISOString()
     };
 
-    // 🎯 THÊM SLUG NẾU CÓ
+    // Thêm slug nếu có
     if (productSlug && productSlug !== 'none') {
       metadata.slug = productSlug;
     }
 
-    // 🆕 LUÔN GỬI LỊCH SỬ HỘI THOẠI (dù có slug hay không)
+    // Thêm conversation history nếu có
     if (currentMessages && currentMessages.length > 0) {
       const conversationHistory = buildConversationHistory(currentMessages);
       if (conversationHistory) {
@@ -356,46 +174,17 @@ export const useAiMessage = ({
       }
     }
 
-    // 👤 THÊM ownerEmail
+    // Thêm ownerEmail từ admin shop
     if (adminShop?.ownerEmail) {
       metadata.ownerEmail = adminShop.ownerEmail;
     }
 
-    // 🆕 THÊM CÁC KEYWORDS ĐÃ PHÂN TÍCH
-    if (messageContext) {
-      // Lấy các từ khóa từ câu hỏi
-      const extractedKeywords: string[] = [];
-      const lowerMsg = msg.toLowerCase();
-      
-      Object.entries(QUESTION_KEYWORDS).forEach(([category, keywords]) => {
-        const matched = keywords.filter(kw => lowerMsg.includes(kw.toLowerCase()));
-        if (matched.length > 0) {
-          extractedKeywords.push(...matched);
-        }
-      });
+    console.log('📤 Gửi đến backend:', {
+      prompt: msg,
+      metadata: metadata
+    });
 
-      if (extractedKeywords.length > 0) {
-        metadata.extracted_keywords = extractedKeywords.slice(0, 10); // Lấy tối đa 10 keywords
-      }
-
-      // Conversation topic
-      if (messageContext.conversationTopic && messageContext.conversationTopic !== 'sản phẩm chung') {
-        metadata.conversationTopic = messageContext.conversationTopic;
-      }
-    }
-
-    // 🏷️ THÊM PRODUCT INFO NẾU CÓ SLUG
-    if (productSlug) {
-      const currentProduct = getProductBySlug(productSlug);
-      if (currentProduct) {
-        metadata.product_name = currentProduct.name;
-        if (currentProduct.basePrice) {
-          metadata.product_price = currentProduct.basePrice;
-        }
-      }
-    }
-
-    // Gửi request
+    // Gửi request đơn giản
     const res = await fetch(AI_ENDPOINT, {
       method: 'POST',
       headers: { 
@@ -416,6 +205,12 @@ export const useAiMessage = ({
 
     const data = await res.json();
     
+    console.log('📥 Nhận từ backend:', {
+      cached: data.cached,
+      source: data.response?.source,
+      hasProducts: data.response?.metadata?.hasProducts,
+      tokensUsed: data.usage?.total_tokens
+    });
 
     const aiResponse = data.response?.text || data.text || 'Xin lỗi, tôi không thể trả lời ngay lúc này.';
 
@@ -428,14 +223,14 @@ export const useAiMessage = ({
     }
 
     return aiResponse;
-  }, [determineQuestionType, getProductSlugFromUrl, getProductBySlug, adminShop, updateAiTokens, buildConversationHistory, QUESTION_KEYWORDS]);
+  }, [getProductSlugFromUrl, adminShop, updateAiTokens, buildConversationHistory]);
 
   // ========================================
-  // 💬 MAIN SEND MESSAGE FUNCTION - CẢI TIẾN
+  // 💬 MAIN SEND MESSAGE FUNCTION - ĐƠN GIẢN
   // ========================================
 
   /**
-   * Xử lý gửi tin nhắn AI
+   * Xử lý gửi tin nhắn AI (frontend chỉ gửi, backend xử lý)
    */
   const sendAiMessage = useCallback(async (msg: string, targetConversationId?: number | null, currentMessages?: ChatMessage[]) => {
     if (isAiProcessing) {
@@ -490,11 +285,6 @@ export const useAiMessage = ({
     const isGuestMode = isGuest;
     const tempId = isGuestMode ? `ai-local-${Date.now()}` : `ai-temp-${Date.now()}`;
 
-    
-    const messageContext = analyzeConversationContext(currentMessages || []);
-    
-    const questionType = determineQuestionType(msg);
-
     setIsAiProcessing(true);
     setIsTyping(prev => ({ ...prev, ai: true }));
 
@@ -516,9 +306,8 @@ export const useAiMessage = ({
     await new Promise(resolve => setTimeout(resolve, isGuestMode ? 500 : 300));
 
     try {
-
-      // Gọi API AI - TRUYỀN currentMessages VÀO
-      const aiText = await callAiApi(msg, messageContext, currentMessages);
+      // 🔥 CHỈ CẦN GỬI PROMPT, BACKEND TỰ PHÂN TÍCH
+      const aiText = await callAiApi(msg, currentMessages);
 
       // Cập nhật tin nhắn
       setMessages(prev => 
@@ -586,8 +375,6 @@ export const useAiMessage = ({
     setMessages,
     saveBotMessage,
     setIsTyping,
-    analyzeConversationContext,
-    determineQuestionType,
     callAiApi
   ]);
 
@@ -599,7 +386,6 @@ export const useAiMessage = ({
     tokenInfo: adminShop ? { 
       availableTokens: adminShop.tokenAI,
       adminName: adminShop.name 
-    } : null,
-    questionKeywords: QUESTION_KEYWORDS
+    } : null
   };
 };
