@@ -83,34 +83,34 @@ const ProductSlideCard = ({
 };
 
 // Slider dots navigation
-const SliderDots = ({ 
-  total, 
-  current, 
-  onClick 
-}: { 
-  total: number; 
-  current: number; 
-  onClick: (index: number) => void; 
-}) => {
-  if (total <= 1) return null;
+// const SliderDots = ({ 
+//   total, 
+//   current, 
+//   onClick 
+// }: { 
+//   total: number; 
+//   current: number; 
+//   onClick: (index: number) => void; 
+// }) => {
+//   if (total <= 1) return null;
 
-  return (
-    <div className="flex items-center justify-center gap-2 mt-8">
-      {Array.from({ length: total }).map((_, index) => (
-        <button
-          key={index}
-          onClick={() => onClick(index)}
-          className={`transition-all duration-300 ${
-            current === index
-              ? 'w-8 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full'
-              : 'w-2 h-2 bg-gray-300 hover:bg-gray-400 rounded-full hover:scale-125'
-          }`}
-          aria-label={`Go to slide ${index + 1}`}
-        />
-      ))}
-    </div>
-  );
-};
+//   return (
+//     <div className="flex items-center justify-center gap-2 mt-8">
+//       {Array.from({ length: total }).map((_, index) => (
+//         <button
+//           key={index}
+//           onClick={() => onClick(index)}
+//           className={`transition-all duration-300 ${
+//             current === index
+//               ? 'w-8 h-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full'
+//               : 'w-2 h-2 bg-gray-300 hover:bg-gray-400 rounded-full hover:scale-125'
+//           }`}
+//           aria-label={`Go to slide ${index + 1}`}
+//         />
+//       ))}
+//     </div>
+//   );
+// };
 
 export default function ProductList() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -364,13 +364,13 @@ export default function ProductList() {
         </div>
 
         {/* Slider dots navigation */}
-        {totalSlides > 1 && (
+        {/* {totalSlides > 1 && (
           <SliderDots 
             total={totalSlides} 
             current={currentSlide} 
             onClick={goToSlide} 
           />
-        )}
+        )} */}
 
       
       </div>

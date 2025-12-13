@@ -19,7 +19,7 @@ import {
 } from "@ant-design/icons";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Config } from "@/types/config.type";
 import { useLogout } from "@/hooks/auth/useLogout";
 import { useState, useEffect, useRef } from "react";
@@ -113,24 +113,66 @@ const MarqueeBanner = () => {
 
 // ==================== PRODUCT DROPDOWN MENU - VERTICAL LIST ====================
 const ProductDropdownMenu = ({ categories }: { categories: Category[] }) => {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Tạo href với các query params hiện tại
+  const getHrefWithParams = (categoryId: number) => {
+    // Tạo URLSearchParams mới
+    const params = new URLSearchParams();
+    
+    // CHỈ set categoryId, xóa các filter khác
+    params.set('categoryId', categoryId.toString());
+    
+    // Xóa các filter khác khi chọn category mới
+    params.delete('search');
+    params.delete('brandId');
+    params.delete('hasPromotion');
+    params.delete('isFeatured');
+    params.delete('page'); // Xóa page để về trang 1
+    
+    // Trả về URL đầy đủ với các params
+    return `/san-pham?${params.toString()}`;
+  };
+
+  // Xử lý click category
+  const handleCategoryClick = (categoryId: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Tạo URLSearchParams mới
+    const params = new URLSearchParams();
+    
+    // CHỈ set categoryId, xóa các filter khác
+    params.set('categoryId', categoryId.toString());
+    
+    // Xóa các filter khác khi chọn category mới
+    params.delete('search');
+    params.delete('brandId');
+    params.delete('hasPromotion');
+    params.delete('isFeatured');
+    params.delete('page'); // Xóa page để về trang 1
+    
+    // Điều hướng đến URL mới
+    router.push(`/san-pham?${params.toString()}`);
+  };
+
   return (
     <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-40">
       <div className="bg-white rounded-lg shadow-xl border border-gray-100 min-w-[320px] max-w-[400px]">
-        {/* Dropdown Header */}
-       
+
 
         {/* Category List - Vertical, 1 row per item */}
         <div className="max-h-[500px] overflow-y-auto">
           {categories.length > 0 ? (
             <div className="divide-y divide-gray-100">
-              {categories.map((category, index) => (
-                <Link
+              {categories.map((category) => (
+                <a
                   key={category.id}
-                  href={`/san-pham?categoryId=${category.id}`}
-                  className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors duration-200 group/item"
+                  href={getHrefWithParams(category.id)}
+                  onClick={(e) => handleCategoryClick(category.id, e)}
+                  className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors duration-200 group/item cursor-pointer block"
                 >
-                 
-
                   {/* Category Image */}
                   <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                     <Image
@@ -148,12 +190,14 @@ const ProductDropdownMenu = ({ categories }: { categories: Category[] }) => {
                     <div className="text-sm font-medium text-gray-900 group-hover/item:text-blue-600 transition-colors line-clamp-1">
                       {category.name}
                     </div>
-                  
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      Xem sản phẩm
+                    </div>
                   </div>
 
                   {/* Arrow Icon */}
                   <RightOutlined className="text-gray-400 text-xs group-hover/item:text-blue-500 transition-colors flex-shrink-0" />
-                </Link>
+                </a>
               ))}
             </div>
           ) : (
@@ -163,7 +207,6 @@ const ProductDropdownMenu = ({ categories }: { categories: Category[] }) => {
           )}
         </div>
 
-    
       </div>
     </div>
   );
@@ -175,6 +218,7 @@ const SearchBar = () => {
   const [isFocused, setIsFocused] = useState(false);
   const router = useRouter();
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
 
   const { data: categories } = useAllCategories();
   const displayCategories = categories?.slice(0, 8) || [];
@@ -192,10 +236,38 @@ const SearchBar = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchValue.trim()) {
-      router.push(`/san-pham?search=${encodeURIComponent(searchValue.trim())}`);
+      // Tạo URLSearchParams mới
+      const params = new URLSearchParams();
+      
+      // CHỈ set search, xóa tất cả filter khác
+      params.set('search', searchValue.trim());
+      
+      // Xóa các filter khác
+      params.delete('categoryId');
+      params.delete('brandId');
+      params.delete('hasPromotion');
+      params.delete('isFeatured');
+      params.delete('page');
+      
+      router.push(`/san-pham?${params.toString()}`);
       setIsFocused(false);
       setSearchValue("");
     }
+  };
+
+  // Tạo href cho category suggestions
+  const getCategoryHref = (categoryId: number) => {
+    const params = new URLSearchParams();
+    params.set('categoryId', categoryId.toString());
+    
+    // Xóa search khi chọn category
+    params.delete('search');
+    params.delete('brandId');
+    params.delete('hasPromotion');
+    params.delete('isFeatured');
+    params.delete('page');
+    
+    return `/san-pham?${params.toString()}`;
   };
 
   return (
@@ -222,7 +294,7 @@ const SearchBar = () => {
               {displayCategories.map((category: any) => (
                 <Link
                   key={category.id}
-                  href={`/san-pham?categoryId=${category.id}`}
+                  href={getCategoryHref(category.id)}
                   onClick={() => setIsFocused(false)}
                   className="px-3 py-1.5 text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-gray-200 hover:border-blue-200"
                 >
@@ -315,9 +387,9 @@ const Header = ({ config }: HeaderProps) => {
     return pathname.startsWith(href);
   };
 
-  const CartButton = (
-    <button 
-      onClick={() => isMobile && setIsMobileCartOpen(true)}
+ const CartButton = (
+    <Link 
+      href="/gio-hang"
       className="relative flex items-center justify-center w-10 h-10 rounded-lg hover:bg-gray-100 transition-colors duration-200"
     >
       <ShoppingCartOutlined className="text-lg text-gray-700" />
@@ -326,7 +398,7 @@ const Header = ({ config }: HeaderProps) => {
           {cartItemCount}
         </span>
       )}
-    </button>
+    </Link>
   );
 
   return (
@@ -412,28 +484,7 @@ const Header = ({ config }: HeaderProps) => {
                 )}
               </button>
 
-              {/* Cart */}
-              {isMobile ? (
-                CartButton
-              ) : (
-                <Popover
-                  content={
-                    <CartPreviewDropdown 
-                      items={cartItems as any[]} 
-                      isLoading={false} 
-                      getImageUrl={(url?: string) => getImageUrl(url) as string} 
-                      formatVND={formatVND} 
-                    />
-                  }
-                  trigger="click"
-                  placement="bottomRight"
-                  overlayInnerStyle={{ padding: 0, borderRadius: "12px" }}
-                  open={isCartPopoverOpen}
-                  onOpenChange={setIsCartPopoverOpen}
-                >
-                  {CartButton}
-                </Popover>
-              )}
+              {CartButton}
 
               {/* User Menu */}
               <div className="hidden md:block">

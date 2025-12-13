@@ -706,7 +706,7 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Price Section - Mobile Optimized */}
-            <div className="bg-gray-50 rounded-xl lg:rounded-2xl p-4 lg:p-6 space-y-2">
+            <div className="bg-gray-50 rounded-xl lg:rounded-2xl space-y-2">
               <div className="flex items-baseline gap-3 lg:gap-4">
                 {discountInfo && (
                   <span className="text-lg lg:text-2xl font-bold text-gray-400 line-through">

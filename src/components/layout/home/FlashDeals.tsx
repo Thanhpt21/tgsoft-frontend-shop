@@ -7,8 +7,6 @@ import { ChevronLeft, ChevronRight, Zap, Loader2 } from "lucide-react";
 import Link from "next/link";
 import dynamic from 'next/dynamic';
 
-
-
 // Lazy load ProductCardPromoted với skeleton
 const LazyProductCardPromoted = dynamic(
   () => import("../product/ProductCardPromoted"),
@@ -49,7 +47,6 @@ const CountdownTimer = () => {
             if (hours > 0) {
               hours--;
             } else {
-              // Reset khi hết thời gian
               hours = 2;
               minutes = 59;
               seconds = 45;
@@ -67,85 +64,28 @@ const CountdownTimer = () => {
   const formatTime = (num: number) => num.toString().padStart(2, '0');
   
   return (
-    <div className="flex items-center gap-1 text-xs">
-      <div className="bg-black text-white text-xs font-bold px-1.5 py-0.5 rounded min-w-[24px] text-center">
+    <div className="flex items-center gap-1">
+      <div className="bg-black text-white text-xs font-bold px-1.5 py-1 rounded min-w-[26px] text-center">
         {formatTime(time.hours)}
       </div>
-      <span className="font-bold">:</span>
-      <div className="bg-black text-white text-xs font-bold px-1.5 py-0.5 rounded min-w-[24px] text-center">
+      <span className="font-bold text-gray-900">:</span>
+      <div className="bg-black text-white text-xs font-bold px-1.5 py-1 rounded min-w-[26px] text-center">
         {formatTime(time.minutes)}
       </div>
-      <span className="font-bold">:</span>
-      <div className="bg-black text-white text-xs font-bold px-1.5 py-0.5 rounded min-w-[24px] text-center">
+      <span className="font-bold text-gray-900">:</span>
+      <div className="bg-black text-white text-xs font-bold px-1.5 py-1 rounded min-w-[26px] text-center">
         {formatTime(time.seconds)}
       </div>
     </div>
   );
 };
 
-// Debounce function để tránh resize nhiều lần
-const useDebounce = (value: any, delay: number) => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-};
-
-// Intersection Observer Hook cho lazy loading
-const useInView = (options = {}) => {
-  const [isInView, setIsInView] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setIsInView(true);
-        observer.disconnect();
-      }
-    }, {
-      rootMargin: '100px', // Load sớm 100px trước khi vào viewport
-      threshold: 0.1,
-      ...options
-    });
-
-    if (ref.current) {
-      observer.observe(ref.current);
-    }
-
-    return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current);
-      }
-    };
-  }, [options]);
-
-  return [ref, isInView];
-};
-
 export default function FlashDeals() {
   const [page] = useState(1);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [visibleProducts, setVisibleProducts] = useState<Product[]>([]);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   
-  // Intersection Observer cho section
-  const [sectionRef, isSectionInView] = useInView({
-    threshold: 0.1,
-    rootMargin: '200px'
-  });
-
   const { data: productsResponse, isLoading } = usePromotedProducts({ 
     page, 
     limit: 12 
@@ -155,29 +95,24 @@ export default function FlashDeals() {
     return ((productsResponse?.data as Product[]) || []).filter((p) => p.isPublished);
   }, [productsResponse]);
 
-  const [itemsPerSlide, setItemsPerSlide] = useState(5);
-  const debouncedItemsPerSlide = useDebounce(itemsPerSlide, 150);
-
-  // Tính toán responsive items per slide
+  // Mobile: luôn hiện 2 card, Desktop: responsive
+  const [itemsPerSlide, setItemsPerSlide] = useState(2); // Mặc định 2 cho mobile
+  
+  // Tính toán responsive items per slide - ƯU TIÊN MOBILE 2 CARD
   const calculateItemsPerSlide = useCallback(() => {
-    if (typeof window === 'undefined') return 5;
+    if (typeof window === 'undefined') return 2;
     
     const width = window.innerWidth;
-    if (width < 480) return 1;
-    if (width < 640) return 2;
-    if (width < 768) return 3;
-    if (width < 1024) return 4;
-    return 5;
+    if (width < 480) return 2; // Mobile: luôn 2 card
+    if (width < 640) return 2; // Small mobile: 2 card
+    if (width < 768) return 3; // Tablet nhỏ: 3 card
+    if (width < 1024) return 4; // Tablet lớn: 4 card
+    return 5; // Desktop: 5 card
   }, []);
 
   useEffect(() => {
-    if (!isSectionInView) return;
-
     const handleResize = () => {
-      const newItemsPerSlide = calculateItemsPerSlide();
-      if (newItemsPerSlide !== itemsPerSlide) {
-        setItemsPerSlide(newItemsPerSlide);
-      }
+      setItemsPerSlide(calculateItemsPerSlide());
     };
 
     handleResize();
@@ -192,11 +127,11 @@ export default function FlashDeals() {
       window.removeEventListener('resize', debouncedResize);
       clearTimeout((window as any).resizeTimer);
     };
-  }, [isSectionInView, calculateItemsPerSlide, itemsPerSlide]);
+  }, [calculateItemsPerSlide]);
 
   // Auto play slider
   useEffect(() => {
-    if (!isAutoPlaying || !isSectionInView) return;
+    if (!isAutoPlaying || products.length === 0) return;
 
     autoPlayRef.current = setInterval(() => {
       setCurrentIndex(prev => (prev + 1) % totalSlides);
@@ -207,31 +142,31 @@ export default function FlashDeals() {
         clearInterval(autoPlayRef.current);
       }
     };
-  }, [isAutoPlaying, isSectionInView, products.length, debouncedItemsPerSlide]);
+  }, [isAutoPlaying, products.length, itemsPerSlide]);
 
-  const totalSlides = Math.ceil(products.length / debouncedItemsPerSlide);
-  const startIndex = currentIndex * debouncedItemsPerSlide;
-  const endIndex = startIndex + debouncedItemsPerSlide;
-
-  // Lazy load products khi scroll
-  useEffect(() => {
-    if (!isSectionInView || products.length === 0) return;
-
-    // Chỉ hiển thị products hiện tại và preload một vài products tiếp theo
-    const visibleStart = Math.max(0, startIndex - debouncedItemsPerSlide);
-    const visibleEnd = Math.min(products.length, endIndex + debouncedItemsPerSlide * 2);
-    
-    const newVisibleProducts = products.slice(visibleStart, visibleEnd);
-    setVisibleProducts(newVisibleProducts);
-  }, [isSectionInView, products, startIndex, endIndex, debouncedItemsPerSlide]);
+  const totalSlides = Math.ceil(products.length / itemsPerSlide);
+  const startIndex = currentIndex * itemsPerSlide;
+  const endIndex = Math.min(startIndex + itemsPerSlide, products.length);
+  
+  // Sản phẩm hiển thị hiện tại
+  const currentProducts = products.slice(startIndex, endIndex);
+  
+  // Đảm bảo luôn có đủ items (fill với empty items nếu cần)
+  const displayProducts = [...currentProducts];
+  while (displayProducts.length < itemsPerSlide && products.length > 0) {
+    const fillIndex = (startIndex + displayProducts.length) % products.length;
+    displayProducts.push(products[fillIndex]);
+  }
 
   const nextSlide = useCallback(() => {
+    if (totalSlides <= 1) return;
     setIsAutoPlaying(false);
     setCurrentIndex(prev => (prev + 1) % totalSlides);
     setTimeout(() => setIsAutoPlaying(true), 3000);
   }, [totalSlides]);
 
   const prevSlide = useCallback(() => {
+    if (totalSlides <= 1) return;
     setIsAutoPlaying(false);
     setCurrentIndex(prev => (prev - 1 + totalSlides) % totalSlides);
     setTimeout(() => setIsAutoPlaying(true), 3000);
@@ -240,8 +175,7 @@ export default function FlashDeals() {
   // Touch/swipe support
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-
-  const minSwipeDistance = 50;
+  const minSwipeDistance = 30; // Giảm khoảng cách swipe cho mobile
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
@@ -266,35 +200,20 @@ export default function FlashDeals() {
     }
   };
 
-  // Prefetch next slide khi hover vào nút
-  const prefetchNextSlide = useCallback(() => {
-    const nextIndex = (currentIndex + 1) % totalSlides;
-    const nextStart = nextIndex * debouncedItemsPerSlide;
-    const nextProducts = products.slice(nextStart, nextStart + debouncedItemsPerSlide);
-    
-    // Preload images
-    nextProducts.forEach(product => {
-      if (product.thumb) {
-        const img = new Image();
-        img.src = product.thumb;
-      }
-    });
-  }, [currentIndex, totalSlides, products, debouncedItemsPerSlide]);
-
-  if (isLoading || products.length === 0) {
+  if (isLoading) {
     return (
-      <section ref={sectionRef as any} className="py-8 bg-white border-b border-gray-50">
+      <section className="py-6 bg-white border-b border-gray-50">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2 uppercase">
+              <h2 className="text-lg md:text-2xl font-bold text-gray-900 flex items-center gap-2">
                 <Zap className="text-red-600 w-5 h-5 fill-current" />
                 Flash Sale
               </h2>
               <CountdownTimer />
             </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {[...Array(5)].map((_, i) => (
               <ProductCardSkeleton key={i} />
             ))}
@@ -304,10 +223,13 @@ export default function FlashDeals() {
     );
   }
 
+  if (products.length === 0) {
+    return null;
+  }
+
   return (
     <section 
-      ref={sectionRef as any}
-      className="py-8 bg-white border-b border-gray-50"
+      className="py-6 bg-white border-b border-gray-50"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -317,12 +239,12 @@ export default function FlashDeals() {
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2 uppercase">
+          <div className="flex items-center gap-2 md:gap-3">
+            <h2 className="text-lg md:text-2xl font-bold text-gray-900 flex items-center gap-2">
               <Zap className="text-red-600 w-5 h-5 fill-current animate-pulse" />
-              Flash Sale
+              <span className="text-sm md:text-base uppercase">Flash Sale</span>
             </h2>
-            <div className="hidden sm:block">
+            <div className="text-xs md:text-sm">
               <CountdownTimer />
             </div>
           </div>
@@ -331,66 +253,50 @@ export default function FlashDeals() {
             className="text-xs font-semibold text-gray-500 hover:text-black transition-colors duration-200 group flex items-center gap-1"
             prefetch={true}
           >
-            Xem tất cả
+            <span className="hidden sm:inline">Xem tất cả</span>
+            <span className="sm:hidden">Tất cả</span>
             <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
 
         {/* Slider Content */}
-        <div 
-          ref={containerRef}
-          className="relative group"
-        >
-          {/* Navigation Buttons */}
+        <div className="relative">
+          {/* Navigation Buttons - chỉ hiện trên desktop */}
           {totalSlides > 1 && (
             <>
               <button 
                 onClick={prevSlide}
-                onMouseEnter={prefetchNextSlide}
-                className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 backdrop-blur-sm shadow-lg border border-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-black hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-110 hidden md:flex"
+                className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 md:w-10 md:h-10 bg-white/90 backdrop-blur-sm shadow-lg border border-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-black hover:text-white transition-all duration-300 hover:scale-110 hidden md:flex"
                 aria-label="Previous slide"
               >
-                <ChevronLeft size={20} />
+                <ChevronLeft size={16} className="md:size-20" />
               </button>
               <button 
                 onClick={nextSlide}
-                onMouseEnter={prefetchNextSlide}
-                className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 backdrop-blur-sm shadow-lg border border-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-black hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-110 hidden md:flex"
+                className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 md:w-10 md:h-10 bg-white/90 backdrop-blur-sm shadow-lg border border-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-black hover:text-white transition-all duration-300 hover:scale-110 hidden md:flex"
                 aria-label="Next slide"
               >
-                <ChevronRight size={20} />
+                <ChevronRight size={16} className="md:size-20" />
               </button>
             </>
           )}
 
-          {/* Product Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-            {products.slice(startIndex, endIndex).map((product, index) => (
+          {/* Product Grid - Luôn grid-cols-2 cho mobile */}
+          <div className={`grid ${itemsPerSlide === 2 ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'} gap-3`}>
+            {displayProducts.map((product, index) => (
               <div 
-                key={`${product.id}-${currentIndex}`}
-                className="h-full transform transition-all duration-500"
-                style={{
-                  opacity: visibleProducts.includes(product) ? 1 : 0,
-                  transform: visibleProducts.includes(product) ? 'translateY(0)' : 'translateY(20px)'
-                }}
+                key={`${product.id}-${currentIndex}-${index}`}
+                className="h-full animate-fade-in-up"
               >
                 <Suspense fallback={<ProductCardSkeleton />}>
                   <LazyProductCardPromoted 
                     product={product} 
                     index={index}
-                    // priority={index < 2} // Chỉ priority cho 2 sản phẩm đầu tiên
                   />
                 </Suspense>
               </div>
             ))}
           </div>
-
-          {/* Loading indicator khi đang load more */}
-          {isLoadingMore && (
-            <div className="flex justify-center mt-4">
-              <Loader2 className="w-6 h-6 text-red-600 animate-spin" />
-            </div>
-          )}
 
           {/* Progress bar cho auto play */}
           {isAutoPlaying && totalSlides > 1 && (
@@ -398,7 +304,6 @@ export default function FlashDeals() {
               <div 
                 className="h-full bg-red-600 transition-all duration-5000 ease-linear"
                 style={{ 
-                  width: '100%',
                   animation: 'progress 5s linear forwards',
                   animationPlayState: 'running'
                 }}
@@ -406,9 +311,9 @@ export default function FlashDeals() {
             </div>
           )}
 
-          {/* Indicators */}
-          {totalSlides > 1 && (
-            <div className="flex items-center justify-center gap-1.5 mt-6">
+          {/* Indicators - responsive */}
+          {/* {totalSlides > 1 && (
+            <div className="flex items-center justify-center gap-1.5 mt-4">
               {Array.from({ length: totalSlides }).map((_, i) => (
                 <button
                   key={i}
@@ -418,10 +323,10 @@ export default function FlashDeals() {
                     setTimeout(() => setIsAutoPlaying(true), 3000);
                   }}
                   className={`
-                    transition-all duration-300 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2
+                    transition-all duration-300 rounded-full focus:outline-none
                     ${i === currentIndex 
                       ? "w-6 h-1.5 bg-red-600" 
-                      : "w-1.5 h-1.5 bg-gray-200 hover:bg-gray-300 hover:scale-125"
+                      : "w-1.5 h-1.5 bg-gray-200 hover:bg-gray-300"
                     }
                   `}
                   aria-label={`Flash deal page ${i + 1}`}
@@ -429,11 +334,11 @@ export default function FlashDeals() {
                 />
               ))}
             </div>
-          )}
+          )} */}
         </div>
 
-        {/* Mobile touch hint */}
-        <div className="mt-4 text-center text-xs text-gray-400 md:hidden">
+        {/* Mobile touch hint - chỉ hiện trên mobile */}
+        <div className="mt-3 text-center text-xs text-gray-400 md:hidden">
           Kéo sang trái/phải để xem thêm
         </div>
       </div>
@@ -451,7 +356,7 @@ export default function FlashDeals() {
         @keyframes fadeInUp {
           from {
             opacity: 0;
-            transform: translateY(20px);
+            transform: translateY(10px);
           }
           to {
             opacity: 1;
@@ -460,17 +365,20 @@ export default function FlashDeals() {
         }
 
         .animate-fade-in-up {
-          animation: fadeInUp 0.5s ease-out;
+          animation: fadeInUp 0.3s ease-out;
         }
 
-        /* Smooth scroll behavior */
-        html {
-          scroll-behavior: smooth;
-        }
-
-        /* Better image loading */
-        img {
-          content-visibility: auto;
+        /* Mobile specific styles */
+        @media (max-width: 480px) {
+          .container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+          }
+          
+          /* Ensure 2 cards fit perfectly on mobile */
+          .grid-cols-2 > * {
+            min-width: calc(50% - 0.375rem);
+          }
         }
       `}</style>
     </section>

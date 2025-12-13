@@ -1434,54 +1434,85 @@ const renderLoadingSpinner = () => {
 
 return (
   <ChatContext.Provider value={contextValue}>
-    {/* Floating Chat Button - Cải thiện cho mobile */}
+    {/* Floating Chat Button - Màu xanh hiện đại */}
     <div className="fixed bottom-5 right-5 z-[9999]">
       <button
         onClick={() => setIsChatOpen(!isChatOpen)}
-        className="relative bg-gradient-to-r from-blue-600 to-green-600 text-white px-4 py-3 md:px-6 md:py-3 rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 font-medium touch-manipulation"
+        className="relative bg-gradient-to-r from-teal-500 to-emerald-500 text-white px-4 py-3 md:px-6 md:py-3 rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 font-medium touch-manipulation group"
         style={{ WebkitTapHighlightColor: 'transparent' }}
       >
-        <span className="text-2xl">💬</span>
-        <span className="hidden md:inline">Chat hỗ trợ</span>
-        
+       <div className="relative">
+          {/* Icon chat đẹp hơn */}
+          <div className="relative z-10">
+            <svg 
+              className="w-6 h-6 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth="2" 
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
+          </div>
+          
+          {/* Hiệu ứng glow khi hover */}
+          <div className="absolute -inset-3 bg-gradient-to-r from-teal-400/20 via-emerald-400/20 to-teal-400/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+          
+          {/* Hiệu ứng pulse nhẹ */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-teal-400/10 to-emerald-400/10 animate-pulse"></div>
+        </div>
+
+        <span className="hidden md:inline ml-2 font-medium tracking-wide">Chat</span>
+
         {isGuest && (
-          <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 shadow-md">
-            🔄
+          <span className="absolute -top-1 -right-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-full min-w-[18px] h-5 flex items-center justify-center px-1.5 shadow-lg">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
           </span>
         )}
       </button>
 
       {!isGuest && !isConnected && (
-        <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-pulse border border-white"></span>
+        <span className="absolute top-0 right-0 w-3 h-3 bg-rose-500 rounded-full animate-pulse border border-white"></span>
       )}
 
       {unreadCount > 0 && (
-        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 shadow-md animate-bounce">
+        <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 shadow-md animate-bounce">
           {unreadCount > 99 ? '99+' : unreadCount}
         </span>
       )}
     </div>
 
-    {/* Chat Window - Responsive cải thiện cho iPhone */}
+    {/* Chat Window - Màu xanh hiện đại */}
     {isChatOpen && (
-      <div className="fixed inset-0 md:inset-auto md:bottom-24 md:right-5 md:w-96 md:h-[600px] w-full h-full bg-white md:rounded-2xl md:shadow-2xl flex flex-col overflow-hidden z-[9999] animate-in slide-in-from-bottom-full md:slide-in-from-bottom-5 duration-300 overscroll-contain"
+      <div className="fixed inset-0 md:inset-auto md:bottom-24 md:right-5 md:w-96 md:h-[600px] w-full h-full bg-gradient-to-b from-teal-50/50 to-emerald-50/30 backdrop-blur-sm md:backdrop-blur-none md:bg-white md:rounded-2xl md:shadow-2xl flex flex-col overflow-hidden z-[9999] animate-in slide-in-from-bottom-full md:slide-in-from-bottom-5 duration-300 overscroll-contain border md:border-emerald-100"
         style={{
-          // Fix cho iOS Safari
           WebkitOverflowScrolling: 'touch',
           maxHeight: '-webkit-fill-available',
         }}
       >
-        {/* Header với safe area cho iPhone */}
-        <div className="flex justify-between items-center bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 text-white px-4 py-3 safe-area-top-padding">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+        {/* Header với gradient xanh hiện đại */}
+        <div className="flex justify-between items-center bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 text-white px-4 py-3 safe-area-top-padding">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <div className="text-xl">💬</div>
+                <div className="absolute -inset-2 bg-white/10 rounded-full blur-sm"></div>
+              </div>
+            </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-lg text-white truncate">Tư vấn trực tuyến</h3>
+              <h3 className="font-bold text-lg text-white truncate">Trò chuyện trực tiếp</h3>
               <p className="text-xs flex items-center gap-1 truncate">
                 {isGuest ? (
-                  <span className="text-yellow-300 truncate">Đăng nhập để lưu lịch sử chat</span>
+                  <span className="text-amber-200 truncate">Đăng nhập để lưu lịch sử chat</span>
                 ) : (
                   <>
-                    <span className={`flex-shrink-0 w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></span>
+                    <span className={`flex-shrink-0 w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-300' : 'bg-rose-400'} animate-pulse`}></span>
                     <span className="truncate">{status.text}</span>
                   </>
                 )}
@@ -1491,7 +1522,7 @@ return (
           
           <button 
             onClick={() => setIsChatOpen(false)} 
-            className="flex-shrink-0 text-white hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center text-2xl transition-colors active:bg-white/30 touch-manipulation"
+            className="flex-shrink-0 text-white hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center text-2xl transition-colors active:bg-white/30 touch-manipulation hover:rotate-90 transition-transform"
             style={{ WebkitTapHighlightColor: 'transparent' }}
             aria-label="Đóng chat"
           >
@@ -1499,12 +1530,11 @@ return (
           </button>
         </div>
 
-        {/* Messages container với cải thiện scroll cho iOS */}
+        {/* Messages container với nền xanh nhẹ */}
         <div 
           ref={chatContainerRef}
-          className="flex-1 p-3 md:p-3 overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-100 space-y-3 overscroll-contain"
+          className="flex-1 p-3 md:p-4 overflow-y-auto bg-gradient-to-b from-white via-teal-50/30 to-emerald-50/20 space-y-4 overscroll-contain"
           style={{
-            // Fix scroll cho iOS
             WebkitOverflowScrolling: 'touch',
             overflowAnchor: 'none',
           }}
@@ -1512,41 +1542,46 @@ return (
           {/* Top Sentinel cho infinite scroll */}
           <div ref={topSentinelRef} className="h-2" />
 
-          {/* Loading Spinner khi đang load more */}
+          {/* Loading Spinner */}
           {renderLoadingSpinner()}
 
-          {/* Empty state */}
+          {/* Empty state với design hiện đại */}
           {messages.length === 0 && !isTyping.admin && !isTyping.ai && (
-            <div className="text-center text-gray-500 mt-8 md:mt-12 px-4">
-              <div className="text-5xl mb-3">
-                {currentUser ? '👋' : '🤖'}
+            <div className="text-center py-8 md:py-12 px-4">
+              <div className="relative inline-block mb-4">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center text-4xl mb-2">
+                  {currentUser ? '👋' : '🤖'}
+                </div>
+                <div className="absolute -inset-3 bg-gradient-to-r from-teal-200/30 to-emerald-200/30 rounded-full blur-xl"></div>
               </div>
-              <p className="text-sm font-medium mb-2">
-                {currentUser ? 'Chào bạn!' : 'Xin chào!'}
+              <p className="text-lg font-semibold text-teal-900 mb-2">
+                {currentUser ? 'Xin chào!' : 'Chào bạn! 👋'}
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-sm text-teal-700/80 max-w-xs mx-auto mb-4">
                 {currentUser 
-                  ? 'Bạn cần tư vấn gì, chúng tôi sẽ hỗ trợ bạn' 
-                  : 'Tôi là AI hỗ trợ. Hãy chat với tôi!'
+                  ? 'Chúng tôi sẵn sàng hỗ trợ bạn' 
+                  : 'Tôi là trợ lý, hãy bắt đầu trò chuyện!'
                 }
               </p>
               {currentUser && !conversationId && (
-                <p className="text-xs text-blue-600 mt-2 font-medium">
-                  💡 Nhập tin nhắn đầu tiên để tạo hội thoại mới
-                </p>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-full">
+                  <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                  <span className="text-xs font-medium text-emerald-700">Nhập tin nhắn đầu tiên</span>
+                </div>
               )}
             </div>
           )}
 
-          {/* Messages list */}
+          {/* Messages list với bubble design hiện đại */}
           {messages.map((msg, index) => {
             const isNewMessage = index >= messages.length - 3;
             const messageDelay = Math.min((messages.length - 1 - index) * 0.1, 0.3);
+            const isUser = ['USER', 'GUEST'].includes(msg.senderType);
             
             return (
               <div 
                 key={msg.id} 
-                className={`flex ${['USER', 'GUEST'].includes(msg.senderType) ? 'justify-end' : 'justify-start'} ${
+                className={`flex ${isUser ? 'justify-end' : 'justify-start'} ${
                   isNewMessage ? 'animate-in fade-in slide-in-from-bottom-2' : ''
                 }`}
                 style={{
@@ -1555,23 +1590,48 @@ return (
                   animationFillMode: 'both'
                 }}
               >
-                <div className={`${getBubbleClass(msg)} max-w-[85%] md:max-w-[75%] break-words ${
-                  isNewMessage ? 'transform transition-transform duration-300 active:scale-[0.98]' : ''
-                }`}>
-                  {!['USER', 'GUEST'].includes(msg.senderType) && (
-                    <div className="text-xs opacity-80 mb-1 font-semibold truncate">
-                      {msg.senderType === 'ADMIN' ? '👨‍💼 Admin' : msg.senderType === 'BOT' ? '👩‍💼 Nhân viên sale' : 'Bạn'}
+                <div className={`
+                  relative max-w-[85%] md:max-w-[75%] break-words rounded-2xl px-4 py-3
+                  ${isUser 
+                    ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-br-none' 
+                    : 'bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-100 text-teal-900 rounded-bl-none'
+                  }
+                  ${isNewMessage ? 'transform transition-transform duration-300 active:scale-[0.98]' : ''}
+                  shadow-sm hover:shadow-md transition-shadow
+                `}>
+                  {/* Decorative corner */}
+                  {isUser ? (
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-teal-500 rounded-tl-full"></div>
+                  ) : (
+                    <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-teal-50 border-l border-b border-teal-100 rounded-tr-full"></div>
+                  )}
+                  
+                  {!isUser && (
+                    <div className="text-xs font-semibold mb-1 text-teal-700 flex items-center gap-1">
+                      {msg.senderType === 'ADMIN' ? (
+                        <>
+                          <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                          <span>Hỗ trợ viên</span>
+                        </>
+                      ) : msg.senderType === 'BOT' ? (
+                        <>
+                          <span className="w-2 h-2 bg-teal-500 rounded-full"></span>
+                          <span>Hỗ trợ viên</span>
+                        </>
+                      ) : null}
                     </div>
                   )}
-                  <div className="whitespace-pre-wrap break-words text-sm md:text-sm leading-relaxed">
+                  
+                  <div className="whitespace-pre-wrap break-words text-sm md:text-sm leading-relaxed relative z-10">
                     {renderMessageWithLinks(msg.message)}
                   </div>
-                  <div className="text-xs mt-1 opacity-70 flex items-center gap-1">
-                    {formatTime(msg.createdAt)}
+                  
+                  <div className={`text-xs mt-2 flex items-center gap-2 ${isUser ? 'text-teal-100/80' : 'text-teal-600/70'}`}>
+                    <span>{formatTime(msg.createdAt)}</span>
                     {msg.status === 'sending' && (
                       <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 bg-current rounded-full opacity-60 animate-pulse"></span>
-                        <span className="text-xs opacity-70">đang gửi...</span>
+                        <span className="w-1.5 h-1.5 bg-current rounded-full opacity-60 animate-pulse"></span>
+                        <span className="text-xs">Đang gửi...</span>
                       </span>
                     )}
                   </div>
@@ -1580,24 +1640,41 @@ return (
             );
           })}
 
-          {/* Typing Indicators */}
+          {/* Typing Indicators với design đẹp */}
           {isTyping.admin && (
-            <div className="flex justify-start animate-in fade-in duration-200">
-              <div className="bg-blue-100 text-blue-800 rounded-2xl px-4 py-2 text-sm flex items-center gap-2 max-w-[85%] md:max-w-[75%]">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            <div className="flex justify-start animate-in fade-in duration-300">
+              <div className="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-100 rounded-2xl px-4 py-3 max-w-[85%] md:max-w-[75%]">
+                <div className="flex items-center gap-3">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  </div>
+                  <span className="text-sm font-medium text-teal-700">Đang soạn tin nhắn...</span>
                 </div>
-                <span className="text-sm">Admin đang soạn tin...</span>
               </div>
             </div>
           )}
 
           {isTyping.ai && (
-            <div className="flex justify-start animate-in fade-in duration-200">
-              <div className="bg-green-100 text-green-800 rounded-2xl px-4 py-3 flex items-center gap-3 max-w-[85%] md:max-w-[75%]">
-                <span className="text-sm font-medium">đang suy nghĩ {aiTypingDots}</span>
+            <div className="flex justify-start animate-in fade-in duration-300">
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl px-4 py-3 max-w-[85%] md:max-w-[75%]">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 flex items-center justify-center text-white text-xs">
+                      AI
+                    </div>
+                    <div className="absolute -inset-2 bg-emerald-400/20 rounded-full blur-sm"></div>
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-emerald-700">Đang suy nghĩ</span>
+                    <div className="flex gap-1 mt-1">
+                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '200ms' }}></div>
+                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '400ms' }}></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1605,55 +1682,57 @@ return (
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area với safe area cho iPhone */}
-        <div className="p-3 md:p-3 border-t bg-white safe-area-padding-bottom">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder={status.placeholder}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={status.inputDisabled}
-              className={`flex-1 border border-gray-300 rounded-full px-4 py-3 md:py-2.5 text-base md:text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition ${
-                status.inputDisabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
-              }`}
-              style={{
-                // Fix cho iOS
-                WebkitAppearance: 'none',
-                fontSize: '16px', // Ngăn iOS zoom khi focus
-              }}
-            />
+        {/* Input Area với design hiện đại */}
+        <div className="p-3 md:p-4 border-t border-emerald-100 bg-gradient-to-r from-white to-teal-50/30 safe-area-padding-bottom">
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                placeholder={status.placeholder}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={status.inputDisabled}
+                className="w-full border border-teal-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 rounded-full px-4 py-3 md:py-3 text-base md:text-sm outline-none transition-all bg-white/80 backdrop-blur-sm text-teal-900 placeholder-teal-400 disabled:bg-teal-50 disabled:cursor-not-allowed shadow-inner"
+                style={{
+                  WebkitAppearance: 'none',
+                  fontSize: '16px',
+                }}
+              />
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-teal-500/0 via-teal-500/5 to-emerald-500/0 blur-sm opacity-0 hover:opacity-100 transition-opacity pointer-events-none"></div>
+            </div>
+            
             <button
               onClick={() => sendMessage(input)}
               disabled={!input.trim() || status.inputDisabled}
-              className={`bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 md:px-5 py-3 md:py-2.5 rounded-full font-medium shadow-md transition flex items-center justify-center min-w-[44px] min-h-[44px] ${
-                !input.trim() || status.inputDisabled 
-                  ? 'from-gray-300 to-gray-300 cursor-not-allowed' 
-                  : 'hover:from-indigo-700 hover:to-purple-700 active:scale-95'
-              }`}
+              className="relative bg-gradient-to-r from-teal-500 to-emerald-500 text-white px-5 md:px-6 py-3 md:py-3 rounded-full font-medium shadow-lg hover:shadow-xl transition-all flex items-center justify-center min-w-[52px] min-h-[52px] group disabled:from-teal-300 disabled:to-emerald-300 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              <span className="md:hidden">📤</span>
-              <span className="hidden md:inline">Gửi</span>
+              <div className="relative z-10">
+                <span className="md:hidden">📤</span>
+                <span className="hidden md:inline">Gửi</span>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-r from-teal-600 to-emerald-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="absolute -inset-2 bg-teal-500/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </button>
           </div>
           
-          {/* Thông báo khi AI đang xử lý */}
+          {/* Status message */}
           {isAiProcessing && (
-            <div className="mt-2 text-xs text-blue-600 text-center">
-              ⏳ Đang chờ trả lời, vui lòng đợi...
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+              <span className="text-xs font-medium text-emerald-600">Đang xử lý câu hỏi...</span>
             </div>
           )}
           
-          {/* Nút scroll to bottom */}
+          {/* Scroll to bottom button */}
           {showScrollToBottom && (
             <button
               onClick={() => {
                 scrollToBottom('smooth');
                 setShowScrollToBottom(false);
               }}
-              className="fixed md:absolute bottom-20 right-4 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors z-10 animate-bounce min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="fixed md:absolute bottom-24 right-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all z-10 animate-bounce min-w-[44px] min-h-[44px] flex items-center justify-center hover:scale-110"
               style={{ WebkitTapHighlightColor: 'transparent' }}
               title="Cuộn xuống tin nhắn mới nhất"
               aria-label="Cuộn xuống cuối"
@@ -1668,7 +1747,7 @@ return (
     )}
 
     <style jsx global>{`
-      /* Safe area handling cho iPhone với notch */
+      /* Safe area handling cho iPhone */
       .safe-area-top-padding {
         padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
         padding-left: calc(1rem + env(safe-area-inset-left, 0px));
@@ -1681,44 +1760,24 @@ return (
         padding-right: calc(1rem + env(safe-area-inset-right, 0px));
       }
       
-      /* Fix cho iOS scroll bounce */
-      body.chat-open {
-        overflow: hidden;
-        position: fixed;
-        width: 100%;
-        height: 100%;
-      }
-      
-      /* Tối ưu hiệu suất cho mobile */
-      .message-bubble {
-        will-change: transform;
-        backface-visibility: hidden;
-      }
-      
-      /* Ngăn chặn text selection không mong muốn trên mobile */
-      .touch-manipulation {
-        touch-action: manipulation;
-      }
-      
-      /* Fix cho button active states trên iOS */
-      button:active {
-        opacity: 0.8;
-      }
-      
-      /* Style cho product links */
+      /* Product links với màu xanh */
       .product-link {
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
-        color: #2563eb;
-        text-decoration: underline;
+        color: #0d9488;
+        text-decoration: none;
         font-weight: 500;
+        padding: 0.125rem 0.375rem;
+        border-radius: 0.375rem;
+        background: rgba(13, 148, 136, 0.1);
         transition: all 0.2s ease;
       }
       
       .product-link:hover {
-        color: #1d4ed8;
-        text-decoration-thickness: 2px;
+        color: #0f766e;
+        background: rgba(13, 148, 136, 0.15);
+        transform: translateY(-1px);
       }
       
       /* Optimize animations cho mobile */
@@ -1726,8 +1785,7 @@ return (
         .animate-in,
         .animate-bounce,
         .animate-pulse,
-        .animate-spin,
-        .animate-spin-reverse {
+        .animate-spin {
           animation: none !important;
         }
       }
@@ -1747,115 +1805,42 @@ return (
         }
       }
       
-      /* Custom animation classes */
-      @keyframes spin-reverse {
-        from {
-          transform: rotate(360deg);
-        }
-        to {
-          transform: rotate(0deg);
-        }
-      }
-      
-      .animate-spin-reverse {
-        animation: spin-reverse 1s linear infinite;
-      }
-      
-      .loading-pulse {
-        animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-      }
-      
-      @keyframes pulse {
+      /* Custom animations */
+      @keyframes float {
         0%, 100% {
-          opacity: 1;
+          transform: translateY(0);
         }
         50% {
-          opacity: 0.5;
+          transform: translateY(-5px);
         }
       }
       
-      @keyframes messageSlideIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px) scale(0.95);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
+      .animate-float {
+        animation: float 3s ease-in-out infinite;
       }
       
-      @keyframes messageSlideInRight {
-        from {
-          opacity: 0;
-          transform: translateX(20px) scale(0.95);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(0) scale(1);
-        }
+      /* Smooth transitions */
+      * {
+        transition: background-color 0.2s ease, border-color 0.2s ease;
       }
       
-      @keyframes messageSlideInLeft {
-        from {
-          opacity: 0;
-          transform: translateX(-20px) scale(0.95);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(0) scale(1);
-        }
+      /* Scrollbar styling */
+      ::-webkit-scrollbar {
+        width: 6px;
       }
       
-      @keyframes bubblePulse {
-        0%, 100% {
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-        50% {
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
+      ::-webkit-scrollbar-track {
+        background: rgba(204, 251, 241, 0.3);
+        border-radius: 3px;
       }
       
-      .message-slide-in {
-        animation: messageSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      ::-webkit-scrollbar-thumb {
+        background: rgba(20, 184, 166, 0.5);
+        border-radius: 3px;
       }
       
-      .message-slide-in-right {
-        animation: messageSlideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-      }
-      
-      .message-slide-in-left {
-        animation: messageSlideInLeft 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-      }
-      
-      .bubble-pulse {
-        animation: bubblePulse 1s ease-in-out;
-      }
-      
-      /* Tối ưu cho slide in animation trên mobile */
-      @media (max-width: 768px) {
-        .animate-in {
-          animation-duration: 0.3s !important;
-        }
-        
-        .slide-in-from-bottom-full {
-          animation-name: slideInFromBottomFull;
-        }
-        
-        @keyframes slideInFromBottomFull {
-          from {
-            transform: translateY(100%);
-          }
-          to {
-            transform: translateY(0);
-          }
-        }
-      }
-      
-      /* Fix cho viewport height trên mobile */
-      .h-screen-mobile {
-        height: 100vh;
-        height: -webkit-fill-available;
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(20, 184, 166, 0.7);
       }
     `}</style>
   </ChatContext.Provider>

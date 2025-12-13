@@ -298,8 +298,8 @@ export default function ProductsPage() {
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const filterLoadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Parse URL params - THÊM PAGE PARAM
-  const initialParams = useMemo(() => ({
+  // QUAN TRỌNG: Parse URL params - ĐỌC TRỰC TIẾP TỪ URL MỖI LẦN RENDER
+  const getCurrentParams = useCallback(() => ({
     search: searchParams.get("search") || "",
     categoryId: searchParams.get("categoryId")
       ? Number(searchParams.get("categoryId"))
@@ -309,22 +309,22 @@ export default function ProductsPage() {
       : null,
     hasPromotion: searchParams.get("hasPromotion") === "true",
     isFeatured: searchParams.get("isFeatured") === "true",
-    page: searchParams.get("page") ? Number(searchParams.get("page")) : 1, // ✅ THÊM PAGE TỪ URL
+    page: searchParams.get("page") ? Number(searchParams.get("page")) : 1,
   }), [searchParams]);
 
+  // State cho các filter
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
-    initialParams.categoryId
+    getCurrentParams().categoryId
   );
   const [selectedBrandId, setSelectedBrandId] = useState<number | null>(
-    initialParams.brandId
+    getCurrentParams().brandId
   );
   const [sortBy, setSortBy] = useState<string>("createdAt_desc");
   
-  // ✅ QUAN TRỌNG: Khởi tạo từ URL params
-  const [showFeatured, setShowFeatured] = useState<boolean>(initialParams.isFeatured);
-  const [showPromoted, setShowPromoted] = useState<boolean>(initialParams.hasPromotion);
+  const [showFeatured, setShowFeatured] = useState<boolean>(getCurrentParams().isFeatured);
+  const [showPromoted, setShowPromoted] = useState<boolean>(getCurrentParams().hasPromotion);
   
-  const [currentPage, setCurrentPage] = useState(initialParams.page); // ✅ LẤY PAGE TỪ URL
+  const [currentPage, setCurrentPage] = useState(getCurrentParams().page);
   const PRODUCTS_PER_PAGE = 12;
 
   // State cho dropdown
@@ -333,37 +333,49 @@ export default function ProductsPage() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Debounce search
-  const debouncedSearch = useDebounce(initialParams.search, 300);
+  const debouncedSearch = useDebounce(getCurrentParams().search, 300);
 
-  // ✅ FIX: Hàm để build URL params đầy đủ - THÊM PAGE
+  // QUAN TRỌNG: Đồng bộ state với URL khi URL thay đổi
+  useEffect(() => {
+    const params = getCurrentParams();
+    
+    // Cập nhật state từ URL
+    setSelectedCategoryId(params.categoryId);
+    setSelectedBrandId(params.brandId);
+    setShowFeatured(params.isFeatured);
+    setShowPromoted(params.hasPromotion);
+    setCurrentPage(params.page);
+  }, [searchParams, getCurrentParams]);
+
+  // ✅ FIX: Hàm để build URL params đầy đủ
   const buildUrlParams = useCallback((options: {
     categoryId?: number | null;
     brandId?: number | null;
     search?: string;
     hasPromotion?: boolean;
     isFeatured?: boolean;
-    page?: number; // ✅ THÊM PAGE
+    page?: number;
   } = {}) => {
     const params = new URLSearchParams();
     
     const catId = options.categoryId !== undefined ? options.categoryId : selectedCategoryId;
     const brId = options.brandId !== undefined ? options.brandId : selectedBrandId;
-    const search = options.search !== undefined ? options.search : initialParams.search;
+    const search = options.search !== undefined ? options.search : getCurrentParams().search;
     const promoted = options.hasPromotion !== undefined ? options.hasPromotion : showPromoted;
     const featured = options.isFeatured !== undefined ? options.isFeatured : showFeatured;
-    const page = options.page !== undefined ? options.page : currentPage; // ✅ THÊM PAGE
+    const page = options.page !== undefined ? options.page : currentPage;
     
     if (catId !== null) params.set("categoryId", catId.toString());
     if (brId !== null) params.set("brandId", brId.toString());
     if (search) params.set("search", search);
     if (promoted) params.set("hasPromotion", "true");
     if (featured) params.set("isFeatured", "true");
-    if (page > 1) params.set("page", page.toString()); // ✅ CHỈ THÊM PAGE KHI > 1
+    if (page > 1) params.set("page", page.toString());
     
     return params.toString();
-  }, [selectedCategoryId, selectedBrandId, initialParams.search, showPromoted, showFeatured, currentPage]);
+  }, [selectedCategoryId, selectedBrandId, getCurrentParams, showPromoted, showFeatured, currentPage]);
 
-  // ✅ QUAN TRỌNG: Fetch products với đầy đủ params
+  // ✅ QUAN TRỌNG: Fetch products với đầy đủ params - SỬ DỤNG GETCURRENTPARAMS()
   const {
     data: productsResponse,
     isLoading: isProductsLoading,
@@ -376,7 +388,6 @@ export default function ProductsPage() {
     categoryId: selectedCategoryId ?? undefined,
     sortBy: sortBy,
     isFeatured: showFeatured ? true : undefined,
-    // ✅ FIX: Đảm bảo gửi đúng param
     hasPromotion: showPromoted ? true : undefined,
   });
 
@@ -437,7 +448,7 @@ export default function ProductsPage() {
     const params = new URLSearchParams();
     if (selectedCategoryId !== null) params.set("categoryId", selectedCategoryId.toString());
     if (selectedBrandId !== null) params.set("brandId", selectedBrandId.toString());
-    if (initialParams.search) params.set("search", initialParams.search);
+    if (getCurrentParams().search) params.set("search", getCurrentParams().search);
     if (showFeatured) params.set("isFeatured", "true");
     if (checked) params.set("hasPromotion", "true");
     // Không thêm page vì đang là page 1
@@ -449,7 +460,7 @@ export default function ProductsPage() {
       setShowLightLoading(false);
       setPendingPromoted(false);
     }, 300);
-  }, [selectedCategoryId, selectedBrandId, initialParams.search, showFeatured, router]);
+  }, [selectedCategoryId, selectedBrandId, getCurrentParams, showFeatured, router]);
 
   const handleFeaturedChange = useCallback((checked: boolean) => {
     setShowLightLoading(true);
@@ -460,7 +471,7 @@ export default function ProductsPage() {
     const params = new URLSearchParams();
     if (selectedCategoryId !== null) params.set("categoryId", selectedCategoryId.toString());
     if (selectedBrandId !== null) params.set("brandId", selectedBrandId.toString());
-    if (initialParams.search) params.set("search", initialParams.search);
+    if (getCurrentParams().search) params.set("search", getCurrentParams().search);
     if (showPromoted) params.set("hasPromotion", "true");
     if (checked) params.set("isFeatured", "true");
     
@@ -469,9 +480,9 @@ export default function ProductsPage() {
     setTimeout(() => {
       setShowLightLoading(false);
     }, 300);
-  }, [selectedCategoryId, selectedBrandId, initialParams.search, showPromoted, router]);
+  }, [selectedCategoryId, selectedBrandId, getCurrentParams, showPromoted, router]);
 
-  // Optimized filter click handlers - RESET VỀ PAGE 1
+  // Optimized filter click handlers - SỬA ĐỂ DÙNG GETCURRENTPARAMS()
   const handleCategoryClick = useCallback((categoryId: number | null) => {
     if (categoryId === selectedCategoryId && categoryId !== null) return;
     
@@ -481,15 +492,22 @@ export default function ProductsPage() {
     setLoadingFilterType('category');
     setShowLightLoading(true);
     
+    // Cập nhật state
     setSelectedCategoryId(newCategoryId);
     setCurrentPage(1); // ✅ RESET VỀ PAGE 1
     
+    // Build URL với giá trị mới
     const params = new URLSearchParams();
     if (newCategoryId !== null) params.set("categoryId", newCategoryId.toString());
-    if (selectedBrandId !== null) params.set("brandId", selectedBrandId.toString());
-    if (initialParams.search) params.set("search", initialParams.search);
-    if (showPromoted) params.set("hasPromotion", "true");
-    if (showFeatured) params.set("isFeatured", "true");
+    
+    // Giữ search nếu có (tùy chọn - bạn có thể xóa nếu muốn)
+    const currentSearch = getCurrentParams().search;
+    if (currentSearch) params.set("search", currentSearch);
+    
+    // Xóa các filter khác khi chọn category mới
+    params.delete("brandId");
+    params.delete("hasPromotion");
+    params.delete("isFeatured");
     
     router.replace(`/san-pham?${params.toString()}`, { scroll: false });
     
@@ -498,7 +516,7 @@ export default function ProductsPage() {
       setLoadingFilterType(null);
       setShowLightLoading(false);
     }, 300);
-  }, [selectedCategoryId, selectedBrandId, initialParams.search, showPromoted, showFeatured, router]);
+  }, [selectedCategoryId, getCurrentParams, router]);
 
   const handleBrandClick = useCallback((brandId: number | null) => {
     if (brandId === selectedBrandId && brandId !== null) return;
@@ -513,11 +531,19 @@ export default function ProductsPage() {
     setCurrentPage(1); // ✅ RESET VỀ PAGE 1
     
     const params = new URLSearchParams();
-    if (selectedCategoryId !== null) params.set("categoryId", selectedCategoryId.toString());
     if (newBrandId !== null) params.set("brandId", newBrandId.toString());
-    if (initialParams.search) params.set("search", initialParams.search);
-    if (showPromoted) params.set("hasPromotion", "true");
-    if (showFeatured) params.set("isFeatured", "true");
+    
+    // Giữ category nếu có
+    const currentCategoryId = getCurrentParams().categoryId;
+    if (currentCategoryId) params.set("categoryId", currentCategoryId.toString());
+    
+    // Giữ search nếu có
+    const currentSearch = getCurrentParams().search;
+    if (currentSearch) params.set("search", currentSearch);
+    
+    // Xóa các filter khác khi chọn brand mới
+    params.delete("hasPromotion");
+    params.delete("isFeatured");
     
     router.replace(`/san-pham?${params.toString()}`, { scroll: false });
     
@@ -526,13 +552,12 @@ export default function ProductsPage() {
       setLoadingFilterType(null);
       setShowLightLoading(false);
     }, 300);
-  }, [selectedBrandId, selectedCategoryId, initialParams.search, showPromoted, showFeatured, router]);
-
-  // ✅ XÓA HOÀN TOÀN INFINITE SCROLL LOGIC
-  // KHÔNG CÒN USEEFFECT VỚI INTERSECTION OBSERVER
+  }, [selectedBrandId, getCurrentParams, router]);
 
   const resetFilters = useCallback(() => {
     setShowLightLoading(true);
+    
+    // Reset tất cả state
     setSelectedCategoryId(null);
     setSelectedBrandId(null);
     setShowFeatured(false);
@@ -540,6 +565,7 @@ export default function ProductsPage() {
     setSortBy("createdAt_desc");
     setCurrentPage(1);
     
+    // Chỉ chuyển đến /san-pham không có params
     router.replace("/san-pham", { scroll: false });
     
     setTimeout(() => {
@@ -560,7 +586,7 @@ export default function ProductsPage() {
     const params = new URLSearchParams();
     if (selectedCategoryId !== null) params.set("categoryId", selectedCategoryId.toString());
     if (selectedBrandId !== null) params.set("brandId", selectedBrandId.toString());
-    if (initialParams.search) params.set("search", initialParams.search);
+    if (getCurrentParams().search) params.set("search", getCurrentParams().search);
     if (showPromoted) params.set("hasPromotion", "true");
     if (showFeatured) params.set("isFeatured", "true");
     if (page > 1) params.set("page", page.toString()); // ✅ CHỈ THÊM PAGE KHI > 1
@@ -574,7 +600,7 @@ export default function ProductsPage() {
         behavior: 'smooth'
       });
     });
-  }, [selectedCategoryId, selectedBrandId, initialParams.search, showPromoted, showFeatured, router]);
+  }, [selectedCategoryId, selectedBrandId, getCurrentParams, showPromoted, showFeatured, router]);
 
   const sortOptions = useMemo(
     () => [
@@ -676,7 +702,7 @@ export default function ProductsPage() {
 
       {/* ✅ CUSTOM BREADCRUMB */}
       <ProductBreadcrumb
-        searchTerm={initialParams.search || undefined}
+        searchTerm={getCurrentParams().search || undefined}
         selectedCategory={selectedCategory || undefined}
         selectedBrand={selectedBrand || undefined}
         showFeatured={showFeatured}
@@ -688,7 +714,7 @@ export default function ProductsPage() {
       {/* Main Content */}
       <div className="max-w-[1400px] mx-auto px-4 py-4 lg:py-8">
         {/* Active Filters Bar */}
-        {(selectedCategoryId || selectedBrandId || showFeatured || showPromoted || initialParams.search || currentPage > 1) && (
+        {(selectedCategoryId || selectedBrandId || showFeatured || showPromoted || getCurrentParams().search || currentPage > 1) && (
           <div className="mb-6 lg:mb-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2 font-medium text-blue-700">
@@ -696,7 +722,7 @@ export default function ProductsPage() {
                 <span>Bộ lọc đang áp dụng:</span>
               </div>
 
-              {initialParams.search && (
+              {getCurrentParams().search && (
                 <Tag
                   closable
                   onClose={() => {
@@ -710,7 +736,7 @@ export default function ProductsPage() {
                   }}
                   className="!px-3 !py-1.5 !rounded-full !bg-white !text-blue-700 !border-blue-300 shadow-sm"
                 >
-                  {initialParams.search}
+                  {getCurrentParams().search}
                 </Tag>
               )}
               
@@ -988,10 +1014,10 @@ export default function ProductsPage() {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                    {initialParams.search ? (
+                    {getCurrentParams().search ? (
                       <>
                         Kết quả tìm kiếm:{" "}
-                        <span className="text-blue-600">"{initialParams.search}"</span>
+                        <span className="text-blue-600">"{getCurrentParams().search}"</span>
                       </>
                     ) : selectedCategory ? (
                       selectedCategory.name
@@ -1146,8 +1172,8 @@ export default function ProductsPage() {
                     <p className="text-gray-600 mb-6 max-w-md">
                       {showPromoted
                         ? "Hiện tại không có sản phẩm nào đang khuyến mãi. Vui lòng thử lại sau hoặc xem các sản phẩm khác."
-                        : initialParams.search
-                        ? `Không có sản phẩm nào phù hợp với tìm kiếm "${initialParams.search}"`
+                        : getCurrentParams().search
+                        ? `Không có sản phẩm nào phù hợp với tìm kiếm "${getCurrentParams().search}"`
                         : "Không có sản phẩm nào phù hợp với bộ lọc hiện tại"}
                     </p>
                     <Button

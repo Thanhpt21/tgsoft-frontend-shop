@@ -1,186 +1,325 @@
-'use client';
+// src/components/layout/cart/CartPreviewDropdown.tsx
+"use client";
 
-import React, { useMemo } from 'react';
-import { ShoppingCartOutlined } from '@ant-design/icons';
-import Link from 'next/link';
-import Image from 'next/image';
-import { Button, Spin } from 'antd';
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { Button, Spin, Empty, Badge } from "antd";
+import { ShoppingCartOutlined, DeleteOutlined, LoadingOutlined } from "@ant-design/icons";
+import { useCartStore } from "@/stores/cartStore";
+import type { CartItem } from "@/types/cart.type";
 
-// Interface cho props - dùng type 'any' để tránh type mismatch
 interface CartPreviewDropdownProps {
-  items: any[];
-  isLoading: boolean;
+  items: CartItem[];
+  isLoading?: boolean;
   getImageUrl: (url?: string) => string;
   formatVND: (amount: number) => string;
-  attributeMap?: Record<number, string>;
-  attributeValueMap?: Record<number, string>;
 }
 
-// Component hiển thị preview giỏ hàng
-const CartPreviewDropdown: React.FC<CartPreviewDropdownProps> = ({ 
-  items, 
-  isLoading,
+const CartPreviewDropdown = ({
+  items,
+  isLoading = false,
   getImageUrl,
   formatVND,
-  attributeMap = {},
-  attributeValueMap = {}
-}) => {
-  // Tính tổng giá trị giỏ hàng
-  const totalPrice = useMemo(() => {
-    return items.reduce((total, item) => {
-      const promotion = item.variant?.product?.promotionProducts?.[0];
-      const basePrice = item.priceAtAdd;
-      let discountedPrice = basePrice;
+}: CartPreviewDropdownProps) => {
+  const { 
+    removeItemOptimistic: removeFromCart, 
+    updateQuantityOptimistic: updateQuantity,
+    clearSelectedItems
+  } = useCartStore();
+  
+  const [isClient, setIsClient] = useState(false);
+  const [isRemoving, setIsRemoving] = useState<number | null>(null);
+  const [isUpdating, setIsUpdating] = useState<number | null>(null);
+  const [localLoading, setLocalLoading] = useState(false);
+  const prevItemsRef = useRef<CartItem[]>([]);
+  const isFirstLoadRef = useRef(true);
 
-      if (promotion) {
-        if (promotion.discountType === 'PERCENT') {
-          discountedPrice = basePrice - (basePrice * promotion.discountValue) / 100;
-        } else if (promotion.discountType === 'FIXED') {
-          discountedPrice = basePrice - promotion.discountValue;
-        }
-      }
+  // Initialize client-side state
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-      return total + (discountedPrice * item.quantity);
-    }, 0);
-  }, [items]);
+  // Xử lý loading THÔNG MINH hơn
+  useEffect(() => {
+    if (!isClient) return;
 
-  // Render thuộc tính sản phẩm
-  const renderAttributes = (attrValues?: Record<string, any>) => {
-    if (!attrValues || Object.keys(attrValues).length === 0) return '';
+    // Nếu đang loading từ props
+    if (isLoading) {
+      setLocalLoading(true);
+      return;
+    }
+
+    // Nếu items thay đổi từ rỗng sang có dữ liệu (lần đầu load)
+    if (isFirstLoadRef.current && items.length > 0) {
+      // Hiển thị loading rất ngắn (chỉ 100ms) để tránh flash
+      setLocalLoading(true);
+      const timer = setTimeout(() => {
+        setLocalLoading(false);
+        isFirstLoadRef.current = false;
+      }, 100);
+      
+      prevItemsRef.current = items;
+      return () => clearTimeout(timer);
+    }
+
+    // Nếu items thay đổi nhưng không phải lần đầu
+    const prevLength = prevItemsRef.current.length;
+    const currentLength = items.length;
     
-    return Object.entries(attrValues)
-      .map(([attrId, valueId]) => {
-        const attrName = attributeMap[Number(attrId)] || '';
-        const valueName = attributeValueMap[Number(valueId)] || '';
-        if (!attrName || !valueName) return '';
-        return `${attrName}: ${valueName}`;
-      })
-      .filter(Boolean)
-      .join(', ');
+    if (prevLength !== currentLength && currentLength > 0) {
+      // Chỉ hiển thị loading cực ngắn khi số lượng items thay đổi
+      setLocalLoading(true);
+      const timer = setTimeout(() => {
+        setLocalLoading(false);
+      }, 50); // Chỉ 50ms để không nhìn thấy loading
+      
+      prevItemsRef.current = items;
+      return () => clearTimeout(timer);
+    }
+
+    // Nếu không có thay đổi gì đặc biệt, không hiển thị loading
+    setLocalLoading(false);
+    prevItemsRef.current = items;
+  }, [items, isLoading, isClient]);
+
+  const handleRemove = async (id: number) => {
+    setIsRemoving(id);
+    try {
+      // Không cần delay nếu muốn responsive nhanh
+      removeFromCart(id);
+    } finally {
+      // Giữ trạng thái removing trong 200ms để feedback visual
+      setTimeout(() => setIsRemoving(null), 200);
+    }
   };
 
-  // Loading state
-  if (isLoading) {
+  const handleQuantityChange = async (variantId: number, newQuantity: number) => {
+    if (newQuantity < 1) {
+      const item = items.find(item => item.productVariantId === variantId);
+      if (item) {
+        handleRemove(item.id);
+      }
+      return;
+    }
+
+    setIsUpdating(variantId);
+    try {
+      // Update ngay lập tức
+      updateQuantity(variantId, newQuantity);
+    } finally {
+      // Giữ trạng thái updating trong 150ms để feedback visual
+      setTimeout(() => setIsUpdating(null), 150);
+    }
+  };
+
+  const calculateSubtotal = () => {
+    return items.reduce((total, item) => {
+      return total + (item.finalPrice * item.quantity);
+    }, 0);
+  };
+
+  const calculateTotalItems = () => {
+    return items.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  // Helper function để lấy thông tin sản phẩm
+  const getProductInfo = (item: CartItem) => {
+    const product = item.variant?.product || {
+      name: "Sản phẩm không xác định",
+      thumb: "",
+    };
+    
+    const variantName = item.variant?.attrValues 
+      ? Object.values(item.variant.attrValues).join(", ")
+      : "";
+    
+    return {
+      name: product.name + (variantName ? ` (${variantName})` : ""),
+      thumb: product.thumb,
+      price: item.finalPrice,
+      salePrice: item.priceAtAdd,
+    };
+  };
+
+  // Render loading state - CHỈ hiển thị khi thực sự loading
+  if (!isClient || (localLoading && items.length === 0)) {
     return (
-      <div className="w-full md:w-96 bg-white md:rounded-xl md:shadow-2xl md:border border-gray-100 p-6">
-        <div className="flex justify-center items-center h-40">
-          <Spin size="large" />
+      <div className="w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShoppingCartOutlined className="text-blue-600 text-lg" />
+              <h3 className="font-bold text-gray-800">Giỏ hàng</h3>
+            </div>
+            <div className="w-6 h-6">
+              <Spin indicator={<LoadingOutlined style={{ fontSize: 16 }} spin />} />
+            </div>
+          </div>
+        </div>
+        <div className="p-6">
+          <div className="flex flex-col items-center justify-center py-8">
+            <Spin indicator={<LoadingOutlined style={{ fontSize: 32 }} spin />} />
+            <p className="text-sm text-gray-600 mt-4">Đang tải giỏ hàng...</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Empty state
-  if (!items || items.length === 0) {
+  // Empty cart - HIỂN THỊ NGAY nếu items rỗng và không loading
+  if (items.length === 0) {
     return (
-      <div className="w-full md:w-96 bg-white md:rounded-xl md:shadow-2xl md:border border-gray-100 p-6">
-        <div className="text-center py-8">
-          <ShoppingCartOutlined className="text-5xl text-gray-300 mb-4" />
-          <p className="text-gray-500 mb-4">Giỏ hàng trống</p>
-          <Link href="/san-pham">
-            <Button type="primary" className="!rounded-lg">
-              Khám phá sản phẩm
-            </Button>
-          </Link>
+      <div className="w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
+          <div className="flex items-center gap-2">
+            <ShoppingCartOutlined className="text-blue-600 text-lg" />
+            <h3 className="font-bold text-gray-800">Giỏ hàng</h3>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Hiển thị sản phẩm trong giỏ</p>
+        </div>
+
+        <div className="p-6">
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-4">
+              <ShoppingCartOutlined className="text-gray-400 text-2xl" />
+            </div>
+            <h4 className="font-semibold text-gray-700 mb-2">Giỏ hàng trống</h4>
+            <p className="text-sm text-gray-500 text-center mb-6">
+              Bạn chưa có sản phẩm nào trong giỏ hàng
+            </p>
+            <Link href="/san-pham">
+              <Button 
+                type="primary" 
+                className="!bg-gradient-to-r !from-blue-600 !to-purple-600 !border-0 hover:!from-blue-700 hover:!to-purple-700"
+                block
+              >
+                Mua sắm ngay
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Giới hạn hiển thị tối đa 5 sản phẩm
-  const displayItems = items.slice(0, 5);
-  const hasMore = items.length > 5;
-
+  // Cart with items - HIỂN THỊ NGAY với data có sẵn
   return (
-    // FIX: w-full cho mobile, md:w-[420px] cho desktop
-    // FIX: Chỉ bo góc và đổ bóng trên desktop
-    <div className="w-full md:w-[420px] bg-white md:rounded-xl md:shadow-2xl md:border border-gray-100 overflow-hidden flex flex-col">
+    <div className="w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50 flex-shrink-0">
+      <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-gray-900">
-            Giỏ hàng ({items.length})
-          </h3>
-          <ShoppingCartOutlined className="text-xl text-blue-600" />
+          <div className="flex items-center gap-2">
+            <ShoppingCartOutlined className="text-blue-600 text-lg" />
+            <h3 className="font-bold text-gray-800">Giỏ hàng</h3>
+          </div>
+          <Badge 
+            count={calculateTotalItems()} 
+            className="!bg-gradient-to-r !from-blue-600 !to-purple-600"
+            style={{ color: 'white', fontWeight: 'bold' }}
+          />
         </div>
+        <p className="text-xs text-gray-500 mt-1">{items.length} sản phẩm trong giỏ</p>
       </div>
 
-      {/* Product List */}
-      <div className="max-h-[400px] overflow-y-auto flex-1">
-        {displayItems.map((item) => {
-          const thumb = item.variant?.thumb || item.variant?.product?.thumb;
-          const promotion = item.variant?.product?.promotionProducts?.[0];
-          const basePrice = item.priceAtAdd;
-          let discountedPrice = basePrice;
-
-          if (promotion) {
-            if (promotion.discountType === 'PERCENT') {
-              discountedPrice = basePrice - (basePrice * promotion.discountValue) / 100;
-            } else if (promotion.discountType === 'FIXED') {
-              discountedPrice = basePrice - promotion.discountValue;
-            }
-          }
-
+      {/* Cart Items - Scrollable */}
+      <div className="max-h-96 overflow-y-auto">
+        {items.map((item) => {
+          const productInfo = getProductInfo(item);
+          const finalPrice = productInfo.price;
+          const isItemRemoving = isRemoving === item.id;
+          const isItemUpdating = isUpdating === item.productVariantId;
+          
           return (
             <div 
               key={item.id} 
-              className="px-5 py-4 border-b border-gray-100 hover:bg-gray-50 transition-colors group"
+              className={`p-4 border-b border-gray-100 transition-all duration-200 ${
+                isItemRemoving ? 'opacity-50 bg-gray-50' : 'hover:bg-gray-50'
+              }`}
             >
               <div className="flex gap-3">
                 {/* Product Image */}
-                <div className="flex-shrink-0">
-                  <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                <div className="relative flex-shrink-0">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
                     <Image
-                      src={getImageUrl(thumb) || '/placeholder.png'}
-                      alt={item.variant?.product?.name || 'Sản phẩm'}
-                      fill
-                      className="object-cover"
+                      src={getImageUrl(productInfo.thumb) || "/images/no-image.png"}
+                      alt={productInfo.name}
+                      width={64}
+                      height={64}
+                      className="object-cover w-full h-full transition-opacity duration-200"
+                      style={{ opacity: isItemUpdating || isItemRemoving ? 0.7 : 1 }}
                       unoptimized
                     />
+                    {(isItemUpdating || isItemRemoving) && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/50">
+                        <Spin indicator={<LoadingOutlined style={{ fontSize: 14 }} spin />} size="small" />
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                    {item.variant?.product?.name || 'Sản phẩm không xác định'}
-                  </h4>
-                  
-                  {item.variant?.attrValues && renderAttributes(item.variant.attrValues) && (
-                    <p className="text-xs text-gray-500 mb-2">
-                      {renderAttributes(item.variant.attrValues)}
-                    </p>
-                  )}
-
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      {promotion ? (
-                        <>
-                          <span className="text-sm font-bold text-blue-600">
-                            {formatVND(discountedPrice)}
-                          </span>
-                          <span className="text-xs text-gray-400 line-through">
-                            {formatVND(basePrice)}
-                          </span>
-                        </>
+                  <div className="flex justify-between items-start mb-1">
+                    <h4 className="font-medium text-gray-800 text-sm line-clamp-2">
+                      {productInfo.name}
+                    </h4>
+                    <button
+                      onClick={() => handleRemove(item.id)}
+                      disabled={isItemRemoving}
+                      className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 ml-2"
+                    >
+                      {isItemRemoving ? (
+                        <Spin indicator={<LoadingOutlined style={{ fontSize: 12 }} spin />} size="small" />
                       ) : (
-                        <span className="text-sm font-bold text-gray-900">
-                          {formatVND(basePrice)}
-                        </span>
+                        <DeleteOutlined className="text-sm" />
                       )}
-                    </div>
-                    <span className="text-xs text-gray-500 mt-1">
-                      SL: {item.quantity}
-                    </span>
+                    </button>
                   </div>
 
-                  {/* Item Total */}
-                  <div className="mt-2 pt-2 border-t border-gray-100">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">Tổng:</span>
-                      <span className="text-sm font-bold text-gray-900">
-                        {formatVND(discountedPrice * item.quantity)}
+                  {/* Price */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-bold text-blue-600">
+                      {formatVND(finalPrice)}
+                    </span>
+                    {productInfo.salePrice && productInfo.salePrice > finalPrice && (
+                      <span className="text-xs text-gray-400 line-through">
+                        {formatVND(productInfo.salePrice)}
                       </span>
+                    )}
+                  </div>
+
+                  {/* Quantity Controls */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleQuantityChange(item.productVariantId, item.quantity - 1)}
+                        disabled={isItemUpdating || isItemRemoving || item.quantity <= 1}
+                        className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {isItemUpdating ? (
+                          <Spin indicator={<LoadingOutlined style={{ fontSize: 10 }} spin />} size="small" />
+                        ) : (
+                          "–"
+                        )}
+                      </button>
+                      
+                      <div className="w-8 text-center">
+                        <span className="font-medium">{item.quantity}</span>
+                      </div>
+                      
+                      <button
+                        onClick={() => handleQuantityChange(item.productVariantId, item.quantity + 1)}
+                        disabled={isItemUpdating || isItemRemoving}
+                        className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Subtotal */}
+                    <div className="font-bold text-gray-800">
+                      {formatVND(finalPrice * item.quantity)}
                     </div>
                   </div>
                 </div>
@@ -188,44 +327,42 @@ const CartPreviewDropdown: React.FC<CartPreviewDropdownProps> = ({
             </div>
           );
         })}
-
-        {hasMore && (
-          <div className="px-5 py-3 text-center bg-gray-50">
-            <span className="text-sm text-gray-600">
-              Và {items.length - 5} sản phẩm khác...
-            </span>
-          </div>
-        )}
       </div>
 
-      {/* Footer */}
-      <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex-shrink-0">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-sm font-medium text-gray-600">Tổng cộng:</span>
-          <span className="text-xl font-bold text-blue-600">
-            {formatVND(totalPrice)}
+      {/* Cart Summary */}
+      <div className="p-4 border-t border-gray-100">
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-gray-600">Tạm tính:</span>
+          <span className="font-bold text-lg text-blue-600">
+            {formatVND(calculateSubtotal())}
           </span>
         </div>
 
-        <div className="flex gap-2">
-          <Link href="/gio-hang" className="flex-1">
+        <div className="space-y-2">
+          <Link href="/gio-hang">
             <Button 
-              size="large" 
-              className="w-full !rounded-lg"
+              type="default" 
+              className="w-full !border-gray-300 hover:!border-blue-500"
+              size="large"
             >
               Xem giỏ hàng
             </Button>
           </Link>
-          <Link href="/dat-hang" className="flex-1">
+          
+          <Link href="/thanh-toan">
             <Button 
               type="primary" 
-              size="large" 
-              className="w-full !rounded-lg"
+              className="w-full !bg-gradient-to-r !from-blue-600 !to-purple-600 !border-0 hover:!from-blue-700 hover:!to-purple-700"
+              size="large"
             >
-              Thanh toán
+              Thanh toán ngay
             </Button>
           </Link>
         </div>
+
+        <p className="text-xs text-gray-500 text-center mt-3">
+          Miễn phí vận chuyển cho đơn hàng từ 500K
+        </p>
       </div>
     </div>
   );

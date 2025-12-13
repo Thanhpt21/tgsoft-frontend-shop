@@ -111,7 +111,7 @@ export default function FashionHero() {
     {
       icon: Clock,
       title: "Giao hàng nhanh",
-      description: "Trong 2 giờ tại Hà Nội",
+      description: "Trong 2 giờ nội thành",
       color: "text-amber-600",
       bgColor: "bg-amber-50"
     }
@@ -268,22 +268,6 @@ export default function FashionHero() {
               ))}
             </div>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-wrap gap-4">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => router.push("/san-pham")}
-                className="group px-8 py-4 bg-gradient-to-r from-gray-900 to-black text-white font-semibold rounded-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-3 relative overflow-hidden"
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-rose-600/20 to-pink-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <ShoppingBag size={20} className="relative z-10" />
-                <span className="relative z-10">MUA SẮM NGAY</span>
-                <ArrowRight size={18} className="relative z-10 group-hover:translate-x-1 transition-transform" />
-              </motion.button>
-
-             
-            </div>
 
            
           </motion.div>
@@ -350,27 +334,7 @@ export default function FashionHero() {
                         ))}
                       </div>
 
-                      {/* CTA */}
-                      <div className="flex items-center justify-between">
-                        <button
-                          onClick={() => router.push("/san-pham")}
-                          className="group px-6 py-3 bg-gradient-to-r from-white to-gray-50 rounded-xl border border-gray-200 hover:border-rose-300 text-gray-900 font-medium shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-2"
-                        >
-                          {currentCollection.cta}
-                          <ArrowUpRight size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                        </button>
-                        <div className="flex items-center gap-4">
-                          <button className="p-2 hover:bg-white/50 rounded-lg transition-colors">
-                            <Eye size={18} />
-                          </button>
-                          <button className="p-2 hover:bg-white/50 rounded-lg transition-colors">
-                            <Heart size={18} />
-                          </button>
-                          <button className="p-2 hover:bg-white/50 rounded-lg transition-colors">
-                            <Share2 size={18} />
-                          </button>
-                        </div>
-                      </div>
+                     
                     </div>
 
                     {/* Decorative elements */}
@@ -384,7 +348,7 @@ export default function FashionHero() {
               </AnimatePresence>
 
               {/* Navigation dots */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+              {/* <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
                 {collections.map((_, idx) => (
                   <button
                     key={idx}
@@ -397,7 +361,7 @@ export default function FashionHero() {
                     aria-label={`Go to collection ${idx + 1}`}
                   />
                 ))}
-              </div>
+              </div> */}
 
               {/* Next/Prev buttons */}
               <button
@@ -425,30 +389,30 @@ export default function FashionHero() {
           </motion.div>
         </div>
 
-        {/* Features grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-        >
-          {features.map((feature, idx) => (
-            <motion.div
-              key={idx}
-              whileHover={{ y: -5 }}
-              className="group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300"
-            >
-              <div className={`w-14 h-14 rounded-xl ${feature.bgColor} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
-                <feature.icon className={feature.color} size={26} />
-              </div>
-              <h3 className="font-bold text-gray-900 mb-2 text-lg">{feature.title}</h3>
-              <p className="text-gray-500">{feature.description}</p>
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div className="text-xs text-gray-400">Dịch vụ đi kèm</div>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+        {/* Features grid - Mobile 2 col */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.4 }}
+        className="mt-8 md:mt-16 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
+      >
+        {features.map((feature, idx) => (
+          <motion.div
+            key={idx}
+            whileHover={{ y: -3 }}
+            className="group bg-white p-4 md:p-6 rounded-xl md:rounded-2xl border border-gray-100 shadow-sm hover:shadow-md md:hover:shadow-xl transition-all duration-300"
+          >
+            <div className={`w-10 h-10 md:w-14 md:h-14 rounded-lg md:rounded-xl ${feature.bgColor} flex items-center justify-center mb-3 md:mb-5 group-hover:scale-105 md:group-hover:scale-110 transition-transform duration-300`}>
+              <feature.icon className={feature.color} size={20} />
+            </div>
+            <h3 className="font-bold text-gray-900 mb-1 md:mb-2 text-sm md:text-lg leading-tight">{feature.title}</h3>
+            <p className="text-gray-500 text-xs md:text-sm md:text-base">{feature.description}</p>
+            <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-100">
+              <div className="text-xs text-gray-400">Dịch vụ</div>
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
 
         {/* Trending styles section */}
         <motion.div
@@ -502,13 +466,6 @@ export default function FashionHero() {
 
       </div>
 
-      {/* Decorative corner accents */}
-      <div className="absolute top-0 left-0 w-32 h-32">
-        <div className="absolute top-4 left-4 w-24 h-24 border-t-2 border-l-2 border-gray-200 rounded-tl-2xl" />
-      </div>
-      <div className="absolute bottom-0 right-0 w-32 h-32">
-        <div className="absolute bottom-4 right-4 w-24 h-24 border-b-2 border-r-2 border-gray-200 rounded-br-2xl" />
-      </div>
     </section>
   );
 }
