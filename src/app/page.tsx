@@ -3,7 +3,7 @@ import { Banner } from "@/components/layout/home"
 import {FlashDeals} from "@/components/layout/home"
 import {TopCategories} from "@/components/layout/home"
 import {ProductList} from "@/components/layout/home"
-import {TopFooter} from "@/components/layout/home"
+
 import {BrandList} from "@/components/layout/home"
 
 
@@ -15,7 +15,6 @@ export default function Page() {
       <TopCategories />
       <ProductList />
       <BrandList/>
-      <TopFooter />
     </main>
   )
 }

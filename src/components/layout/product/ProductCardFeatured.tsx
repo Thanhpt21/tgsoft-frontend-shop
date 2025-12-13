@@ -169,7 +169,7 @@ export default function ProductCardFeatured({
               
               {/* Review count - LUÔN HIỂN THỊ kể cả 0 */}
               <span className="text-gray-400 text-xs whitespace-nowrap">
-                ({ratingInfo.totalReviews} đánh giá)
+                ({ratingInfo.totalReviews})
               </span>
             </div>
 

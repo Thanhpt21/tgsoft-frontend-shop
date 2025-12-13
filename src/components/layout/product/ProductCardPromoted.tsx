@@ -186,7 +186,7 @@ export default function ProductCardPromoted({
                 <div className="text-amber-500">★</div>
               </div>
               <span className="text-gray-400 text-xs whitespace-nowrap">
-                ({p.totalReviews} đánh giá)
+                ({p.totalReviews})
               </span>
             </div>
           )}

@@ -158,7 +158,7 @@ export default function ProductCard({ product: p, index = 0 }: ProductCardProps)
               
               {/* Review count - LUÔN HIỂN THỊ kể cả 0 */}
               <span className="text-gray-400 text-xs whitespace-nowrap">
-                ({ratingInfo.totalReviews} đánh giá)
+                ({ratingInfo.totalReviews})
               </span>
             </div>
 

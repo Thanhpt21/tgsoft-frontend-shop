@@ -8,11 +8,10 @@ import {
   Tabs,
   message,
   Modal,
-  Tag,
-  Rate,
   Skeleton,
-  Tooltip,
   Badge,
+  Dropdown,
+  Breadcrumb as AntBreadcrumb,
 } from "antd";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -29,7 +28,9 @@ import {
   Share2,
   CheckCircle,
   Package,
-  Clock,
+  ArrowLeft,
+  Menu,
+  Home,
 } from "lucide-react";
 
 // Lazy load components
@@ -49,6 +50,133 @@ import { formatVND } from "@/utils/helpers";
 import ProductImageGallery from "@/components/layout/product/ProductImageGallery";
 
 const { Title, Text } = Typography;
+
+// Mobile Breadcrumb Component
+const MobileBreadcrumb = ({ 
+  categoryName, 
+  productName, 
+  categoryId 
+}: { 
+  categoryName?: string; 
+  productName: string;
+  categoryId?: number;
+}) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const items = [
+    {
+      key: 'home',
+      label: (
+        <Link href="/" className="flex items-center gap-2 py-2">
+          <Home size={16} />
+          <span>Trang chủ</span>
+        </Link>
+      ),
+    },
+    {
+      key: 'products',
+      label: (
+        <Link href="/san-pham" className="flex items-center gap-2 py-2">
+          <Package size={16} />
+          <span>Sản phẩm</span>
+        </Link>
+      ),
+    },
+    ...(categoryName && categoryId ? [{
+      key: 'category',
+      label: (
+        <Link 
+          href={`/san-pham?category=${categoryId}`}
+          className="flex items-center gap-2 py-2"
+        >
+          <span>{categoryName}</span>
+        </Link>
+      ),
+    }] : []),
+  ];
+
+  return (
+    <div className="lg:hidden flex items-center justify-between bg-white px-4 py-3 border-b">
+      {/* Back button */}
+      <button
+        onClick={() => window.history.back()}
+        className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
+      >
+        <ArrowLeft size={20} />
+        <span className="text-sm font-medium">Quay lại</span>
+      </button>
+
+      {/* Breadcrumb dropdown */}
+      <Dropdown
+        menu={{ items }}
+        trigger={['click']}
+        open={isDropdownOpen}
+        onOpenChange={setIsDropdownOpen}
+        placement="bottomRight"
+        overlayClassName="w-64"
+      >
+        <button className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors">
+          <Menu size={20} />
+          <span className="text-sm font-medium max-w-[120px] truncate">
+            {categoryName || "Danh mục"}
+          </span>
+        </button>
+      </Dropdown>
+    </div>
+  );
+};
+
+// Fix Breadcrumb items type
+type BreadcrumbItem = {
+  title: React.ReactNode;
+  href?: string;
+  onClick?: () => void;
+};
+
+// Compact Breadcrumb for desktop
+const DesktopBreadcrumb = ({ categoryName, productName, categoryId }: { 
+  categoryName?: string; 
+  productName: string;
+  categoryId?: number;
+}) => {
+  return (
+    <nav className="hidden lg:block bg-white border-b">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="flex items-center text-sm">
+          {/* Trang chủ */}
+          <Link href="/" className="text-gray-500 hover:text-blue-600 transition-colors">
+            Trang chủ
+          </Link>
+          <ChevronRight className="w-4 h-4 text-gray-400 mx-2" />
+          
+          {/* Sản phẩm */}
+          <Link href="/san-pham" className="text-gray-500 hover:text-blue-600 transition-colors">
+            Sản phẩm
+          </Link>
+          
+          {/* Danh mục (nếu có) */}
+          {categoryName && categoryId && (
+            <>
+              <ChevronRight className="w-4 h-4 text-gray-400 mx-2" />
+              <Link 
+                href={`/san-pham?category=${categoryId}`}
+                className="text-gray-500 hover:text-blue-600 transition-colors"
+              >
+                {categoryName}
+              </Link>
+            </>
+          )}
+          
+          {/* Tên sản phẩm */}
+          <ChevronRight className="w-4 h-4 text-gray-400 mx-2" />
+          <span className="text-gray-900 font-medium truncate max-w-[200px]">
+            {productName}
+          </span>
+        </div>
+      </div>
+    </nav>
+  );
+};
 
 // Loading skeleton
 const ProductDetailSkeleton = () => (
@@ -138,6 +266,71 @@ const AttributeSelection = ({
   );
 };
 
+// Mobile sticky header
+const MobileStickyHeader = ({ 
+  productName, 
+  finalPrice, 
+  onAddToCart,
+  onBuyNow,
+  isAdding,
+  hasVariant
+}: { 
+  productName: string;
+  finalPrice: number;
+  onAddToCart: () => void;
+  onBuyNow: () => void;
+  isAdding: boolean;
+  hasVariant: boolean;
+}) => {
+  const [isSticky, setIsSticky] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsSticky(window.scrollY > 100);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  if (!isSticky) return null;
+
+  return (
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-gray-900 truncate">
+            {productName}
+          </div>
+          <div className="text-lg font-bold text-red-600">
+            {formatVND(finalPrice)}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="small"
+            onClick={onAddToCart}
+            disabled={!hasVariant || isAdding}
+            loading={isAdding}
+            className="!h-10 !rounded-lg !font-medium"
+            icon={<ShoppingCart size={16} />}
+          >
+            Thêm
+          </Button>
+          <Button
+            type="primary"
+            size="small"
+            onClick={onBuyNow}
+            disabled={!hasVariant}
+            className="!h-10 !rounded-lg !font-medium"
+          >
+            Mua
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function ProductDetailPage() {
   const { slug } = useParams();
   const router = useRouter();
@@ -149,7 +342,7 @@ export default function ProductDetailPage() {
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, number>>({});
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const [mainImage, setMainImage] = useState<string | null>(null); // Thêm state cho ảnh chính
+  const [mainImage, setMainImage] = useState<string | null>(null);
 
   // Data fetching
   const { 
@@ -376,48 +569,30 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Breadcrumb */}
-      <nav className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <ol className="flex items-center space-x-2 text-sm">
-            <li>
-              <Link href="/" className="text-gray-500 hover:text-blue-600 transition-colors">
-                Trang chủ
-              </Link>
-            </li>
-            <li className="flex items-center">
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-              <Link href="/san-pham" className="ml-2 text-gray-500 hover:text-blue-600 transition-colors">
-                Sản phẩm
-              </Link>
-            </li>
-            {categoryName && (
-              <li className="flex items-center">
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-                <Link 
-                  href={`/san-pham?category=${product.categoryId}`}
-                  className="ml-2 text-gray-500 hover:text-blue-600 transition-colors"
-                >
-                  {categoryName}
-                </Link>
-              </li>
-            )}
-            <li className="flex items-center">
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-              <span className="ml-2 text-gray-900 font-medium truncate max-w-[200px]">
-                {product.name}
-              </span>
-            </li>
-          </ol>
-        </div>
-      </nav>
+      {/* Mobile Breadcrumb */}
+      <MobileBreadcrumb 
+        categoryName={categoryName}
+        productName={product.name}
+        categoryId={product.categoryId ?? undefined}
+      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Product Images */}
+      {/* Desktop Breadcrumb */}
+      <DesktopBreadcrumb 
+        categoryName={categoryName}
+        productName={product.name}
+        categoryId={product.categoryId ?? undefined}
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
+          {/* Product Images - Mobile Optimized */}
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl p-4 shadow-sm border">
-              <Suspense fallback={<Skeleton.Image active className="!w-full !h-[500px] rounded-xl" />}>
+            <div className="bg-white rounded-xl lg:rounded-2xl p-3 lg:p-4 shadow-sm border">
+              <Suspense fallback={
+                <div className="relative w-full h-[300px] lg:h-[500px] rounded-xl overflow-hidden">
+                  <Skeleton.Image active className="!w-full !h-full" />
+                </div>
+              }>
                 <ProductImageGallery
                   currentData={product}
                   productTitle={product.name}
@@ -427,64 +602,88 @@ export default function ProductDetailPage() {
               </Suspense>
             </div>
             
-            {/* Action buttons */}
-            <div className="flex items-center justify-between bg-white rounded-xl p-4 shadow-sm border">
-              <div className="flex items-center gap-3">
+            {/* Mobile quick actions */}
+            <div className="lg:hidden flex items-center justify-between bg-white rounded-xl p-3 shadow-sm border">
+              <div className="flex items-center gap-2">
                 <button 
                   onClick={() => setIsWishlisted(!isWishlisted)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  className={`p-2 rounded-lg transition-colors ${
                     isWishlisted 
                       ? "text-red-600 bg-red-50" 
                       : "text-gray-600 hover:text-red-600 hover:bg-red-50"
                   }`}
                 >
                   <Heart className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`} />
-                  <span className="text-sm font-medium">Yêu thích</span>
                 </button>
                 <button 
                   onClick={handleShare}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                  className="p-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                 >
                   <Share2 className="w-5 h-5" />
-                  <span className="text-sm font-medium">Chia sẻ</span>
                 </button>
               </div>
               {discountInfo && (
-                <Badge.Ribbon 
-                  text={discountInfo.type === "PERCENT" ? `-${discountInfo.value}%` : `-${discountInfo.value}đ`}
-                  color="red"
-                  className="text-sm font-bold"
-                />
+                <div className="px-3 py-1 bg-red-100 text-red-700 text-sm font-bold rounded-lg">
+                  {discountInfo.type === "PERCENT" ? `-${discountInfo.value}%` : `-${formatVND(discountInfo.value)}`}
+                </div>
               )}
             </div>
           </div>
 
-          {/* Product Info */}
-          <div className="space-y-6">
-            {/* Category & Brand */}
-            <div className="flex items-center gap-3">
+          {/* Product Info - Mobile Optimized */}
+          <div className="space-y-4 lg:space-y-6">
+            {/* Mobile: Product name and rating at top */}
+            <div className="lg:hidden space-y-3">
+              <Title level={2} className="!text-xl !font-bold !text-gray-900 !mb-0">
+                {product.name}
+              </Title>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star 
+                      key={i} 
+                      className={`w-4 h-4 ${
+                        i < Math.floor(avgRating) 
+                          ? "text-yellow-400 fill-current" 
+                          : "text-gray-300"
+                      }`}
+                    />
+                  ))}
+                  <span className="text-sm font-semibold text-gray-900 ml-1">
+                    {avgRating.toFixed(1)}
+                  </span>
+                </div>
+                <div className="h-3 w-px bg-gray-300" />
+                <span className="text-sm text-gray-600">
+                  {product.totalReviews} đánh giá
+                </span>
+              </div>
+            </div>
+
+            {/* Category & Brand - Mobile Compact */}
+            <div className="flex items-center gap-2 flex-wrap">
               {brandName && (
-                <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
+                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
                   {brandName}
                 </span>
               )}
               {categoryName && (
-                <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-medium rounded-full">
+                <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
                   {categoryName}
                 </span>
               )}
-              <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
+              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
                 Còn hàng
               </span>
             </div>
 
-            {/* Product Name */}
-            <Title level={1} className="!text-3xl !font-bold !text-gray-900 !mb-2">
+            {/* Desktop: Product Name */}
+            <Title level={1} className="hidden lg:block !text-3xl !font-bold !text-gray-900 !mb-2">
               {product.name}
             </Title>
 
-            {/* Rating */}
-            <div className="flex items-center gap-4">
+            {/* Desktop: Rating */}
+            <div className="hidden lg:flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="flex items-center">
                   {[...Array(5)].map((_, i) => (
@@ -504,28 +703,27 @@ export default function ProductDetailPage() {
               <span className="text-gray-600">
                 {product.totalReviews} đánh giá
               </span>
-              <div className="h-4 w-px bg-gray-300" />
             </div>
 
-            {/* Price Section */}
-            <div className="bg-gray-50 rounded-2xl p-6 space-y-2">
-              <div className="flex items-baseline gap-4">
+            {/* Price Section - Mobile Optimized */}
+            <div className="bg-gray-50 rounded-xl lg:rounded-2xl p-4 lg:p-6 space-y-2">
+              <div className="flex items-baseline gap-3 lg:gap-4">
                 {discountInfo && (
-                  <span className="text-2xl font-bold text-gray-400 line-through">
+                  <span className="text-lg lg:text-2xl font-bold text-gray-400 line-through">
                     {formatVND(originalPrice)}
                   </span>
                 )}
-                <span className="text-4xl font-bold text-red-600">
+                <span className="text-2xl lg:text-4xl font-bold text-red-600">
                   {formatVND(finalPrice)}
                 </span>
               </div>
               
               {discountInfo && (
-                <div className="flex items-center gap-3">
-                  <span className="px-3 py-1 bg-red-100 text-red-700 font-semibold rounded-lg">
+                <div className="flex items-center gap-2 lg:gap-3 flex-wrap">
+                  <span className="px-2 lg:px-3 py-1 bg-red-100 text-red-700 font-semibold rounded-lg text-sm lg:text-base">
                     Tiết kiệm {formatVND(discountInfo.saved)}
                   </span>
-                  <span className="text-gray-600 text-sm">
+                  <span className="text-gray-600 text-xs lg:text-sm">
                     {discountInfo.type === "PERCENT" 
                       ? `Giảm ${discountInfo.value}%` 
                       : `Giảm ${formatVND(discountInfo.value)}`}
@@ -534,34 +732,33 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Gift Promotion */}
+            {/* Gift Promotion - Mobile Compact */}
             {giftProduct && (
-              <div className="border border-emerald-200 bg-emerald-50 rounded-2xl p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <Gift className="w-5 h-5 text-emerald-600" />
-                  <span className="font-semibold text-emerald-800">Quà tặng đặc biệt</span>
-                  <span className="ml-auto text-sm text-emerald-700 font-medium">
-                    Khi mua sản phẩm này
+              <div className="border border-emerald-200 bg-emerald-50 rounded-xl lg:rounded-2xl p-3 lg:p-5">
+                <div className="flex items-center gap-2 lg:gap-3 mb-2 lg:mb-3">
+                  <Gift className="w-4 h-4 lg:w-5 lg:h-5 text-emerald-600" />
+                  <span className="font-semibold text-emerald-800 text-sm lg:text-base">Quà tặng</span>
+                  <span className="ml-auto text-xs lg:text-sm text-emerald-700 font-medium">
+                    Kèm theo
                   </span>
                 </div>
-                <div className="flex items-center gap-4 bg-white rounded-xl p-4">
-                  <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-emerald-200">
+                <div className="flex items-center gap-3 bg-white rounded-lg lg:rounded-xl p-3">
+                  <div className="relative w-12 h-12 lg:w-16 lg:h-16 rounded-lg overflow-hidden border border-emerald-200">
                     <img 
                       src={getImageUrl(giftProduct.thumb) || ''}
                       alt={giftProduct.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 mb-1">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 text-sm lg:text-base truncate">
                       {giftProduct.name}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge 
-                        count={`x${promo?.giftQuantity}`} 
-                        className="bg-emerald-500"
-                      />
-                      <span className="text-sm text-emerald-600 font-medium">
+                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded">
+                        x{promo?.giftQuantity}
+                      </span>
+                      <span className="text-xs lg:text-sm text-emerald-600 font-medium">
                         Miễn phí
                       </span>
                     </div>
@@ -570,23 +767,23 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            {/* Selected Attributes Display */}
+            {/* Selected Attributes Display - Mobile Compact */}
             {Object.keys(selectedAttributes).length > 0 && (
-              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <CheckCircle className="w-5 h-5 text-blue-600" />
-                  <span className="font-medium text-blue-800">Thuộc tính đã chọn</span>
+              <div className="bg-blue-50 rounded-xl p-3 lg:p-4 border border-blue-200">
+                <div className="flex items-center gap-2 mb-2 lg:mb-3">
+                  <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
+                  <span className="font-medium text-blue-800 text-sm lg:text-base">Đã chọn</span>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2 lg:space-y-3">
                   {Object.entries(selectedAttributes).map(([attrId, valueId]) => {
                     const attributeName = attributeMap[parseInt(attrId)] || `Thuộc tính ${attrId}`;
                     const valueName = getAttributeValueName(valueId);
                     
                     return (
-                      <div key={attrId} className="flex items-center justify-between bg-white rounded-lg p-3">
-                        <div>
-                          <div className="text-sm text-gray-600">{attributeName}</div>
-                          <div className="font-medium text-gray-900">{valueName}</div>
+                      <div key={attrId} className="flex items-center justify-between bg-white rounded-lg p-2 lg:p-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs lg:text-sm text-gray-600 truncate">{attributeName}</div>
+                          <div className="font-medium text-gray-900 text-sm truncate">{valueName}</div>
                         </div>
                         <button
                           onClick={() => {
@@ -594,9 +791,9 @@ export default function ProductDetailPage() {
                             delete newAttrs[attrId];
                             setSelectedAttributes(newAttrs);
                           }}
-                          className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"
+                          className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1 ml-2"
                         >
-                          <RotateCcw className="w-4 h-4" />
+                          <RotateCcw className="w-3 h-3 lg:w-4 lg:h-4" />
                           Đổi
                         </button>
                       </div>
@@ -606,9 +803,9 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            {/* Available Attributes Selection */}
+            {/* Available Attributes Selection - Mobile Optimized */}
             {availableAttributes.length > 0 && (
-              <div className="space-y-6">
+              <div className="space-y-4 lg:space-y-6">
                 {availableAttributes.map((attr: any) => {
                   // Skip if attribute already selected
                   if (selectedAttributes[attr.id.toString()]) return null;
@@ -627,29 +824,28 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            {/* Selected Variant Info */}
+            {/* Selected Variant Info - Mobile Compact */}
             {selectedVariant && (
-              <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+              <div className="bg-green-50 rounded-xl p-3 lg:p-4 border border-green-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="font-medium text-green-800">Biến thể đã chọn</span>
-                  <span className="ml-auto text-xs text-green-700 bg-green-100 px-2 py-1 rounded">
+                  <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
+                  <span className="font-medium text-green-800 text-sm lg:text-base">Biến thể đã chọn</span>
+                  <span className="ml-auto text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded">
                     Còn hàng
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="space-y-1">
-                    <div className="text-gray-600">Mã SKU</div>
-                    <div className="font-medium">{selectedVariant.sku}</div>
+                    <div className="text-gray-600 text-xs">Mã SKU</div>
+                    <div className="font-medium text-sm truncate">{selectedVariant.sku}</div>
                   </div>
-                 
                 </div>
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="space-y-4 pt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Action Buttons - Mobile Optimized */}
+            <div className="lg:space-y-4 pt-4">
+              <div className="hidden lg:grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button
                   type="primary"
                   size="large"
@@ -672,63 +868,114 @@ export default function ProductDetailPage() {
                 </Button>
               </div>
               
+              {/* Mobile action buttons (will be hidden by sticky header when scrolling) */}
+              <div className="lg:hidden grid grid-cols-2 gap-3">
+                <Button
+                  type="primary"
+                  onClick={handleAddToCart}
+                  disabled={!selectedVariant || isAdding}
+                  loading={isAdding}
+                  icon={<ShoppingCart size={18} />}
+                  className="!h-12 !rounded-lg !font-medium"
+                >
+                  Thêm vào giỏ
+                </Button>
+                <Button
+                  onClick={handleBuyNow}
+                  disabled={!selectedVariant}
+                  className="!h-12 !rounded-lg !font-medium !bg-gradient-to-r !from-orange-500 !to-red-500 !text-white !border-0"
+                >
+                  Mua ngay
+                </Button>
+              </div>
+              
               {!selectedVariant && Object.keys(selectedAttributes).length > 0 && (
-                <div className="text-center py-3">
-                  <Text type="warning" className="!text-sm">
+                <div className="text-center py-2 lg:py-3">
+                  <Text type="warning" className="!text-xs lg:!text-sm">
                     ⚠️ Biến thể này hiện không có sẵn
                   </Text>
                 </div>
               )}
             </div>
 
-            {/* Service Features */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t">
-              <div className="text-center p-3">
-                <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg mb-2">
-                  <Truck className="w-5 h-5 text-blue-600" />
+            {/* Service Features - Mobile Compact */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4 pt-4 lg:pt-6 border-t">
+              <div className="text-center p-2 lg:p-3">
+                <div className="inline-flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 bg-blue-100 rounded-lg mb-1 lg:mb-2">
+                  <Truck className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
                 </div>
-                <div className="text-xs text-gray-600">Miễn phí vận chuyển</div>
+                <div className="text-xs font-medium text-gray-900">Giao hàng</div>
+                <div className="text-xs text-gray-600">Miễn phí</div>
               </div>
-              <div className="text-center p-3">
-                <div className="inline-flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg mb-2">
-                  <RotateCcw className="w-5 h-5 text-green-600" />
+              <div className="text-center p-2 lg:p-3">
+                <div className="inline-flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 bg-green-100 rounded-lg mb-1 lg:mb-2">
+                  <RotateCcw className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
                 </div>
-                <div className="text-xs text-gray-600">Đổi trả 7 ngày</div>
+                <div className="text-xs font-medium text-gray-900">Đổi trả</div>
+                <div className="text-xs text-gray-600">7 ngày</div>
               </div>
-              <div className="text-center p-3">
-                <div className="inline-flex items-center justify-center w-10 h-10 bg-purple-100 rounded-lg mb-2">
-                  <Shield className="w-5 h-5 text-purple-600" />
+              <div className="text-center p-2 lg:p-3">
+                <div className="inline-flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 bg-purple-100 rounded-lg mb-1 lg:mb-2">
+                  <Shield className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
                 </div>
-                <div className="text-xs text-gray-600">Bảo hành chính hãng</div>
+                <div className="text-xs font-medium text-gray-900">Bảo hành</div>
+                <div className="text-xs text-gray-600">Chính hãng</div>
               </div>
-              <div className="text-center p-3">
-                <div className="inline-flex items-center justify-center w-10 h-10 bg-orange-100 rounded-lg mb-2">
-                  <Package className="w-5 h-5 text-orange-600" />
+              <div className="text-center p-2 lg:p-3">
+                <div className="inline-flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 bg-orange-100 rounded-lg mb-1 lg:mb-2">
+                  <Package className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" />
                 </div>
-                <div className="text-xs text-gray-600">Giao hàng nhanh</div>
+                <div className="text-xs font-medium text-gray-900">Giao nhanh</div>
+                <div className="text-xs text-gray-600">2-3 ngày</div>
               </div>
+            </div>
+
+            {/* Desktop wishlist and share */}
+            <div className="hidden lg:flex items-center gap-3 pt-6">
+              <button 
+                onClick={() => setIsWishlisted(!isWishlisted)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  isWishlisted 
+                    ? "text-red-600 bg-red-50" 
+                    : "text-gray-600 hover:text-red-600 hover:bg-red-50"
+                }`}
+              >
+                <Heart className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`} />
+                <span className="text-sm font-medium">Yêu thích</span>
+              </button>
+              <button 
+                onClick={handleShare}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              >
+                <Share2 className="w-5 h-5" />
+                <span className="text-sm font-medium">Chia sẻ</span>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Product Description */}
-        <div className="mt-12 bg-white rounded-2xl shadow-sm border overflow-hidden">
+        {/* Product Description - Mobile Tab View */}
+        <div className="mt-6 lg:mt-12 bg-white rounded-xl lg:rounded-2xl shadow-sm border overflow-hidden">
           <Tabs
             defaultActiveKey="description"
-            size="large"
-            className="px-6 pt-4"
+            size="small"
+            className="px-4 lg:px-6 pt-3 lg:pt-4"
             items={[
               {
                 key: "description",
-                label: "Mô tả sản phẩm",
+                label: (
+                  <span className="text-sm lg:text-base font-medium">
+                    Mô tả sản phẩm
+                  </span>
+                ),
                 children: (
-                  <div className="py-6">
+                  <div className="py-4 lg:py-6">
                     <div
                       dangerouslySetInnerHTML={{
                         __html: product.description || 
-                          '<div class="text-gray-500 text-center py-8">Chưa có mô tả chi tiết cho sản phẩm này.</div>',
+                          '<div class="text-gray-500 text-center py-6 lg:py-8">Chưa có mô tả chi tiết cho sản phẩm này.</div>',
                       }}
-                      className="prose max-w-none text-gray-700"
+                      className="prose max-w-none text-gray-700 text-sm lg:text-base"
                     />
                   </div>
                 ),
@@ -738,12 +985,26 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Rating Section */}
-        <div className="mt-8">
-          <Suspense fallback={<Skeleton active paragraph={{ rows: 3 }} />}>
+        <div className="mt-6 lg:mt-8">
+          <Suspense fallback={
+            <div className="bg-white rounded-xl p-4">
+              <Skeleton active paragraph={{ rows: 2 }} />
+            </div>
+          }>
             {productId && <RatingComponent productId={productId} />}
           </Suspense>
         </div>
       </div>
+
+      {/* Mobile Sticky Header */}
+      <MobileStickyHeader
+        productName={product.name}
+        finalPrice={finalPrice}
+        onAddToCart={handleAddToCart}
+        onBuyNow={handleBuyNow}
+        isAdding={isAdding}
+        hasVariant={!!selectedVariant}
+      />
 
       {/* Login Modal */}
       <Modal

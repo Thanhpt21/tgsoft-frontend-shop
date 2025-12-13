@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useCallback, useMemo, Suspense } from "rea
 import { usePromotedProducts } from "@/hooks/product/usePromotedProducts";
 import { Product } from "@/types/product.type";
 import { ChevronLeft, ChevronRight, Zap, Loader2 } from "lucide-react";
-import ProductCardPromoted from "../product/ProductCardPromoted";
 import Link from "next/link";
 import dynamic from 'next/dynamic';
 

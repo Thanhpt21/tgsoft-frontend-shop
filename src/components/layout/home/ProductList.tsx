@@ -372,15 +372,7 @@ export default function ProductList() {
           />
         )}
 
-        {/* Product count and auto-play indicator */}
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-gray-500">
-            Hiển thị <span className="font-semibold text-blue-600">{filteredProducts.length}</span> sản phẩm nổi bật
-            {totalSlides > 1 && ` • Slide ${currentSlide + 1}/${totalSlides}`}
-          </div>
-
-         
-        </div>
+      
       </div>
 
       {/* Global styles */}

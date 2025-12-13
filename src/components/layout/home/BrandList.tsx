@@ -78,19 +78,9 @@ const BrandCard = ({ brand, index }: { brand: Brand; index: number }) => {
               <h3 className="font-bold text-gray-900 text-lg mb-1 line-clamp-1 group-hover:text-blue-700 transition-colors duration-300">
                 {brand.name}
               </h3>
-              
-              {brand.description && (
-                <p className="text-gray-500 text-sm line-clamp-2 group-hover:text-gray-700 transition-colors duration-300">
-                  {brand.description}
-                </p>
-              )}
+            
 
-              {brand.productCount && (
-                <div className="mt-3 inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full text-xs font-medium text-gray-600">
-                  <span className="text-blue-600 font-bold">{brand.productCount}</span>
-                  <span>sản phẩm</span>
-                </div>
-              )}
+        
             </div>
           </div>
 
@@ -231,12 +221,7 @@ function BrandList() {
           )}
         </div>
 
-        {/* Hướng dẫn kéo */}
-        {!isLoading && brands && brands.length > 6 && (
-          <div className="text-center mt-6 text-sm text-gray-500">
-            ← Kéo ngang để xem thêm thương hiệu →
-          </div>
-        )}
+       
       </div>
     </section>
   );

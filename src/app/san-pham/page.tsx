@@ -11,9 +11,7 @@ import {
   Pagination,
   Tag,
   Checkbox,
-  Tooltip,
   Spin,
-  Image,
 } from "antd";
 import React, {
   useEffect,
@@ -28,15 +26,13 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
   Search,
-  Loader2,
-  X,
-  RefreshCw,
   ChevronDown,
-  ChevronUp,
   TrendingUp,
   Filter,
   Package,
   Tag as TagIcon,
+  Home,
+  ChevronRight,
 } from "lucide-react";
 
 // ✅ Import trực tiếp, không dùng lazy loading để tránh giật khi scroll
@@ -121,6 +117,152 @@ const FilterItem = ({
   );
 };
 
+// ✅ Custom Breadcrumb Component cho mobile và desktop
+const ProductBreadcrumb = ({ 
+  searchTerm,
+  selectedCategory,
+  selectedBrand,
+  showFeatured,
+  showPromoted,
+  currentPage,
+  totalPages 
+}: { 
+  searchTerm?: string | null;
+  selectedCategory?: Category | null;
+  selectedBrand?: Brand | null;
+  showFeatured: boolean;
+  showPromoted: boolean;
+  currentPage: number;
+  totalPages: number;
+}) => {
+  // Mobile Breadcrumb (compact)
+  const MobileBreadcrumb = () => (
+    <div className="lg:hidden flex items-center justify-between bg-white px-4 py-3 border-b mb-4">
+      {/* Back button */}
+      <button
+        onClick={() => window.history.back()}
+        className="flex items-center gap-1 text-gray-700 hover:text-blue-600 transition-colors"
+      >
+        <ChevronRight className="w-4 h-4 rotate-180" />
+        <span className="text-sm font-medium">Quay lại</span>
+      </button>
+
+      {/* Current page info */}
+      <div className="text-xs text-gray-500">
+        {currentPage > 1 && `Trang ${currentPage}`}
+      </div>
+    </div>
+  );
+
+  // Desktop Breadcrumb (full)
+  const DesktopBreadcrumb = () => (
+    <nav className="hidden lg:block bg-white border-b">
+      <div className="max-w-[1400px] mx-auto px-4 py-3">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          {/* Home */}
+          <Link
+            href="/"
+            className="flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+          >
+            <Home size={14} />
+            <span>Trang chủ</span>
+          </Link>
+          
+          <ChevronRight className="w-3 h-3 text-gray-400" />
+          
+          {/* Sản phẩm */}
+          <Link
+            href="/san-pham"
+            className="text-gray-500 hover:text-blue-600 transition-colors"
+          >
+            Sản phẩm
+          </Link>
+          
+          {/* Category (nếu có) */}
+          {selectedCategory && (
+            <>
+              <ChevronRight className="w-3 h-3 text-gray-400" />
+              <Link
+                href={`/san-pham?categoryId=${selectedCategory.id}`}
+                className="text-gray-500 hover:text-blue-600 transition-colors truncate max-w-[150px]"
+              >
+                {selectedCategory.name}
+              </Link>
+            </>
+          )}
+          
+          {/* Brand (nếu có) */}
+          {selectedBrand && (
+            <>
+              <ChevronRight className="w-3 h-3 text-gray-400" />
+              <span className="text-gray-500 truncate max-w-[120px]">
+                {selectedBrand.name}
+              </span>
+            </>
+          )}
+          
+          {/* Search term (nếu có) */}
+          {searchTerm && (
+            <>
+              <ChevronRight className="w-3 h-3 text-gray-400" />
+              <span className="text-gray-700 font-medium truncate max-w-[180px]">
+                "{searchTerm}"
+              </span>
+            </>
+          )}
+          
+          {/* Featured (nếu có) */}
+          {showFeatured && (
+            <>
+              <ChevronRight className="w-3 h-3 text-gray-400" />
+              <span className="text-yellow-600 font-medium">
+                Nổi bật
+              </span>
+            </>
+          )}
+          
+          {/* Promoted (nếu có) */}
+          {showPromoted && (
+            <>
+              <ChevronRight className="w-3 h-3 text-gray-400" />
+              <span className="text-red-600 font-medium">
+                Khuyến mãi
+              </span>
+            </>
+          )}
+          
+          {/* Current page (nếu > 1) */}
+          {currentPage > 1 && totalPages > 1 && (
+            <>
+              <ChevronRight className="w-3 h-3 text-gray-400" />
+              <span className="text-gray-900 font-medium">
+                Trang {currentPage}
+              </span>
+            </>
+          )}
+          
+          {/* Default: Tất cả sản phẩm */}
+          {!searchTerm && !selectedCategory && !selectedBrand && !showFeatured && !showPromoted && currentPage === 1 && (
+            <>
+              <ChevronRight className="w-3 h-3 text-gray-400" />
+              <span className="text-gray-900 font-medium">
+                Tất cả sản phẩm
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+
+  return (
+    <>
+      <MobileBreadcrumb />
+      <DesktopBreadcrumb />
+    </>
+  );
+};
+
 // ✅ Simple Skeleton Component cho loading state
 const ProductCardSkeleton = () => (
   <div className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-100 shadow-sm">
@@ -141,25 +283,22 @@ const ProductCardSkeleton = () => (
   </div>
 );
 
-// ✅ Main Component với tối ưu Intersection Observer
+// ✅ Main Component - CHỈ DÙNG PAGINATION, KHÔNG DÙNG INFINITE SCROLL
 export default function ProductsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // State management
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // State management - LOẠI BỎ INFINITE SCROLL STATES
   const [showLightLoading, setShowLightLoading] = useState(false);
   const [isGridRefreshing, setIsGridRefreshing] = useState(false);
   const [loadingFilterId, setLoadingFilterId] = useState<number | null>(null);
   const [loadingFilterType, setLoadingFilterType] = useState<'category' | 'brand' | null>(null);
   const [pendingPromoted, setPendingPromoted] = useState(false);
-  
-  const loaderRef = useRef<HTMLDivElement>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
+
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const filterLoadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Parse URL params
+  // Parse URL params - THÊM PAGE PARAM
   const initialParams = useMemo(() => ({
     search: searchParams.get("search") || "",
     categoryId: searchParams.get("categoryId")
@@ -170,6 +309,7 @@ export default function ProductsPage() {
       : null,
     hasPromotion: searchParams.get("hasPromotion") === "true",
     isFeatured: searchParams.get("isFeatured") === "true",
+    page: searchParams.get("page") ? Number(searchParams.get("page")) : 1, // ✅ THÊM PAGE TỪ URL
   }), [searchParams]);
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
@@ -184,7 +324,7 @@ export default function ProductsPage() {
   const [showFeatured, setShowFeatured] = useState<boolean>(initialParams.isFeatured);
   const [showPromoted, setShowPromoted] = useState<boolean>(initialParams.hasPromotion);
   
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(initialParams.page); // ✅ LẤY PAGE TỪ URL
   const PRODUCTS_PER_PAGE = 12;
 
   // State cho dropdown
@@ -195,13 +335,14 @@ export default function ProductsPage() {
   // Debounce search
   const debouncedSearch = useDebounce(initialParams.search, 300);
 
-  // ✅ FIX: Tạo một hàm để build URL params đầy đủ
+  // ✅ FIX: Hàm để build URL params đầy đủ - THÊM PAGE
   const buildUrlParams = useCallback((options: {
     categoryId?: number | null;
     brandId?: number | null;
     search?: string;
     hasPromotion?: boolean;
     isFeatured?: boolean;
+    page?: number; // ✅ THÊM PAGE
   } = {}) => {
     const params = new URLSearchParams();
     
@@ -210,15 +351,17 @@ export default function ProductsPage() {
     const search = options.search !== undefined ? options.search : initialParams.search;
     const promoted = options.hasPromotion !== undefined ? options.hasPromotion : showPromoted;
     const featured = options.isFeatured !== undefined ? options.isFeatured : showFeatured;
+    const page = options.page !== undefined ? options.page : currentPage; // ✅ THÊM PAGE
     
     if (catId !== null) params.set("categoryId", catId.toString());
     if (brId !== null) params.set("brandId", brId.toString());
     if (search) params.set("search", search);
     if (promoted) params.set("hasPromotion", "true");
     if (featured) params.set("isFeatured", "true");
+    if (page > 1) params.set("page", page.toString()); // ✅ CHỈ THÊM PAGE KHI > 1
     
     return params.toString();
-  }, [selectedCategoryId, selectedBrandId, initialParams.search, showPromoted, showFeatured]);
+  }, [selectedCategoryId, selectedBrandId, initialParams.search, showPromoted, showFeatured, currentPage]);
 
   // ✅ QUAN TRỌNG: Fetch products với đầy đủ params
   const {
@@ -246,7 +389,6 @@ export default function ProductsPage() {
     return () => {
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
       if (filterLoadingTimeoutRef.current) clearTimeout(filterLoadingTimeoutRef.current);
-      if (observerRef.current) observerRef.current.disconnect();
     };
   }, []);
 
@@ -282,22 +424,23 @@ export default function ProductsPage() {
 
   const visibleBrands = useMemo(() => allBrands.slice(0, 15), [allBrands]);
 
-  // ✅ QUAN TRỌNG: Cập nhật URL khi checkbox thay đổi
+  // ✅ QUAN TRỌNG: Cập nhật URL khi checkbox thay đổi - RESET VỀ PAGE 1
   const handlePromotedChange = useCallback((checked: boolean) => {
     setShowLightLoading(true);
     setPendingPromoted(true);
     
-    // Cập nhật state
+    // Cập nhật state và reset về page 1
     setShowPromoted(checked);
     setCurrentPage(1);
     
-    // Build URL với giá trị mới
+    // Build URL với giá trị mới và page = 1
     const params = new URLSearchParams();
     if (selectedCategoryId !== null) params.set("categoryId", selectedCategoryId.toString());
     if (selectedBrandId !== null) params.set("brandId", selectedBrandId.toString());
     if (initialParams.search) params.set("search", initialParams.search);
     if (showFeatured) params.set("isFeatured", "true");
     if (checked) params.set("hasPromotion", "true");
+    // Không thêm page vì đang là page 1
     
     router.replace(`/san-pham?${params.toString()}`, { scroll: false });
     
@@ -328,7 +471,7 @@ export default function ProductsPage() {
     }, 300);
   }, [selectedCategoryId, selectedBrandId, initialParams.search, showPromoted, router]);
 
-  // Optimized filter click handlers
+  // Optimized filter click handlers - RESET VỀ PAGE 1
   const handleCategoryClick = useCallback((categoryId: number | null) => {
     if (categoryId === selectedCategoryId && categoryId !== null) return;
     
@@ -339,7 +482,7 @@ export default function ProductsPage() {
     setShowLightLoading(true);
     
     setSelectedCategoryId(newCategoryId);
-    setCurrentPage(1);
+    setCurrentPage(1); // ✅ RESET VỀ PAGE 1
     
     const params = new URLSearchParams();
     if (newCategoryId !== null) params.set("categoryId", newCategoryId.toString());
@@ -367,7 +510,7 @@ export default function ProductsPage() {
     setShowLightLoading(true);
     
     setSelectedBrandId(newBrandId);
-    setCurrentPage(1);
+    setCurrentPage(1); // ✅ RESET VỀ PAGE 1
     
     const params = new URLSearchParams();
     if (selectedCategoryId !== null) params.set("categoryId", selectedCategoryId.toString());
@@ -385,50 +528,8 @@ export default function ProductsPage() {
     }, 300);
   }, [selectedBrandId, selectedCategoryId, initialParams.search, showPromoted, showFeatured, router]);
 
-  // Optimized Intersection Observer với requestIdleCallback
-  useEffect(() => {
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
-
-    if (!loaderRef.current || currentPage >= totalPages || isProductsLoading) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (entry.isIntersecting && !isLoadingMore && !isProductsLoading) {
-          if ('requestIdleCallback' in window) {
-            window.requestIdleCallback(() => {
-              setIsLoadingMore(true);
-              requestAnimationFrame(() => {
-                setCurrentPage(prev => prev + 1);
-                setIsLoadingMore(false);
-              });
-            });
-          } else {
-            setIsLoadingMore(true);
-            requestAnimationFrame(() => {
-              setCurrentPage(prev => prev + 1);
-              setIsLoadingMore(false);
-            });
-          }
-        }
-      },
-      { 
-        threshold: 0.1,
-        rootMargin: '500px 0px'
-      }
-    );
-
-    observerRef.current = observer;
-    observer.observe(loaderRef.current);
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [currentPage, totalPages, isLoadingMore, isProductsLoading]);
+  // ✅ XÓA HOÀN TOÀN INFINITE SCROLL LOGIC
+  // KHÔNG CÒN USEEFFECT VỚI INTERSECTION OBSERVER
 
   const resetFilters = useCallback(() => {
     setShowLightLoading(true);
@@ -448,18 +549,32 @@ export default function ProductsPage() {
 
   const handleSortChange = useCallback((value: string) => {
     setSortBy(value);
-    setCurrentPage(1);
+    setCurrentPage(1); // ✅ RESET VỀ PAGE 1 KHI SORT
   }, []);
 
+  // ✅ FIX: Hàm xử lý phân trang - CẬP NHẬT URL
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
+    
+    // Build URL với page mới
+    const params = new URLSearchParams();
+    if (selectedCategoryId !== null) params.set("categoryId", selectedCategoryId.toString());
+    if (selectedBrandId !== null) params.set("brandId", selectedBrandId.toString());
+    if (initialParams.search) params.set("search", initialParams.search);
+    if (showPromoted) params.set("hasPromotion", "true");
+    if (showFeatured) params.set("isFeatured", "true");
+    if (page > 1) params.set("page", page.toString()); // ✅ CHỈ THÊM PAGE KHI > 1
+    
+    router.replace(`/san-pham?${params.toString()}`, { scroll: false });
+    
+    // Scroll lên đầu trang
     requestAnimationFrame(() => {
       window.scrollTo({
         top: 0,
         behavior: 'smooth'
       });
     });
-  }, []);
+  }, [selectedCategoryId, selectedBrandId, initialParams.search, showPromoted, showFeatured, router]);
 
   const sortOptions = useMemo(
     () => [
@@ -467,8 +582,6 @@ export default function ProductsPage() {
       { value: "createdAt_asc", label: "Cũ nhất" },
       { value: "price_asc", label: "Giá: Thấp → Cao" },
       { value: "price_desc", label: "Giá: Cao → Thấp" },
-      { value: "popularity_desc", label: "Phổ biến nhất" },
-      { value: "rating_desc", label: "Đánh giá cao nhất" },
     ],
     []
   );
@@ -487,16 +600,18 @@ export default function ProductsPage() {
   if (isProductsLoading && currentPage === 1) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white w-full">
-        <div className="max-w-[1400px] mx-auto px-4 py-8">
-          {/* Breadcrumb skeleton */}
-          <div className="mb-8">
+        {/* Skeleton Breadcrumb */}
+        <div className="hidden lg:block bg-white border-b">
+          <div className="max-w-[1400px] mx-auto px-4 py-3">
             <div className="flex items-center gap-2">
               <div className="h-4 w-24 bg-gradient-to-r from-gray-200 to-gray-300 rounded animate-pulse"></div>
               <div className="h-4 w-4 text-gray-400">›</div>
               <div className="h-4 w-32 bg-gradient-to-r from-gray-200 to-gray-300 rounded animate-pulse"></div>
             </div>
           </div>
+        </div>
 
+        <div className="max-w-[1400px] mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Filters skeleton */}
             <div className="hidden lg:block lg:col-span-3">
@@ -540,7 +655,6 @@ export default function ProductsPage() {
             size="large"
             onClick={() => window.location.reload()}
             className="!bg-gradient-to-r !from-blue-600 !to-blue-700 !border-0 hover:!from-blue-700 hover:!to-blue-800"
-            icon={<RefreshCw size={16} />}
           >
             Thử lại
           </Button>
@@ -560,31 +674,22 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="max-w-[1400px] mx-auto px-4 py-8">
-        {/* Breadcrumb */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-sm">
-            <Link
-              href="/"
-              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
-            >
-              Trang chủ
-            </Link>
-            <span className="text-gray-400">›</span>
-            <span className="text-gray-600 font-medium">
-              {initialParams.search
-                ? `Tìm kiếm: "${initialParams.search}"`
-                : selectedCategory
-                ? selectedCategory.name
-                : "Tất cả sản phẩm"}
-            </span>
-          </div>
-        </div>
+      {/* ✅ CUSTOM BREADCRUMB */}
+      <ProductBreadcrumb
+        searchTerm={initialParams.search || undefined}
+        selectedCategory={selectedCategory || undefined}
+        selectedBrand={selectedBrand || undefined}
+        showFeatured={showFeatured}
+        showPromoted={showPromoted}
+        currentPage={currentPage}
+        totalPages={totalPages}
+      />
 
+      {/* Main Content */}
+      <div className="max-w-[1400px] mx-auto px-4 py-4 lg:py-8">
         {/* Active Filters Bar */}
-        {(selectedCategoryId || selectedBrandId || showFeatured || showPromoted || initialParams.search) && (
-          <div className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
+        {(selectedCategoryId || selectedBrandId || showFeatured || showPromoted || initialParams.search || currentPage > 1) && (
+          <div className="mb-6 lg:mb-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2 font-medium text-blue-700">
                 <Filter size={16} />
@@ -600,6 +705,7 @@ export default function ProductsPage() {
                     if (selectedBrandId) params.set("brandId", selectedBrandId.toString());
                     if (showPromoted) params.set("hasPromotion", "true");
                     if (showFeatured) params.set("isFeatured", "true");
+                    if (currentPage > 1) params.set("page", currentPage.toString());
                     router.replace(params.toString() ? `/san-pham?${params.toString()}` : "/san-pham", { scroll: false });
                   }}
                   className="!px-3 !py-1.5 !rounded-full !bg-white !text-blue-700 !border-blue-300 shadow-sm"
@@ -647,12 +753,21 @@ export default function ProductsPage() {
                   Khuyến mãi
                 </Tag>
               )}
+
+              {currentPage > 1 && (
+                <Tag
+                  closable
+                  onClose={() => handlePageChange(1)}
+                  className="!px-3 !py-1.5 !rounded-full !bg-gradient-to-r !from-green-50 !to-emerald-50 !text-emerald-700 !border-emerald-300 shadow-sm"
+                >
+                  Trang {currentPage}
+                </Tag>
+              )}
               
               <Button
                 type="link"
                 size="small"
                 onClick={resetFilters}
-                icon={<X size={12} />}
                 className="!text-gray-500 hover:!text-red-600 ml-auto"
               >
                 Xóa tất cả
@@ -883,13 +998,21 @@ export default function ProductsPage() {
                     ) : (
                       "Tất cả sản phẩm"
                     )}
+                    {currentPage > 1 && (
+                      <span className="text-lg text-gray-500 ml-2">
+                        (Trang {currentPage})
+                      </span>
+                    )}
                   </h1>
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <span className="flex items-center gap-1">
                       <TrendingUp size={14} />
                       {totalProducts} sản phẩm
                     </span>
-                  
+                    <span className="text-gray-400">•</span>
+                    <span>
+                      Trang {currentPage} / {totalPages}
+                    </span>
                     {showFeatured && (
                       <span className="flex items-center gap-1 text-yellow-600">
                         <span className="text-yellow-500">●</span>
@@ -1005,20 +1128,7 @@ export default function ProductsPage() {
                     })}
                   </div>
 
-                  {/* Infinite Scroll Loader */}
-                  {currentPage < totalPages && (
-                    <div 
-                      ref={loaderRef} 
-                      className="mt-8 flex justify-center"
-                    >
-                      <div className="flex items-center justify-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-200 shadow-sm">
-                        <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
-                        <span className="text-sm font-medium text-blue-700">
-                          Đang tải thêm sản phẩm...
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                  {/* ✅ XÓA INFINITE SCROLL LOADER */}
                 </div>
               </div>
             ) : (
@@ -1053,7 +1163,7 @@ export default function ProductsPage() {
               </div>
             )}
 
-            {/* Pagination */}
+            {/* Pagination - CHỈ HIỆN KHI CÓ NHIỀU TRANG */}
             {totalPages > 1 && (
               <div className="flex justify-center mt-8">
                 <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">

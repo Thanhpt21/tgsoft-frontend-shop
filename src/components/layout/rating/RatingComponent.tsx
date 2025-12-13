@@ -350,14 +350,7 @@ export default function RatingComponent({ productId }: RatingComponentProps) {
                     </div>
                   )}
 
-                  <div className="flex items-center gap-4 text-gray-500 text-sm">
-                    <button className="flex items-center gap-1 hover:text-blue-600 transition-colors">
-                      👍 Hữu ích (0)
-                    </button>
-                    <button className="flex items-center gap-1 hover:text-blue-600 transition-colors">
-                      💬 Phản hồi
-                    </button>
-                  </div>
+                 
                 </div>
               ))
             )}
