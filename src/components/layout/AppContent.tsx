@@ -16,8 +16,8 @@ interface AppContentProps {
 export default function AppContent({ children }: AppContentProps) {
   const pathname = usePathname();
   const isAdminPage = pathname.startsWith('/admin');
+  const isHomePage = pathname === '/';
   const { data: configData, isLoading, isError } = useConfigByTenant();
-
 
   if (isLoading) {
     return (
@@ -37,8 +37,11 @@ export default function AppContent({ children }: AppContentProps) {
       <div className="flex flex-col min-h-screen">
         {!isAdminPage && <Header config={configData} />}
         
-        <main className="flex justify-center flex-grow">
-          {children}
+        <main className="flex-grow">
+          {/* Container cố định width cho tất cả các trang trừ admin và trang chủ */}
+          <div className={isAdminPage || isHomePage ? 'w-full' : 'max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 w-full'}>
+            {children}
+          </div>
         </main>
 
         {!isAdminPage && <Footer config={configData} />}

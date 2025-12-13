@@ -3,307 +3,419 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  EyeOutlined,
-  CalendarOutlined,
-  HomeOutlined,
-} from "@ant-design/icons";
+import { Suspense } from "react";
 
 import { useBlogBySlug } from "@/hooks/blog/useBlogBySlug";
 import { useAllBlogs } from "@/hooks/blog/useAllBlogs";
 import { Blog } from "@/types/blog.type";
 import { getImageUrl } from "@/utils/getImageUrl";
 
-export default function BlogDetailPage() {
-  const params = useParams();
-  const slug = params.slug as string;
+// Icons as components
+const HomeIcon = () => (
+  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+  </svg>
+);
 
-  const { data: blog, isLoading, isError } = useBlogBySlug({ slug });
-  const { data: allBlogs, isLoading: isLoadingAllBlogs } = useAllBlogs();
+const CalendarIcon = () => (
+  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+    <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+  </svg>
+);
 
-  const displayedBlog = blog?.isPublished ? blog : null;
+const EyeIcon = () => (
+  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+    <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+  </svg>
+);
 
-  const relatedBlogs = allBlogs
-    ?.filter((b: Blog) => b.slug !== slug && b.isPublished)
-    .slice(0, 3);
-
-  // ✅ Loading state - hiển thị breadcrumb + spinner
-  if (isLoading || isLoadingAllBlogs) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col">
-        {/* Breadcrumb */}
-        <div className="max-w-[1400px] mx-auto w-full px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8">
-          <nav className="flex items-center gap-2 text-sm">
-            <Link
-              href="/"
-              className="flex items-center gap-1 text-gray-600 hover:text-blue-600 transition-colors"
-            >
-              <HomeOutlined />
-              <span>Trang chủ</span>
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              href="/tin-tuc"
-              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
-            >
-              Tin tức
-            </Link>
-          </nav>
+// Loading component
+function BlogLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Breadcrumb Skeleton */}
+        <div className="mb-8">
+          <div className="h-4 w-48 bg-gray-200 rounded animate-pulse" />
         </div>
 
-        {/* Spinner Loading */}
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-gray-300 mb-4"></div>
-            <p className="text-lg text-gray-600 font-medium">Đang tải bài viết...</p>
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Left Content Skeleton */}
+          <div className="flex-1">
+            {/* Title Skeleton */}
+            <div className="h-8 w-3/4 bg-gray-200 rounded mb-6 animate-pulse" />
+            
+            {/* Meta Info Skeleton */}
+            <div className="flex gap-4 mb-8">
+              <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+            </div>
+
+            {/* Featured Image Skeleton */}
+            <div className="w-full h-64 sm:h-80 bg-gray-200 rounded-xl mb-8 animate-pulse" />
+
+            {/* Content Skeleton */}
+            <div className="space-y-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="space-y-3">
+                  <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-5/6 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-4/6 bg-gray-200 rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Sidebar Skeleton */}
+          <div className="lg:w-96">
+            <div className="sticky top-8">
+              <div className="h-6 w-48 bg-gray-200 rounded mb-6 animate-pulse" />
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex gap-4">
+                    <div className="w-20 h-16 bg-gray-200 rounded-lg animate-pulse" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+                      <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Helper component cho Image
+const OptimizedImage = ({ 
+  src, 
+  alt, 
+  className = "", 
+  fill = false,
+  sizes,
+  priority = false 
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  fill?: boolean;
+  sizes?: string;
+  priority?: boolean;
+}) => {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill={fill}
+      className={className}
+      sizes={sizes}
+      priority={priority}
+      unoptimized
+      onError={(e) => {
+        const target = e.target as HTMLImageElement;
+        target.src = "/images/no-image.png";
+      }}
+    />
+  );
+};
+
+// Related Blogs component
+function RelatedBlogs({ currentSlug }: { currentSlug: string }) {
+  const { data: allBlogs, isLoading } = useAllBlogs();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex gap-4">
+            <div className="w-20 h-16 bg-gray-200 rounded-lg animate-pulse" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+              <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
 
-  if (isError || !displayedBlog) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        {/* Breadcrumb */}
-        <div className="max-w-[1400px] mx-auto w-full px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8 border-b border-gray-200">
-          <nav className="flex items-center gap-2 text-sm">
-            <Link
-              href="/"
-              className="flex items-center gap-1 text-gray-600 hover:text-blue-600 transition-colors"
-            >
-              <HomeOutlined />
-              <span>Trang chủ</span>
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              href="/tin-tuc"
-              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
-            >
-              Tin tức
-            </Link>
-          </nav>
-        </div>
+  const relatedBlogs = allBlogs
+    ?.filter((b: Blog) => b.slug !== currentSlug && b.isPublished)
+    .slice(0, 3) || [];
 
-        {/* Error Message */}
-        <div className="flex-1 flex justify-center items-center">
-          <div className="text-center bg-white rounded-2xl shadow-xl p-12 max-w-md">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg
-                className="w-10 h-10 text-red-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
+  if (relatedBlogs.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500 text-sm">Chưa có bài viết liên quan</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {relatedBlogs.map((blog: Blog) => (
+        <Link 
+          key={blog.id} 
+          href={`/tin-tuc/${blog.slug}`}
+          prefetch={false}
+          className="group block"
+        >
+          <div className="flex gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+            <div className="relative w-20 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+              <OptimizedImage
+                alt={blog.title}
+                src={getImageUrl(blog.thumb ?? "") || "/images/no-image.png"}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                sizes="80px"
+              />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">
-              Không tìm thấy bài viết
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Bài viết này không tồn tại hoặc chưa được công bố.
-            </p>
-            <Link href="/tin-tuc">
-              <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all duration-300">
-                Quay lại tin tức
-              </button>
-            </Link>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-medium text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                {blog.title}
+              </h3>
+              <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                <CalendarIcon />
+                <span>
+                  {new Date(blog.createdAt).toLocaleDateString("vi-VN", {
+                    day: "2-digit",
+                    month: "short",
+                  })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                <EyeIcon />
+                <span>{blog.numberViews?.toLocaleString() || 0} lượt xem</span>
+              </div>
+            </div>
           </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+// Main component
+export default function BlogDetailPage() {
+  const params = useParams();
+  const slug = params.slug as string;
+
+  return (
+    <Suspense fallback={<BlogLoading />}>
+      <BlogContent slug={slug} />
+    </Suspense>
+  );
+}
+
+// Blog Content component
+function BlogContent({ slug }: { slug: string }) {
+  const { data: blog, isLoading, isError } = useBlogBySlug({ slug });
+
+  if (isLoading) {
+    return <BlogLoading />;
+  }
+
+  if (isError || !blog?.isPublished) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-3">
+            Không tìm thấy bài viết
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Bài viết này không tồn tại hoặc chưa được công bố.
+          </p>
+          <Link href="/tin-tuc">
+            <button className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200">
+              Quay lại tin tức
+            </button>
+          </Link>
         </div>
       </div>
     );
   }
 
   // Parse content
-  let content = [];
-  try {
-    if (typeof displayedBlog.content === "string") {
-      content = JSON.parse(displayedBlog.content);
-    } else if (Array.isArray(displayedBlog.content)) {
-      content = displayedBlog.content;
+  const content = (() => {
+    try {
+      if (typeof blog.content === "string") {
+        return JSON.parse(blog.content);
+      } else if (Array.isArray(blog.content)) {
+        return blog.content;
+      }
+    } catch (error) {
+      console.error("Lỗi khi parse nội dung:", error);
     }
-  } catch (error) {
-    console.error("Lỗi khi parse nội dung:", error);
-  }
+    return [];
+  })();
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-[1400px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8 md:py-12">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
-        <nav className="mb-6 sm:mb-8 flex items-center gap-2 text-sm">
-          <Link
-            href="/"
-            className="flex items-center gap-1 text-gray-600 hover:text-blue-600 transition-colors"
-          >
-            <HomeOutlined />
-            <span>Trang chủ</span>
-          </Link>
-          <span className="text-gray-400">/</span>
-          <Link
-            href="/tin-tuc"
-            className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
-          >
-            Tin tức
-          </Link>
+        <nav className="mb-8">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Link
+              href="/"
+              className="flex items-center gap-2 hover:text-blue-600 transition-colors"
+            >
+              <HomeIcon />
+              <span>Trang chủ</span>
+            </Link>
+            <span className="text-gray-400">/</span>
+            <Link
+              href="/tin-tuc"
+              className="hover:text-blue-600 transition-colors"
+            >
+              Tin tức
+            </Link>
+            <span className="text-gray-400">/</span>
+            <span className="text-blue-600 font-medium truncate">
+              {blog.title}
+            </span>
+          </div>
         </nav>
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Main Content */}
-          <article className="flex-1 lg:w-2/3">
-            {/* Featured Image - Outside card */}
-            {displayedBlog.thumb && (
-              <div className="relative w-full mb-6 flex items-center justify-center">
-                <Image
-                  src={
-                    getImageUrl(displayedBlog.thumb) || "/images/no-image.png"
-                  }
-                  alt={displayedBlog.title}
-                  width={1200}
-                  height={600}
-                  className="w-full h-auto"
-                  unoptimized
+          <article className="flex-1 lg:max-w-3xl">
+            {/* Article Header */}
+            <div className="mb-8">
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6 leading-tight">
+                {blog.title}
+              </h1>
+
+              {/* Meta Info */}
+              <div className="flex items-center gap-6 mb-6 text-gray-600">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon />
+                  <span className="text-sm">
+                    {new Date(blog.createdAt).toLocaleDateString("vi-VN", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <EyeIcon />
+                  <span className="text-sm">
+                    {blog.numberViews?.toLocaleString() || 0} lượt xem
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Featured Image */}
+            {blog.thumb && (
+              <div className="relative w-full aspect-video mb-8 rounded-xl overflow-hidden">
+                <OptimizedImage
+                  src={getImageUrl(blog.thumb) || "/images/no-image.png"}
+                  alt={blog.title}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 800px"
                   priority
                 />
               </div>
             )}
 
-            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg overflow-hidden border border-gray-100">
-              <div className="p-4 sm:p-6 md:p-8 lg:p-12">
-                {/* Title */}
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 mb-4 sm:mb-6 leading-tight">
-                  {displayedBlog.title}
-                </h1>
-
-                {/* Meta Info */}
-                <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-6 sm:mb-8 pb-6 sm:pb-8 border-b border-gray-200">
-                  {/* Date */}
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <CalendarOutlined className="text-blue-600" />
-                    <span className="text-xs sm:text-sm font-medium">
-                      {new Date(displayedBlog.createdAt).toLocaleDateString(
-                        "vi-VN",
-                        {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                        }
-                      )}
-                    </span>
-                  </div>
-
-                  {/* Views */}
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <EyeOutlined className="text-blue-600" />
-                    <span className="text-xs sm:text-sm font-medium">
-                      {displayedBlog.numberViews?.toLocaleString()} lượt xem
-                    </span>
-                  </div>
-                </div>
-
-                {/* Description */}
-                {displayedBlog.description && (
-                  <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border-l-4 border-blue-600">
-                    <p className="text-sm sm:text-base md:text-lg text-gray-700 leading-relaxed italic">
-                      {displayedBlog.description}
-                    </p>
-                  </div>
-                )}
-
-                {/* Content */}
-                <div className="blog-content prose prose-lg max-w-none">
-                  {content.length > 0 ? (
-                    content.map((item: any, index: number) => (
-                      <div key={index} className="mb-8 sm:mb-10">
-                        {item.title && (
-                          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4 text-gray-900 border-l-4 border-blue-600 pl-3 sm:pl-4">
-                            {item.title}
-                          </h2>
-                        )}
-                        {item.body && (
-                          <div
-                            className="text-gray-700 leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: item.body }}
-                          />
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-12 bg-gray-50 rounded-2xl">
-                      <p className="text-gray-500 text-lg">
-                        Nội dung bài viết đang được cập nhật.
-                      </p>
-                    </div>
-                  )}
+            {/* Description */}
+            {blog.description && (
+              <div className="mb-8">
+                <div className="relative pl-4">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-full"></div>
+                  <p className="text-lg text-gray-700 leading-relaxed italic">
+                    {blog.description}
+                  </p>
                 </div>
               </div>
+            )}
+
+            {/* Content */}
+            <div className="blog-content">
+              {content.length > 0 ? (
+                <div className="space-y-8">
+                  {content.map((item: any, index: number) => (
+                    <section key={index} className="scroll-mt-8">
+                      {item.title && (
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                          {item.title}
+                        </h2>
+                      )}
+                      {item.body && (
+                        <div
+                          className="text-gray-700 leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: item.body }}
+                        />
+                      )}
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Nội dung đang được cập nhật</h3>
+                  <p className="text-gray-600">Chúng tôi đang hoàn thiện bài viết này.</p>
+                </div>
+              )}
             </div>
           </article>
 
           {/* Sidebar - Related Blogs */}
-          <aside className="lg:w-1/3">
-            <div className="sticky top-8 space-y-6">
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <span className="w-1 h-8 bg-gradient-to-b from-blue-600 to-indigo-600 rounded-full"></span>
+          <aside className="lg:w-96">
+            <div className="sticky top-8">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-gray-900">
                   Bài viết liên quan
                 </h2>
+                <div className="w-12 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mt-2"></div>
+              </div>
+              
+              <Suspense fallback={
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex gap-4">
+                      <div className="w-20 h-16 bg-gray-200 rounded-lg animate-pulse" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+                        <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              }>
+                <RelatedBlogs currentSlug={slug} />
+              </Suspense>
 
-                {relatedBlogs && relatedBlogs.length > 0 ? (
-                  <div className="space-y-4">
-                    {relatedBlogs.map((rb: Blog) => (
-                      <Link key={rb.id} href={`/tin-tuc/${rb.slug}`}>
-                        <div className="group flex gap-4 p-3 bg-gray-50 rounded-xl hover:bg-blue-50 hover:shadow-md transition-all duration-300 cursor-pointer border border-transparent hover:border-blue-200">
-                          <div className="relative w-20 sm:w-24 h-16 sm:h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200">
-                            <Image
-                              alt={rb.title}
-                              src={
-                                getImageUrl(rb.thumb ?? "") ||
-                                "/images/no-image.png"
-                              }
-                              fill
-                              className="object-cover group-hover:scale-110 transition-transform duration-300"
-                              unoptimized
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-xs sm:text-sm font-bold text-gray-900 line-clamp-2 mb-2 group-hover:text-blue-600 transition-colors">
-                              {rb.title}
-                            </h3>
-                            <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <EyeOutlined />
-                                <span>{rb.numberViews}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <CalendarOutlined />
-                                <span>
-                                  {new Date(rb.createdAt).toLocaleDateString(
-                                    "vi-VN",
-                                    {
-                                      day: "2-digit",
-                                      month: "2-digit",
-                                      year: "numeric",
-                                    }
-                                  )}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>Không có bài viết liên quan</p>
-                  </div>
-                )}
+              {/* Newsletter CTA */}
+              <div className="mt-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                <h3 className="font-semibold text-gray-900 mb-2">Nhận tin mới nhất</h3>
+                <p className="text-sm text-gray-600 mb-4">Đăng ký để không bỏ lỡ bài viết mới</p>
+                <div className="space-y-3">
+                  <input
+                    type="email"
+                    placeholder="Email của bạn"
+                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button className="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    Đăng ký ngay
+                  </button>
+                </div>
               </div>
             </div>
           </aside>
@@ -312,19 +424,15 @@ export default function BlogDetailPage() {
 
       <style jsx global>{`
         .blog-content {
-          font-size: 15px;
+          font-size: 16px;
           line-height: 1.8;
-        }
-
-        @media (min-width: 640px) {
-          .blog-content {
-            font-size: 16px;
-          }
+          color: #374151;
         }
 
         @media (min-width: 768px) {
           .blog-content {
             font-size: 17px;
+            line-height: 1.9;
           }
         }
 
@@ -333,49 +441,61 @@ export default function BlogDetailPage() {
         .blog-content h3,
         .blog-content h4 {
           font-weight: 700;
-          margin-top: 1.5rem;
-          margin-bottom: 0.75rem;
           color: #111827;
+          margin-top: 2rem;
+          margin-bottom: 1rem;
         }
 
-        @media (min-width: 640px) {
-          .blog-content h1,
-          .blog-content h2,
-          .blog-content h3,
-          .blog-content h4 {
-            margin-top: 2rem;
-            margin-bottom: 1rem;
+        .blog-content h2 {
+          font-size: 1.75rem;
+          position: relative;
+          padding-left: 1rem;
+        }
+
+        .blog-content h2::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0.25rem;
+          bottom: 0.25rem;
+          width: 3px;
+          background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+          border-radius: 2px;
+        }
+
+        @media (min-width: 768px) {
+          .blog-content h2 {
+            font-size: 2rem;
           }
         }
 
         .blog-content p {
-          margin-bottom: 1.25rem;
-        }
-
-        @media (min-width: 640px) {
-          .blog-content p {
-            margin-bottom: 1.5rem;
-          }
+          margin-bottom: 1.5rem;
+          text-align: justify;
         }
 
         .blog-content img {
           border-radius: 0.75rem;
-          margin: 1.5rem 0;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+          margin: 1.5rem auto;
+          max-width: 100%;
+          height: auto;
+          display: block;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
-        @media (min-width: 640px) {
+        @media (min-width: 768px) {
           .blog-content img {
-            border-radius: 1rem;
-            margin: 2rem 0;
+            margin: 2rem auto;
+            max-width: 90%;
           }
         }
 
         .blog-content a {
           color: #2563eb;
           text-decoration: none;
-          border-bottom: 2px solid #93c5fd;
+          border-bottom: 1px solid transparent;
           transition: all 0.2s;
+          padding-bottom: 1px;
         }
 
         .blog-content a:hover {
@@ -385,59 +505,56 @@ export default function BlogDetailPage() {
 
         .blog-content ul,
         .blog-content ol {
-          margin: 1.25rem 0;
+          margin: 1.5rem 0;
           padding-left: 1.5rem;
-        }
-
-        @media (min-width: 640px) {
-          .blog-content ul,
-          .blog-content ol {
-            margin: 1.5rem 0;
-            padding-left: 2rem;
-          }
         }
 
         .blog-content li {
           margin-bottom: 0.5rem;
+          position: relative;
         }
 
-        @media (min-width: 640px) {
-          .blog-content li {
-            margin-bottom: 0.75rem;
-          }
+        .blog-content ul li::before {
+          content: '•';
+          color: #3b82f6;
+          font-weight: bold;
+          display: inline-block;
+          width: 1em;
+          margin-left: -1em;
+        }
+
+        .blog-content ol {
+          counter-reset: list-counter;
+        }
+
+        .blog-content ol li {
+          counter-increment: list-counter;
+        }
+
+        .blog-content ol li::before {
+          content: counter(list-counter) '.';
+          color: #3b82f6;
+          font-weight: 600;
+          position: absolute;
+          left: -1.5em;
         }
 
         .blog-content blockquote {
-          border-left: 4px solid #2563eb;
-          padding-left: 1rem;
-          margin: 1.5rem 0;
+          margin: 2rem 0;
+          padding-left: 1.5rem;
+          border-left: 3px solid #e5e7eb;
           font-style: italic;
-          color: #4b5563;
-          background: #f3f4f6;
-          padding: 1rem;
-          border-radius: 0.5rem;
-        }
-
-        @media (min-width: 640px) {
-          .blog-content blockquote {
-            padding-left: 1.5rem;
-            margin: 2rem 0;
-            padding: 1.5rem;
-          }
+          color: #6b7280;
+          background: transparent;
         }
 
         .blog-content code {
           background: #f3f4f6;
           padding: 0.2rem 0.4rem;
           border-radius: 0.375rem;
-          font-size: 0.9em;
-          color: #be123c;
-        }
-
-        @media (min-width: 640px) {
-          .blog-content code {
-            padding: 0.25rem 0.5rem;
-          }
+          font-size: 0.875em;
+          color: #dc2626;
+          font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', monospace;
         }
 
         .blog-content pre {
@@ -446,15 +563,9 @@ export default function BlogDetailPage() {
           padding: 1rem;
           border-radius: 0.5rem;
           overflow-x: auto;
-          margin: 1.5rem 0;
-        }
-
-        @media (min-width: 640px) {
-          .blog-content pre {
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            margin: 2rem 0;
-          }
+          margin: 2rem 0;
+          font-size: 0.875em;
+          line-height: 1.5;
         }
 
         .blog-content pre code {
@@ -466,32 +577,56 @@ export default function BlogDetailPage() {
         .blog-content table {
           width: 100%;
           border-collapse: collapse;
-          margin: 1.5rem 0;
-        }
-
-        @media (min-width: 640px) {
-          .blog-content table {
-            margin: 2rem 0;
-          }
+          margin: 2rem 0;
+          font-size: 0.875em;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          border-radius: 0.5rem;
+          overflow: hidden;
         }
 
         .blog-content th,
         .blog-content td {
           border: 1px solid #e5e7eb;
-          padding: 0.5rem;
+          padding: 0.75rem;
           text-align: left;
         }
 
-        @media (min-width: 640px) {
-          .blog-content th,
-          .blog-content td {
-            padding: 0.75rem;
-          }
+        .blog-content th {
+          background: #f9fafb;
+          font-weight: 600;
+          color: #111827;
         }
 
-        .blog-content th {
-          background: #f3f4f6;
+        .blog-content tr:nth-child(even) {
+          background: #f9fafb;
+        }
+
+        .blog-content strong {
           font-weight: 600;
+          color: #111827;
+        }
+
+        .blog-content em {
+          font-style: italic;
+          color: #4b5563;
+        }
+
+        /* Typography improvements */
+        .blog-content {
+          font-feature-settings: "kern", "liga", "clig", "calt";
+          text-rendering: optimizeLegibility;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Selection color */
+        .blog-content ::selection {
+          background-color: rgba(59, 130, 246, 0.2);
+        }
+
+        /* Smooth scrolling for anchor links */
+        html {
+          scroll-behavior: smooth;
         }
       `}</style>
     </div>

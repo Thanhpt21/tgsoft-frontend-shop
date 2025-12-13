@@ -51,28 +51,6 @@ const Footer = ({ config }: FooterProps) => {
     },
   ].filter((link) => link.url);
 
-  const features = [
-    {
-      icon: <ShoppingOutlined />,
-      title: "Miễn phí vận chuyển",
-      desc: "Đơn hàng từ 500K",
-    },
-    {
-      icon: <SafetyOutlined />,
-      title: "Thanh toán an toàn",
-      desc: "Bảo mật 100%",
-    },
-    {
-      icon: <HeartOutlined />,
-      title: "Hỗ trợ 24/7",
-      desc: "Tư vấn nhiệt tình",
-    },
-    {
-      icon: <StarOutlined />,
-      title: "Đổi trả dễ dàng",
-      desc: "Trong vòng 7 ngày",
-    },
-  ];
 
   return (
     <footer className="relative overflow-hidden bg-white">
@@ -83,26 +61,6 @@ const Footer = ({ config }: FooterProps) => {
         style={{ animationDelay: "1s" }}
       ></div>
 
-      {/* Features Bar */}
-      <div className="relative border-b border-gray-300/20 backdrop-blur-sm bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <div key={index} className="flex items-center gap-4 group">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <span className="text-white text-2xl">{feature.icon}</span>
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-gray-800 font-bold text-sm mb-0.5">
-                    {feature.title}
-                  </h4>
-                  <p className="text-gray-600 text-xs">{feature.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
         {/* Main Footer Content */}
