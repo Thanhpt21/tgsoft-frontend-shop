@@ -845,58 +845,87 @@ export default function ProductDetailPage() {
 
             {/* Action Buttons - Mobile Optimized */}
             <div className="lg:space-y-4 pt-4">
-              <div className="hidden lg:grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Button
-                  type="primary"
-                  size="large"
-                  onClick={handleAddToCart}
-                  disabled={!selectedVariant || isAdding}
-                  loading={isAdding}
-                  icon={<ShoppingCart className="w-5 h-5" />}
-                  className="!h-14 !rounded-xl !font-semibold !text-base !bg-gradient-to-r !from-blue-600 !to-blue-700 hover:!from-blue-700 hover:!to-blue-800 !border-0 shadow-lg hover:shadow-xl transition-all"
-                >
-                  {isAdding ? "Đang thêm..." : "Thêm vào giỏ"}
-                </Button>
-                <Button
-                  size="large"
-                  onClick={handleBuyNow}
-                  disabled={!selectedVariant}
-                  icon={<Zap className="w-5 h-5" />}
-                  className="!h-14 !rounded-xl !font-semibold !text-base !bg-gradient-to-r !from-orange-500 !to-red-500 hover:!from-orange-600 hover:!to-red-600 !text-white !border-0 shadow-lg hover:shadow-xl transition-all"
-                >
-                  Mua ngay
-                </Button>
-              </div>
-              
-              {/* Mobile action buttons (will be hidden by sticky header when scrolling) */}
-              <div className="lg:hidden grid grid-cols-2 gap-3">
-                <Button
-                  type="primary"
-                  onClick={handleAddToCart}
-                  disabled={!selectedVariant || isAdding}
-                  loading={isAdding}
-                  icon={<ShoppingCart size={18} />}
-                  className="!h-12 !rounded-lg !font-medium"
-                >
-                  Thêm vào giỏ
-                </Button>
-                <Button
-                  onClick={handleBuyNow}
-                  disabled={!selectedVariant}
-                  className="!h-12 !rounded-lg !font-medium !bg-gradient-to-r !from-orange-500 !to-red-500 !text-white !border-0"
-                >
-                  Mua ngay
-                </Button>
-              </div>
-              
-              {!selectedVariant && Object.keys(selectedAttributes).length > 0 && (
-                <div className="text-center py-2 lg:py-3">
-                  <Text type="warning" className="!text-xs lg:!text-sm">
-                    ⚠️ Biến thể này hiện không có sẵn
-                  </Text>
-                </div>
-              )}
-            </div>
+  {/* Desktop buttons */}
+  <div className="hidden lg:grid grid-cols-1 sm:grid-cols-2 gap-4">
+    {/* Thêm vào giỏ - Desktop */}
+    <Button
+      type="primary"
+      size="large"
+      onClick={handleAddToCart}
+      disabled={!selectedVariant || isAdding}
+      loading={isAdding}
+      className="!h-14 !rounded-xl !font-semibold !text-base !bg-gradient-to-r !from-blue-600 !to-blue-700 hover:!from-blue-700 hover:!to-blue-800 !border-0 shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+    >
+      {isAdding ? (
+        <>
+          <span className="flex items-center justify-center">
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+          </span>
+          Đang thêm...
+        </>
+      ) : (
+        <>
+          Thêm vào giỏ
+        </>
+      )}
+    </Button>
+    
+    {/* Mua ngay - Desktop */}
+    <Button
+      size="large"
+      onClick={handleBuyNow}
+      disabled={!selectedVariant}
+      className="!h-14 !rounded-xl !font-semibold !text-base !bg-gradient-to-r !from-orange-500 !to-red-500 hover:!from-orange-600 hover:!to-red-600 !text-white !border-0 shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+    >
+      Mua ngay
+    </Button>
+  </div>
+  
+  {/* Mobile buttons */}
+  <div className="lg:hidden grid grid-cols-2 gap-3">
+    {/* Thêm vào giỏ - Mobile */}
+    <Button
+      type="primary"
+      onClick={handleAddToCart}
+      disabled={!selectedVariant || isAdding}
+      loading={isAdding}
+      className="!h-12 !rounded-lg !font-medium flex items-center justify-center gap-2"
+    >
+      {isAdding ? (
+        <>
+          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm">Đang thêm...</span>
+        </>
+      ) : (
+        <>
+          <span className="text-sm">Thêm vào giỏ</span>
+        </>
+      )}
+    </Button>
+    
+    {/* Mua ngay - Mobile */}
+    <Button
+      onClick={handleBuyNow}
+      disabled={!selectedVariant}
+      className="!h-12 !rounded-lg !font-medium !bg-gradient-to-r !from-orange-500 !to-red-500 !text-white !border-0 flex items-center justify-center gap-2"
+    >
+      <Zap size={18} />
+      <span className="text-sm">Mua ngay</span>
+    </Button>
+  </div>
+  
+  {/* Warning message */}
+  {!selectedVariant && Object.keys(selectedAttributes).length > 0 && (
+    <div className="text-center py-2 lg:py-3">
+      <div className="inline-flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <span className="text-yellow-600 text-lg">⚠️</span>
+        <span className="text-yellow-700 text-xs lg:text-sm font-medium">
+          Biến thể này hiện không có sẵn
+        </span>
+      </div>
+    </div>
+  )}
+</div>
 
             {/* Service Features - Mobile Compact */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4 pt-4 lg:pt-6 border-t">
