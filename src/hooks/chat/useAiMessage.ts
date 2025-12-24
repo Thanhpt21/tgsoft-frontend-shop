@@ -1,9 +1,6 @@
-import { useCallback, useState, useMemo } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useCallback, useState } from 'react';
 import { Product } from '@/types/product.type';
 import { ChatMessage } from '@/components/layout/ChatBox';
-import { useTenantAdminShop } from '../user/useTenantAdminShop';
-import { useUpdateTenantAdminShopTokens } from '../user/useUpdateTenantAdminShopTokens';
 
 interface UseAiMessageProps {
   conversationId: number | null;
@@ -30,244 +27,130 @@ export const useAiMessage = ({
   setMessages,
   setIsTyping,
 }: UseAiMessageProps) => {
-  const AI_URL = process.env.NEXT_PUBLIC_AI_URL!;
+  const AIBAN_API_URL = 'https://api.aiban.vn/api/v1';
+  const BOT_ID = 5;
   const [isAiProcessing, setIsAiProcessing] = useState(false);
-  const tenantId = Number(process.env.NEXT_PUBLIC_TENANT_ID || 1);
-
-  // ✅ Lấy thông tin admin shop
-  const { data: adminShop, isLoading: isLoadingAdminShop } = useTenantAdminShop(tenantId);
-
-  // ✅ Hook update tokens
-  const updateTokensMutation = useUpdateTenantAdminShopTokens();
+  const [chatHistory, setChatHistory] = useState<any[]>([]);
 
   /**
-   * 🔗 Trích xuất slug từ URL
+   * 📜 Lấy lịch sử chat từ API aiban.vn
    */
-  const getProductSlugFromUrl = useCallback((): string | null => {
-    if (typeof window === 'undefined') return null;
-    
-    const pathname = window.location.pathname;
-    const match = pathname.match(/san-pham\/([a-z0-9\-]+)/i);
-    
-    if (match && match[1]) {
-      console.log('🔗 Slug từ URL:', match[1]);
-      return match[1];
+  const fetchChatHistory = useCallback(async () => {
+    try {
+      const response = await fetch(`${AIBAN_API_URL}/chat/history?bot_id=${BOT_ID}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Lỗi lấy lịch sử: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.data && Array.isArray(data.data)) {
+        setChatHistory(data.data);
+        return data.data;
+      }
+
+      return [];
+    } catch (error) {
+      return [];
     }
-    
-    return null;
   }, []);
 
   /**
-   * 🔍 Tìm sản phẩm theo slug
+   * 🔄 Chuyển đổi lịch sử từ API sang ChatMessage format
    */
-  const getProductBySlug = useCallback((slug: string): Product | null => {
-    if (!slug) return null;
-    
-    const slugKeyword = slug.split('-').pop() || slug;
-    const products = findProductsByKeyword(slugKeyword);
-    
-    if (products.length > 0) {
-      console.log('🔗 Product từ slug:', products[0]);
-      return products[0];
-    }
-    
-    return null;
-  }, [findProductsByKeyword]);
+  const convertHistoryToChatMessages = useCallback((history: any[]): ChatMessage[] => {
+    const messages: ChatMessage[] = [];
+
+    history.forEach((item) => {
+      if (item.user_message) {
+        messages.push({
+          id: `user-${item.id}`,
+          senderType: 'GUEST',
+          message: item.user_message,
+          conversationId: conversationId || undefined,
+          sessionId: item.session_id,
+          createdAt: item.created_at,
+          status: 'sent'
+        });
+      }
+
+      if (item.ai_response) {
+        messages.push({
+          id: `ai-${item.id}`,
+          senderType: 'BOT',
+          message: item.ai_response,
+          conversationId: conversationId || undefined,
+          sessionId: item.session_id,
+          createdAt: item.created_at,
+          status: 'sent'
+        });
+      }
+    });
+
+    return messages.sort((a, b) => 
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }, [conversationId]);
 
   /**
-   * 🆕 Tạo conversation history đơn giản
+   * 🤖 Gọi API AI của aiban.vn
    */
-  const buildConversationHistory = useCallback((messages: ChatMessage[]): string => {
-    // Lấy tối đa 5 tin nhắn gần nhất (đơn giản hóa)
-    const recentMessages = messages.slice(-5);
+  const callAibanApi = useCallback(async (userMessage: string) => {
+    const token = process.env.NEXT_PUBLIC_AI_PUBLIC_TOKEN;
     
-    if (recentMessages.length === 0) {
-      return '';
+    if (!token) {
+      throw new Error('Token API không được cấu hình');
     }
 
-    // Format đơn giản
-    return recentMessages
-      .map(msg => {
-        const role = msg.senderType === 'BOT' || msg.senderType === 'AI' ? 'Bot' : 'Khách';
-        return `${role}: ${msg.message}`;
-      })
-      .join('\n');
-  }, []);
-
-  // ========================================
-  // ✅ TOKEN MANAGEMENT
-  // ========================================
-
-  /**
-   * Kiểm tra token AI
-   */
-  const checkAiTokensAvailable = useCallback(() => {
-    if (!adminShop) {
-      return { available: false, tokens: 0, message: 'Đang tải thông tin token...' };
-    }
-
-    const availableTokens = adminShop.tokenAI || 0;
-    
-    if (availableTokens <= 0) {
-      return { 
-        available: false, 
-        tokens: availableTokens, 
-        message: 'Chat Bot đã hết token AI. Vui lòng đợi quản trị viên nạp thêm.' 
-      };
-    }
-
-    return { 
-      available: true, 
-      tokens: availableTokens, 
-      message: `Còn ${availableTokens} token AI` 
+    const requestBody = {
+      bot_id: BOT_ID,
+      message: userMessage
     };
-  }, [adminShop]);
-
-  /**
-   * Cập nhật token
-   */
-  const updateAiTokens = useCallback(async (tokensUsed: number) => {
-    if (!adminShop || !tokensUsed || tokensUsed <= 0) return;
 
     try {
-      await updateTokensMutation.mutateAsync({
-        tokensUsed,
-        tenantId
+      const response = await fetch(`${AIBAN_API_URL}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
       });
-    } catch (error) {
-      console.error('❌ Lỗi cập nhật token:', error);
-      throw new Error('Không thể cập nhật token AI');
-    }
-  }, [adminShop, tenantId, updateTokensMutation]);
 
-  // ========================================
-  // 🤖 AI API CALL - ĐƠN GIẢN HÓA
-  // ========================================
-
-  /**
-   * Gọi API AI với metadata đơn giản
-   */
-  const callAiApi = useCallback(async (msg: string, currentMessages?: ChatMessage[]) => {
-    const token = process.env.NEXT_PUBLIC_AI_PUBLIC_TOKEN;
-    if (!token) throw new Error('Không có token AI');
-
-    const AI_ENDPOINT = `${AI_URL}/chat`;
-    
-    // Lấy slug từ URL (nếu có)
-    const productSlug = getProductSlugFromUrl();
-    
-    // Tạo metadata đơn giản - backend sẽ tự phân tích
-    const metadata: any = {
-      timestamp: new Date().toISOString()
-    };
-
-    // Thêm slug nếu có
-    if (productSlug && productSlug !== 'none') {
-      metadata.slug = productSlug;
-    }
-
-    // Thêm conversation history nếu có
-    if (currentMessages && currentMessages.length > 0) {
-      const conversationHistory = buildConversationHistory(currentMessages);
-      if (conversationHistory) {
-        metadata.conversationHistory = conversationHistory;
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Lỗi API ${response.status}: ${errorText}`);
       }
+
+      const data = await response.json();
+
+      if (!data.response) {
+        return 'Xin lỗi, tôi không thể trả lời ngay lúc này.';
+      }
+
+      return data.response;
+
+    } catch (error: any) {
+      throw error;
     }
-
-    // Thêm ownerEmail từ admin shop
-    if (adminShop?.ownerEmail) {
-      metadata.ownerEmail = adminShop.ownerEmail;
-    }
-
-    console.log('📤 Gửi đến backend:', {
-      prompt: msg,
-      metadata: metadata
-    });
-
-    // Gửi request đơn giản
-    const res = await fetch(AI_ENDPOINT, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json', 
-        'Authorization': `Bearer ${token}` 
-      },
-      body: JSON.stringify({ 
-        prompt: msg,
-        metadata: metadata
-      }),
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error('❌ Lỗi AI API:', res.status, errorText);
-      throw new Error(`Lỗi AI: ${res.status} ${res.statusText}`);
-    }
-
-    const data = await res.json();
-    
-    console.log('📥 Nhận từ backend:', {
-      cached: data.cached,
-      source: data.response?.source,
-      hasProducts: data.response?.metadata?.hasProducts,
-      tokensUsed: data.usage?.total_tokens
-    });
-
-    const aiResponse = data.response?.text || data.text || 'Xin lỗi, tôi không thể trả lời ngay lúc này.';
-
-    // Xử lý token usage
-    const isCachedResponse = data.cached === true;
-    const actualTokensUsed = data.usage?.total_tokens || 0;
-    
-    if (!isCachedResponse && actualTokensUsed > 0) {
-      await updateAiTokens(actualTokensUsed);
-    }
-
-    return aiResponse;
-  }, [getProductSlugFromUrl, adminShop, updateAiTokens, buildConversationHistory]);
-
-  // ========================================
-  // 💬 MAIN SEND MESSAGE FUNCTION - ĐƠN GIẢN
-  // ========================================
+  }, []);
 
   /**
-   * Xử lý gửi tin nhắn AI (frontend chỉ gửi, backend xử lý)
+   * 💬 Gửi tin nhắn AI
    */
-  const sendAiMessage = useCallback(async (msg: string, targetConversationId?: number | null, currentMessages?: ChatMessage[]) => {
+  const sendAiMessage = useCallback(async (
+    msg: string, 
+    targetConversationId?: number | null, 
+    currentMessages?: ChatMessage[]
+  ) => {
     if (isAiProcessing) {
-      return;
-    }
-
-    // Kiểm tra admin shop
-    if (isLoadingAdminShop) {
-      const waitingMessage: ChatMessage = {
-        id: `waiting-${Date.now()}`,
-        senderType: 'BOT',
-        message: 'Đang khởi tạo hệ thống...',
-        conversationId: isGuest ? null : conversationId || undefined,
-        sessionId,
-        createdAt: new Date().toISOString(),
-        status: isGuest ? 'local' : 'sent'
-      };
-      addMessage(waitingMessage);
-      return;
-    }
-
-    // Kiểm tra token
-    const tokenCheck = checkAiTokensAvailable();
-    if (!tokenCheck.available) {
-      console.error('❌ Không đủ token AI');
-      
-      const errorMessage: ChatMessage = {
-        id: `token-error-${Date.now()}`,
-        senderType: 'BOT',
-        message: tokenCheck.message,
-        conversationId: isGuest ? null : conversationId || undefined,
-        sessionId,
-        createdAt: new Date().toISOString(),
-        status: isGuest ? 'local' : 'sent'
-      };
-      
-      addMessage(errorMessage);
       return;
     }
 
@@ -277,7 +160,6 @@ export const useAiMessage = ({
       await new Promise(resolve => setTimeout(resolve, 1000));
       currentConvId = conversationId;
       if (!currentConvId) {
-        console.error('❌ Không có conversation ID');
         return;
       }
     }
@@ -288,11 +170,10 @@ export const useAiMessage = ({
     setIsAiProcessing(true);
     setIsTyping(prev => ({ ...prev, ai: true }));
 
-    // Thêm tin nhắn pending
     const aiPendingMessage: ChatMessage = {
       id: tempId,
       senderType: 'BOT',
-      message: '...',
+      message: 'Đang suy nghĩ...',
       conversationId: isGuestMode ? null : currentConvId || undefined,
       sessionId,
       createdAt: new Date().toISOString(),
@@ -302,62 +183,54 @@ export const useAiMessage = ({
     
     addMessage(aiPendingMessage);
 
-    // Đợi typing effect
-    await new Promise(resolve => setTimeout(resolve, isGuestMode ? 500 : 300));
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     try {
-      // 🔥 CHỈ CẦN GỬI PROMPT, BACKEND TỰ PHÂN TÍCH
-      const aiText = await callAiApi(msg, currentMessages);
+      const aiResponse = await callAibanApi(msg);
 
-      // Cập nhật tin nhắn
       setMessages(prev => 
-        prev.map(msg => 
-          msg.tempId === tempId 
+        prev.map(message => 
+          message.tempId === tempId 
             ? {
-                ...msg,
+                ...message,
                 id: isGuestMode ? `ai-local-${Date.now()}` : `ai-${Date.now()}`,
-                message: aiText,
+                message: aiResponse,
                 tempId: undefined,
                 status: isGuestMode ? 'local' : 'sent'
               }
-            : msg
+            : message
         )
       );
 
-      // Lưu vào database nếu cần
-      if (!isGuestMode && currentConvId && aiText && aiText !== '...') {
+      if (!isGuestMode && currentConvId && aiResponse && aiResponse !== 'Đang suy nghĩ...') {
         saveBotMessage.mutate({ 
           conversationId: Number(currentConvId),
-          message: aiText,
+          message: aiResponse,
           sessionId: sessionId || null
         });
       }
 
-    } catch (err: any) {
-      console.error('❌ Lỗi tin nhắn AI:', err);
+      await fetchChatHistory();
 
+    } catch (err: any) {
       let errorMessage = 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau.';
       
-      if (err.message.includes('token') || err.message.includes('Token')) {
-        errorMessage = err.message;
-      } else if (err.message.includes('401')) {
-        errorMessage = 'Token AI không hợp lệ. Vui lòng liên hệ quản trị viên.';
-      } else if (err.message.includes('hết token')) {
-        errorMessage = 'Chat Bot đã hết token AI. Vui lòng liên hệ quản trị viên.';
-      } else if (err.message.includes('timeout') || err.message.includes('mạng')) {
+      if (err.message.includes('401')) {
+        errorMessage = 'Không có quyền truy cập API. Vui lòng kiểm tra cấu hình.';
+      } else if (err.message.includes('timeout') || err.message.includes('network')) {
         errorMessage = 'Kết nối mạng có vấn đề. Vui lòng thử lại.';
       }
 
       setMessages(prev => 
-        prev.map(msg => 
-          msg.tempId === tempId 
+        prev.map(message => 
+          message.tempId === tempId 
             ? {
-                ...msg,
+                ...message,
                 message: errorMessage,
                 tempId: undefined,
-                status: isGuestMode ? 'local' : 'sent'
+                status: isGuestMode ? 'local' as const : 'failed' as const
               }
-            : msg
+            : message
         )
       );
     } finally {
@@ -366,8 +239,6 @@ export const useAiMessage = ({
     }
   }, [
     isAiProcessing,
-    isLoadingAdminShop,
-    checkAiTokensAvailable,
     conversationId,
     isGuest,
     sessionId,
@@ -375,17 +246,29 @@ export const useAiMessage = ({
     setMessages,
     saveBotMessage,
     setIsTyping,
-    callAiApi
+    callAibanApi,
+    fetchChatHistory
   ]);
+
+  /**
+   * 🔄 Load lịch sử chat vào messages
+   */
+  const loadHistoryIntoMessages = useCallback(async () => {
+    const history = await fetchChatHistory();
+    if (history.length > 0) {
+      const messages = convertHistoryToChatMessages(history);
+      setMessages(messages);
+      return messages;
+    }
+    return [];
+  }, [fetchChatHistory, convertHistoryToChatMessages, setMessages]);
 
   return {
     sendAiMessage,
     isAiProcessing,
-    adminShop,
-    isLoadingAdminShop,
-    tokenInfo: adminShop ? { 
-      availableTokens: adminShop.tokenAI,
-      adminName: adminShop.name 
-    } : null
+    chatHistory,
+    fetchChatHistory,
+    loadHistoryIntoMessages,
+    convertHistoryToChatMessages
   };
 };
