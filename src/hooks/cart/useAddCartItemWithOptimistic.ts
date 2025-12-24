@@ -1,5 +1,6 @@
+// src/hooks/cart/useAddCartItemWithOptimistic.ts
 import { useAddCartItem } from './useAddCartItem'
-import { useCartStore } from '@/stores/cartStore'
+import { useCartStore } from '@/stores/cartStore' // <-- Import từ store riêng
 import { message } from 'antd'
 import { useQueryClient } from '@tanstack/react-query'
 import { CartItem } from '@/types/cart.type'
