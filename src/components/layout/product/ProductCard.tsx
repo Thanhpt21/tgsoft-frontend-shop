@@ -68,7 +68,7 @@ export default function ProductCard({ product: p, index = 0 }: ProductCardProps)
           bodyStyle={{ padding: "0" }}
           hoverable={false}
         >
-          {/* Image Container - Fill toàn bộ card */}
+          {/* Image Container - Giữ tỉ lệ như cũ nhưng fix căn giữa */}
           <div className="relative w-full aspect-[3/4] overflow-hidden">
             {/* Discount badge (top-right corner) */}
             {hasDiscount && discountPercentage > 0 && (
@@ -97,32 +97,35 @@ export default function ProductCard({ product: p, index = 0 }: ProductCardProps)
               <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
             )}
             
-            {/* Image fill toàn bộ container */}
-            <Image
-              src={thumbUrl || "/images/no-image.png"}
-              alt={p.name}
-              preview={false}
-              loading="lazy"
-              width={320}
-              height={400}
-              onLoad={() => setImageLoaded(true)}
-              className={`
-                w-full
-                h-full
-                object-cover
-                transition-transform duration-700
-                group-hover:scale-110
-                ${imageLoaded ? 'opacity-100' : 'opacity-0'}
-              `}
-              placeholder={
-                <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                  <div className="w-8 h-8 border-3 border-gray-200 border-t-orange-500 rounded-full animate-spin" />
-                </div>
-              }
-            />
+            {/* Container để căn giữa ảnh - FIXED theo code tham khảo */}
+            <div className="absolute inset-0 flex items-center justify-center bg-white">
+              <Image
+                src={thumbUrl || "/images/no-image.png"}
+                alt={p.name}
+                preview={false}
+                loading="lazy"
+                width={280}
+                height={280}
+                onLoad={() => setImageLoaded(true)}
+                className={`
+                  max-w-full
+                  max-h-full
+                  p-4
+                  object-contain
+                  transition-transform duration-700
+                  group-hover:scale-105
+                  ${imageLoaded ? 'opacity-100' : 'opacity-0'}
+                `}
+                placeholder={
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                    <div className="w-8 h-8 border-3 border-gray-200 border-t-orange-500 rounded-full animate-spin" />
+                  </div>
+                }
+              />
+            </div>
 
             {/* Overlay gradient cho text dễ đọc */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
 
           {/* Product Info - Đặt phía dưới hình ảnh */}
@@ -190,13 +193,10 @@ export default function ProductCard({ product: p, index = 0 }: ProductCardProps)
                       Tiết kiệm {formatVND(p.basePrice - finalPrice)}
                     </div>
                   )}
-                  
-                 
                 </div>
               ) : (
                 <div>
                   <p className="text-gray-500 font-medium text-sm">Liên hệ</p>
-                 
                 </div>
               )}
             </div>
