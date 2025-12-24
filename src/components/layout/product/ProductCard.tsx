@@ -65,11 +65,11 @@ export default function ProductCard({ product: p, index = 0 }: ProductCardProps)
       <Link href={`/san-pham/${p.slug}`} className="block h-full">
         <Card
           className="relative bg-white rounded-xl sm:rounded-2xl border border-gray-100 hover:border-orange-300 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden h-full hover:-translate-y-0.5"
-          bodyStyle={{ padding: "12px" }}
+          bodyStyle={{ padding: "0" }}
           hoverable={false}
         >
-          {/* Image Container */}
-          <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg overflow-hidden mb-3">
+          {/* Image Container - Fill toàn bộ card */}
+          <div className="relative w-full aspect-[3/4] overflow-hidden">
             {/* Discount badge (top-right corner) */}
             {hasDiscount && discountPercentage > 0 && (
               <div className="absolute top-3 right-3 z-10">
@@ -89,38 +89,44 @@ export default function ProductCard({ product: p, index = 0 }: ProductCardProps)
               </div>
             )}
 
-            {/* Image with shimmer effect */}
-            <div className="relative overflow-hidden aspect-[4/5]">
-              {/* Shimmer Effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none" />
-              
-              {/* Loading skeleton */}
-              {!imageLoaded && (
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
-              )}
-              
-              <Image
-                src={thumbUrl || "/images/no-image.png"}
-                alt={p.name}
-                preview={false}
-                loading="lazy"
-                width={320}
-                height={400}
-                onLoad={() => setImageLoaded(true)}
-                className={`w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-105 ${
-                  imageLoaded ? 'opacity-100' : 'opacity-0'
-                }`}
-                placeholder={
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                    <div className="w-8 h-8 border-3 border-gray-200 border-t-orange-500 rounded-full animate-spin" />
-                  </div>
-                }
-              />
-            </div>
+            {/* Shimmer Effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none z-10" />
+            
+            {/* Loading skeleton */}
+            {!imageLoaded && (
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
+            )}
+            
+            {/* Image fill toàn bộ container */}
+            <Image
+              src={thumbUrl || "/images/no-image.png"}
+              alt={p.name}
+              preview={false}
+              loading="lazy"
+              width={320}
+              height={400}
+              onLoad={() => setImageLoaded(true)}
+              className={`
+                w-full
+                h-full
+                object-cover
+                transition-transform duration-700
+                group-hover:scale-110
+                ${imageLoaded ? 'opacity-100' : 'opacity-0'}
+              `}
+              placeholder={
+                <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                  <div className="w-8 h-8 border-3 border-gray-200 border-t-orange-500 rounded-full animate-spin" />
+                </div>
+              }
+            />
+
+            {/* Overlay gradient cho text dễ đọc */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
 
-          {/* Product Info */}
-          <div className="space-y-2">
+          {/* Product Info - Đặt phía dưới hình ảnh */}
+          <div className="p-4 space-y-3 bg-white">
             {/* Product Name */}
             <Tooltip title={p.name} placement="top">
               <h5 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2 min-h-[2.8rem] group-hover:text-orange-600 transition-colors duration-300 cursor-pointer">
@@ -184,9 +190,14 @@ export default function ProductCard({ product: p, index = 0 }: ProductCardProps)
                       Tiết kiệm {formatVND(p.basePrice - finalPrice)}
                     </div>
                   )}
+                  
+                 
                 </div>
               ) : (
-                <p className="text-gray-500 font-medium text-sm">Liên hệ</p>
+                <div>
+                  <p className="text-gray-500 font-medium text-sm">Liên hệ</p>
+                 
+                </div>
               )}
             </div>
           </div>

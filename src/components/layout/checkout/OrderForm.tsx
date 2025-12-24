@@ -404,20 +404,32 @@ const OrderForm: React.FC = () => {
         // Xử lý VNPay
         if (paymentMethod.code === 'VNPAY') {
           try {
-            const returnUrl = `${window.location.origin}/payment-callback`
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || ''
+            // Khai báo returnUrl rõ ràng ở đây
+            const returnUrl = `${window.location.origin}/payment-callback`;
             
-            const paymentUrl = `${baseUrl}/payments/vnpay?orderId=${orderId}&amount=${totalAmount}&returnUrl=${encodeURIComponent(returnUrl)}`
-            
-            // Mở trong tab mới
-            const paymentWindow = window.open(paymentUrl, '_blank')
-            if (!paymentWindow) {
-              // Fallback: redirect trong cùng tab
-              window.location.href = paymentUrl
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+            const apiUrl = `${baseUrl}/payments/vnpay?orderId=${orderId}&amount=${totalAmount}&returnUrl=${encodeURIComponent(returnUrl)}`;
+
+            // Gọi backend để lấy link VNPay thật
+            const response = await axios.get(apiUrl, {
+            });
+
+            if (response.data.success && response.data.url) {
+              // Mở đúng trang thanh toán VNPay
+              const vnpayWindow = window.open(response.data.url, '_blank');
+              
+              if (!vnpayWindow) {
+                message.error('Vui lòng bật popup để thanh toán VNPay');
+              }
+            } else {
+              message.error('Không nhận được link thanh toán từ server');
             }
           } catch (error: any) {
-            console.error('Lỗi VNPay:', error)
-            message.error('Lỗi thanh toán VNPay')
+            console.error('Lỗi tạo thanh toán VNPay:', error);
+            message.error(
+              error.response?.data?.message || 
+              'Lỗi kết nối đến cổng thanh toán VNPay'
+            );
           }
         } else {
           // COD thành công

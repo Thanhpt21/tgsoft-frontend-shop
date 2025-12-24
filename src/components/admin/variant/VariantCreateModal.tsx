@@ -1,8 +1,8 @@
 'use client'
 
 import { Modal, Form, Input, Button, Upload, message, Row, Col, InputNumber, Spin, Radio } from 'antd'
-import { UploadOutlined } from '@ant-design/icons'
-import { useState, useEffect } from 'react'
+import { UploadOutlined, ReloadOutlined } from '@ant-design/icons'
+import { useState, useEffect, useCallback } from 'react'
 import type { UploadFile } from 'antd/es/upload/interface'
 import { api } from '@/lib/axios'
 import { useCreateProductVariant } from '@/hooks/product-variant/useCreateProductVariant'
@@ -29,6 +29,67 @@ export const VariantCreateModal = ({ open, onClose, refetch, productId }: Varian
   // Lấy attribute của product
   const { data: productAttributesData, isLoading: loadingAttrs } = useProductAttributes(Number(productId))
   const productAttributes = Array.isArray(productAttributesData) ? productAttributesData : []
+
+  // Hàm tạo barcode ngẫu nhiên
+  const generateBarcode = useCallback(() => {
+    // Định dạng: BR{timestamp}-{random string}
+    const timestamp = Date.now().toString().slice(-8) // 8 số cuối timestamp
+    const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase() // 6 ký tự random
+    return `BR${timestamp}${randomStr}`
+  }, [])
+
+  // Hàm generate SKU ngắn gọn (5 ký tự)
+  const generateShortSKU = useCallback(() => {
+    // Lấy 5 ký tự random từ a-z0-9
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let result = ''
+    for (let i = 0; i < 5; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return result
+  }, [])
+
+  // Hàm generate SKU từ các attribute đã chọn (tối đa 5 ký tự)
+  const generateSKUFromAttributes = useCallback(() => {
+    if (!productAttributes.length) return generateShortSKU()
+    
+    // Tạo SKU từ chữ cái đầu của attribute và value
+    const skuParts = productAttributes.map(pa => {
+      const attrId = pa.attributeId
+      const valueId = selectedAttrValues[attrId]
+      if (!valueId) return ''
+      
+      const attr = attributesInfo[attrId]
+      const value = attributeValuesMap[attrId]?.find(v => v.id === valueId)
+      if (!attr || !value) return ''
+      
+      // Lấy chữ cái đầu của attribute và value (VD: Color Red -> CR)
+      const attrChar = attr.name.charAt(0).toUpperCase()
+      const valueChar = value.value.charAt(0).toUpperCase()
+      return `${attrChar}${valueChar}`
+    }).filter(Boolean)
+    
+    if (skuParts.length > 0) {
+      // Ghép lại và cắt tối đa 5 ký tự
+      const combined = skuParts.join('')
+      return combined.substring(0, 5).toUpperCase()
+    }
+    
+    return generateShortSKU()
+  }, [productAttributes, selectedAttrValues, attributesInfo, attributeValuesMap, generateShortSKU])
+
+  // Tự động tạo barcode và SKU khi mở modal
+  useEffect(() => {
+    if (open) {
+      const newBarcode = generateBarcode()
+      const newSKU = generateSKUFromAttributes()
+      
+      form.setFieldsValue({
+        barcode: newBarcode,
+        sku: newSKU
+      })
+    }
+  }, [open, form, generateBarcode, generateSKUFromAttributes])
 
   // Lấy thông tin attribute và giá trị của chúng
   useEffect(() => {
@@ -60,41 +121,52 @@ export const VariantCreateModal = ({ open, onClose, refetch, productId }: Varian
     fetchAttributesAndValues()
   }, [open, productAttributes])
 
+  // Khi attribute value thay đổi, cập nhật SKU
+  useEffect(() => {
+    if (Object.keys(selectedAttrValues).length > 0) {
+      const newSKU = generateSKUFromAttributes()
+      form.setFieldsValue({ sku: newSKU })
+    }
+  }, [selectedAttrValues, form, generateSKUFromAttributes])
+
   // Gửi form
-const onFinish = async (values: any) => {
-  try {
-    // Kiểm tra chọn đủ thuộc tính
-    for (const pa of productAttributes) {
-      if (!selectedAttrValues[pa.attributeId]) {
-        message.error('Vui lòng chọn đầy đủ giá trị cho tất cả thuộc tính')
-        return
+  const onFinish = async (values: any) => {
+    try {
+      // Kiểm tra chọn đủ thuộc tính
+      for (const pa of productAttributes) {
+        if (!selectedAttrValues[pa.attributeId]) {
+          message.error('Vui lòng chọn đầy đủ giá trị cho tất cả thuộc tính')
+          return
+        }
       }
+
+      const formData = new FormData()
+      formData.append('sku', values.sku)
+      formData.append('productId', String(productId))
+      
+      // Luôn có barcode (tự động tạo)
+      formData.append('barcode', values.barcode || generateBarcode())
+      
+      formData.append('priceDelta', String(values.priceDelta ?? 0))
+      formData.append('attrValues', JSON.stringify(selectedAttrValues)) // ✅ thêm JSON này như trước kia
+
+      if (thumbFile[0]?.originFileObj) {
+        formData.append('thumb', thumbFile[0].originFileObj)
+      }
+
+      await mutateAsync({ productId, formData })
+
+      message.success('Tạo biến thể thành công')
+      form.resetFields()
+      setThumbFile([])
+      setSelectedAttrValues({})
+      onClose()
+      refetch?.()
+    } catch (err: any) {
+      console.error('Create variant error:', err)
+      message.error(err?.response?.data?.message || 'Lỗi tạo biến thể')
     }
-
-    const formData = new FormData()
-    formData.append('sku', values.sku)
-    formData.append('productId', String(productId))
-    if (values.barcode) formData.append('barcode', values.barcode)
-    formData.append('priceDelta', String(values.priceDelta ?? 0))
-    formData.append('attrValues', JSON.stringify(selectedAttrValues)) // ✅ thêm JSON này như trước kia
-
-    if (thumbFile[0]?.originFileObj) {
-      formData.append('thumb', thumbFile[0].originFileObj)
-    }
-
-    await mutateAsync({ productId, formData })
-
-    message.success('Tạo biến thể thành công')
-    form.resetFields()
-    setThumbFile([])
-    setSelectedAttrValues({})
-    onClose()
-    refetch?.()
-  } catch (err: any) {
-    console.error('Create variant error:', err)
-    message.error(err?.response?.data?.message || 'Lỗi tạo biến thể')
   }
-}
 
   // Reset state khi modal đóng
   useEffect(() => {
@@ -105,6 +177,20 @@ const onFinish = async (values: any) => {
       setAttributeValuesMap({})
     }
   }, [open, form])
+
+  // Nút generate barcode mới
+  const handleRegenerateBarcode = () => {
+    const newBarcode = generateBarcode()
+    form.setFieldsValue({ barcode: newBarcode })
+    message.success('Đã tạo barcode mới')
+  }
+
+  // Nút generate SKU mới (ngắn gọn)
+  const handleRegenerateSKU = () => {
+    const newSKU = generateSKUFromAttributes()
+    form.setFieldsValue({ sku: newSKU })
+    message.success('Đã tạo SKU mới')
+  }
 
   if (loadingAttrs) return <Spin />
 
@@ -121,16 +207,68 @@ const onFinish = async (values: any) => {
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              label="SKU"
+              label={
+                <div className="flex items-center justify-between">
+                  <span>SKU</span>
+                  <span className="text-xs text-gray-500">
+                    5 ký tự
+                  </span>
+                </div>
+              }
               name="sku"
-              rules={[{ required: true, message: 'Vui lòng nhập SKU' }]}
+              rules={[
+                { required: true, message: 'Vui lòng nhập SKU' },
+                { max: 5, message: 'SKU phải có đúng 5 ký tự' },
+                { pattern: /^[A-Z0-9]+$/, message: 'SKU chỉ chứa chữ in hoa và số' }
+              ]}
+              extra="SKU tự động tạo 5 ký tự ngắn gọn"
             >
-              <Input />
+              <Input 
+                placeholder="VD: XSBLK"
+                maxLength={5}
+                style={{ textTransform: 'uppercase' }}
+                suffix={
+                  <ReloadOutlined 
+                    className="text-gray-400 cursor-pointer hover:text-blue-500" 
+                    onClick={handleRegenerateSKU}
+                    title="Tạo SKU mới"
+                  />
+                }
+              />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Barcode" name="barcode">
-              <Input />
+            <Form.Item 
+              label={
+                <div className="flex items-center justify-between">
+                  <span>Barcode</span>
+                  <Button 
+                    type="link" 
+                    size="small" 
+                    icon={<ReloadOutlined />}
+                    onClick={handleRegenerateBarcode}
+                    className="text-xs"
+                  >
+                    Tạo mới
+                  </Button>
+                </div>
+              }
+              name="barcode"
+              rules={[
+                { pattern: /^[A-Z0-9-]+$/, message: 'Barcode chỉ chứa chữ in hoa, số và dấu gạch ngang' }
+              ]}
+              extra="Barcode sẽ tự động tạo khi mở form"
+            >
+              <Input 
+                placeholder="Barcode tự động tạo"
+                suffix={
+                  <ReloadOutlined 
+                    className="text-gray-400 cursor-pointer hover:text-blue-500" 
+                    onClick={handleRegenerateBarcode}
+                    title="Tạo barcode mới"
+                  />
+                }
+              />
             </Form.Item>
           </Col>
         </Row>
@@ -141,7 +279,12 @@ const onFinish = async (values: any) => {
           tooltip="Giá của sản phẩm."
           initialValue={0}
         >
-          <InputNumber min={0} style={{ width: '100%' }} />
+          <InputNumber 
+            min={0} 
+            style={{ width: '100%' }} 
+            placeholder="0"
+            formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+          />
         </Form.Item>
 
         {/* Radio cho từng attribute */}
@@ -153,12 +296,15 @@ const onFinish = async (values: any) => {
               <Radio.Group
                 value={selectedAttrValues[pa.attributeId] ?? null}
                 onChange={e => setSelectedAttrValues(prev => ({ ...prev, [pa.attributeId]: Number(e.target.value) }))}
+                optionType="button"
+                buttonStyle="solid"
+                className="flex flex-wrap gap-2"
               >
                 {attributeValuesMap[pa.attributeId]?.map(val => (
                   // NOTE: use val.id as radio value (attributeValueId)
-                  <Radio key={val.id} value={val.id}>
+                  <Radio.Button key={val.id} value={val.id}>
                     {val.value}
-                  </Radio>
+                  </Radio.Button>
                 ))}
               </Radio.Group>
             </Form.Item>
@@ -167,21 +313,37 @@ const onFinish = async (values: any) => {
 
         <Form.Item label="Ảnh đại diện">
           <Upload
-            listType="picture"
+            listType="picture-card"
             fileList={thumbFile}
             onChange={({ fileList }) => setThumbFile(fileList)}
             beforeUpload={createImageUploadValidator(MAX_IMAGE_SIZE_MB)}
             maxCount={1}
             accept={ACCEPTED_IMAGE_TYPES}
+            onRemove={() => setThumbFile([])}
           >
-            <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
+            {thumbFile.length >= 1 ? null : (
+              <div className="flex flex-col items-center">
+                <UploadOutlined className="text-lg mb-1" />
+                <div className="text-xs mt-1">Chọn ảnh</div>
+              </div>
+            )}
           </Upload>
         </Form.Item>
 
-        <Form.Item>
-          <Button type="primary" htmlType="submit" loading={isPending} block>
-            Tạo mới
-          </Button>
+        <Form.Item className="mb-0">
+          <div className="flex gap-2">
+            <Button onClick={onClose} disabled={isPending} className="flex-1">
+              Hủy
+            </Button>
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              loading={isPending} 
+              className="flex-1"
+            >
+              Tạo biến thể
+            </Button>
+          </div>
         </Form.Item>
       </Form>
     </Modal>
