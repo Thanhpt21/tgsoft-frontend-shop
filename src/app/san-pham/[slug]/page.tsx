@@ -11,7 +11,8 @@ import {
   Skeleton,
   Badge,
   Dropdown,
-  Breadcrumb as AntBreadcrumb,
+  Tag,
+  Rate,
 } from "antd";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -26,11 +27,12 @@ import {
   Gift,
   Heart,
   Share2,
-  CheckCircle,
   Package,
   ArrowLeft,
   Menu,
   Home,
+  Tag as TagIcon,
+  Clock,
 } from "lucide-react";
 
 // Lazy load components
@@ -49,7 +51,7 @@ import { ProductVariant } from "@/types/product-variant.type";
 import { formatVND } from "@/utils/helpers";
 import ProductImageGallery from "@/components/layout/product/ProductImageGallery";
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 // Mobile Breadcrumb Component
 const MobileBreadcrumb = ({ 
@@ -256,6 +258,113 @@ const AttributeSelection = ({
   );
 };
 
+// Promotion Display Component (Từ code cũ)
+const PromotionDisplay = ({ 
+  promotion, 
+  originalPrice,
+  selectedVariant
+}: { 
+  promotion: any; 
+  originalPrice: number;
+  selectedVariant: ProductVariant | null;
+}) => {
+  if (!promotion) return null;
+
+  const basePrice = selectedVariant?.priceDelta || originalPrice;
+  const now = new Date();
+  const startTime = new Date(promotion.startTime);
+  const endTime = new Date(promotion.endTime);
+  
+  // Kiểm tra promotion có đang active không
+  const isActive = promotion.status === 'ACTIVE' && startTime <= now && endTime >= now;
+  
+  if (!isActive) return null;
+
+  const calculateDiscountedPrice = () => {
+    if (promotion.discountType === "PERCENT") {
+      return basePrice * (1 - (promotion.discountValue || 0) / 100);
+    } else if (promotion.discountType === "FIXED") {
+      return Math.max(0, basePrice - (promotion.discountValue || 0));
+    }
+    return basePrice;
+  };
+
+  const discountedPrice = calculateDiscountedPrice();
+  const savedAmount = basePrice - discountedPrice;
+
+  return (
+    <div className="mb-4 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200 shadow-sm">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+          <Zap size={20} className="text-white" />
+        </div>
+        <div className="flex-1">
+          <div className="font-bold text-lg text-gray-800">
+            {promotion.name}
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Clock size={14} />
+            <span>Còn lại: {Math.ceil((endTime.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))} ngày</span>
+          </div>
+        </div>
+      </div>
+      
+    
+  
+    </div>
+  );
+};
+
+// Gift Display Component (Từ code cũ)
+const GiftDisplay = ({ giftProduct, giftQuantity }: { 
+  giftProduct: any; 
+  giftQuantity: number;
+}) => {
+  if (!giftProduct) return null;
+
+  return (
+    <div className="mb-4 bg-gradient-to-r from-pink-50 via-purple-50 to-blue-50 rounded-xl p-5 border-2 border-pink-200 shadow-md">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-2xl">🎁</span>
+        <span className="font-bold text-lg bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+          Quà tặng kèm
+        </span>
+        <span className="ml-auto bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+          MIỄN PHÍ
+        </span>
+      </div>
+      <div className="flex items-center gap-4 bg-white rounded-xl p-3 shadow-sm">
+        <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border-2 border-pink-200 shadow-sm">
+          <img 
+            src={getImageUrl(giftProduct.thumb) || ''}
+            alt={giftProduct.name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-bl-lg">
+            x{giftQuantity}
+          </div>
+        </div>
+        <div className="flex-1">
+          <div className="font-semibold text-gray-800 mb-1">
+            {giftProduct.name}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500 line-through">
+              {formatVND(giftProduct.basePrice)}
+            </span>
+            <span className="text-sm font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">
+              Tặng {giftQuantity} sản phẩm
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 text-center text-sm text-gray-600 bg-white/50 rounded-lg py-2 px-3">
+        💝 Tự động thêm vào đơn hàng khi mua sản phẩm này
+      </div>
+    </div>
+  );
+};
+
 // Mobile sticky header
 const MobileStickyHeader = ({ 
   productName, 
@@ -331,7 +440,7 @@ export default function ProductDetailPage() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, number>>({});
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
-  const [quantity, setQuantity] = useState(1); // Thêm state quantity
+  const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [mainImage, setMainImage] = useState<string | null>(null);
 
@@ -359,11 +468,6 @@ export default function ProductDetailPage() {
     }, {}) ?? {}, 
     [allAttributes]
   );
-
-  const getAttributeValueName = useCallback((valueId: number) => {
-    const attrValue = allAttributeValues?.data?.find((av: any) => av.id === valueId);
-    return attrValue?.value || `Giá trị ${valueId}`;
-  }, [allAttributeValues]);
 
   const availableAttributes = useMemo(() => {
     if (!variants || !allAttributes) return [];
@@ -419,44 +523,67 @@ export default function ProductDetailPage() {
     setMainImage(calculatedMainImage);
   }, [calculatedMainImage]);
 
-  // Price calculations
-  const { originalPrice, finalPrice, discountInfo } = useMemo(() => {
-    if (!product) return { originalPrice: 0, finalPrice: 0, discountInfo: null };
+  // Tìm khuyến mãi active
+  const activePromotion = useMemo(() => {
+    if (!product?.promotionProducts || product.promotionProducts.length === 0) return null;
+    
+    const now = new Date();
+    const activePromo = product.promotionProducts.find((pp: any) => {
+      const promo = pp.promotion;
+      return promo && 
+             promo.status === 'ACTIVE' && 
+             new Date(promo.startTime) <= now && 
+             new Date(promo.endTime) >= now;
+    });
+    
+    return activePromo;
+  }, [product]);
 
-    const basePrice = selectedVariant?.priceDelta || product.basePrice;
-    const promo = product.promotionProducts?.[0];
+  // Lấy gift product từ khuyến mãi
+  const giftProduct = useMemo(() => {
+    if (!activePromotion) return null;
+    return activePromotion.giftProduct;
+  }, [activePromotion]);
 
-    if (!promo) {
-      return { originalPrice: basePrice, finalPrice: basePrice, discountInfo: null };
-    }
+  const giftQuantity = activePromotion?.giftQuantity || 1;
 
+
+// Price calculations
+const { originalPrice, finalPrice, discountInfo } = useMemo(() => {
+  if (!product) return { originalPrice: 0, finalPrice: 0, discountInfo: null };
+
+  const basePrice = selectedVariant?.priceDelta || product.basePrice;
+
+  // Nếu có khuyến mãi active
+  if (activePromotion) {
+    // Sử dụng discountType và discountValue từ activePromotion (PromotionProduct)
     let discountedPrice = basePrice;
     
-    if (promo.discountType === "PERCENT") {
-      discountedPrice = basePrice * (1 - promo.discountValue / 100);
-    } else if (promo.discountType === "FIXED") {
-      discountedPrice = Math.max(0, basePrice - promo.discountValue);
+    if (activePromotion.discountType === "PERCENT") {
+      discountedPrice = basePrice * (1 - (activePromotion.discountValue || 0) / 100);
+    } else if (activePromotion.discountType === "FIXED") {
+      discountedPrice = Math.max(0, basePrice - (activePromotion.discountValue || 0));
     }
 
     return {
       originalPrice: basePrice,
       finalPrice: Math.round(discountedPrice),
       discountInfo: {
-        type: promo.discountType,
-        value: promo.discountValue,
+        type: activePromotion.discountType,  // Lấy từ activePromotion
+        value: activePromotion.discountValue, // Lấy từ activePromotion
         saved: basePrice - discountedPrice
       }
     };
-  }, [product, selectedVariant]);
+  }
+
+  return { originalPrice: basePrice, finalPrice: basePrice, discountInfo: null };
+}, [product, selectedVariant, activePromotion]);
 
   // Rating
   const avgRating = useMemo(() => {
     if (!product || product.totalReviews === 0) return 0;
     return Math.round((product.totalRatings / product.totalReviews) * 10) / 10;
   }, [product]);
-
-  const promo = product?.promotionProducts?.[0];
-  const giftProduct = promo?.giftProduct;
 
   // Event handlers
   const handleAddToCart = useCallback(() => {
@@ -474,7 +601,6 @@ export default function ProductDetailPage() {
       { productVariantId: selectedVariant.id, quantity },
       {
         onOptimisticSuccess: () => {
-          message.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
           setTimeout(() => setIsAdding(false), 300);
         },
         onError: () => setIsAdding(false),
@@ -648,18 +774,18 @@ export default function ProductDetailPage() {
 
             <div className="flex items-center gap-2 flex-wrap">
               {brandName && (
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                <Tag color="blue" className="px-4 py-1 text-sm font-medium rounded-full">
                   {brandName}
-                </span>
+                </Tag>
               )}
               {categoryName && (
-                <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                <Tag color="purple" className="px-4 py-1 text-sm font-medium rounded-full">
                   {categoryName}
-                </span>
+                </Tag>
               )}
-              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+              <Tag color="green" className="px-4 py-1 text-sm font-medium rounded-full">
                 Còn hàng
-              </span>
+              </Tag>
             </div>
 
             <Title level={1} className="hidden lg:block !text-3xl !font-bold !text-gray-900 !mb-2">
@@ -688,7 +814,24 @@ export default function ProductDetailPage() {
               </span>
             </div>
 
-            <div className="bg-gray-50 rounded-xl lg:rounded-2xl space-y-2">
+            {/* Khuyến mãi từ code cũ */}
+            {activePromotion && (
+              <PromotionDisplay 
+                promotion={activePromotion.promotion}
+                originalPrice={originalPrice}
+                selectedVariant={selectedVariant}
+              />
+            )}
+
+            {/* Quà tặng từ code cũ */}
+            {giftProduct && (
+              <GiftDisplay 
+                giftProduct={giftProduct}
+                giftQuantity={giftQuantity}
+              />
+            )}
+
+            <div className="bg-gray-50 rounded-xl lg:rounded-2xl space-y-2 p-4">
               <div className="flex items-baseline gap-3 lg:gap-4">
                 {discountInfo && (
                   <span className="text-lg lg:text-2xl font-bold text-gray-400 line-through">
@@ -713,40 +856,6 @@ export default function ProductDetailPage() {
                 </div>
               )}
             </div>
-
-            {giftProduct && (
-              <div className="border border-emerald-200 bg-emerald-50 rounded-xl lg:rounded-2xl p-3 lg:p-5">
-                <div className="flex items-center gap-2 lg:gap-3 mb-2 lg:mb-3">
-                  <Gift className="w-4 h-4 lg:w-5 lg:h-5 text-emerald-600" />
-                  <span className="font-semibold text-emerald-800 text-sm lg:text-base">Quà tặng</span>
-                  <span className="ml-auto text-xs lg:text-sm text-emerald-700 font-medium">
-                    Kèm theo
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 bg-white rounded-lg lg:rounded-xl p-3">
-                  <div className="relative w-12 h-12 lg:w-16 lg:h-16 rounded-lg overflow-hidden border border-emerald-200">
-                    <img 
-                      src={getImageUrl(giftProduct.thumb) || ''}
-                      alt={giftProduct.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 text-sm lg:text-base truncate">
-                      {giftProduct.name}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded">
-                        x{promo?.giftQuantity}
-                      </span>
-                      <span className="text-xs lg:text-sm text-emerald-600 font-medium">
-                        Miễn phí
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Attribute Selection + Reset Button */}
             {availableAttributes.length > 0 && (
@@ -784,7 +893,7 @@ export default function ProductDetailPage() {
             <div className="lg:space-y-4 pt-4">
               {/* Quantity Selector */}
               {selectedVariant && (
-                <div className="flex items-center justify-between bg-gray-50 rounded-xl">
+                <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3 mb-4">
                   <span className="text-sm font-medium text-gray-700">Số lượng</span>
                   <div className="flex items-center gap-3">
                     <button
@@ -830,6 +939,7 @@ export default function ProductDetailPage() {
                     </>
                   ) : (
                     <>
+                    
                       <span className="text-white font-semibold">Thêm vào giỏ</span>
                     </>
                   )}
@@ -861,6 +971,7 @@ export default function ProductDetailPage() {
                     </>
                   ) : (
                     <>
+                      <ShoppingCart size={16} />
                       <span className="text-sm">Thêm</span>
                     </>
                   )}
@@ -871,6 +982,7 @@ export default function ProductDetailPage() {
                   disabled={!selectedVariant}
                   className="!h-12 !rounded-lg !font-medium !bg-gradient-to-r !from-orange-500 !to-red-500 !text-white !border-0 flex items-center justify-center gap-2"
                 >
+                  <Zap size={16} />
                   <span className="text-sm">Mua ngay</span>
                 </Button>
               </div>
@@ -952,7 +1064,7 @@ export default function ProductDetailPage() {
             items={[
               {
                 key: "description",
-                label: <span className="text-sm lg:text-base font-medium">Mô tả sản phẩm</span>,
+                label: <span className="text-sm lg:text-base font-medium">📝 Mô tả sản phẩm</span>,
                 children: (
                   <div className="py-4 lg:py-6">
                     <div

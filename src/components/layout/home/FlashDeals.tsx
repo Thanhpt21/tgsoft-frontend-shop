@@ -3,11 +3,11 @@
 import { useState, useRef, useEffect, useCallback, useMemo, Suspense } from "react";
 import { usePromotedProducts } from "@/hooks/product/usePromotedProducts";
 import { Product } from "@/types/product.type";
-import { ChevronLeft, ChevronRight, Zap, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Zap } from "lucide-react";
 import Link from "next/link";
 import dynamic from 'next/dynamic';
 
-// Lazy load ProductCardPromoted với skeleton
+// Lazy load ProductCardPromoted
 const LazyProductCardPromoted = dynamic(
   () => import("../product/ProductCardPromoted"),
   {
@@ -16,7 +16,7 @@ const LazyProductCardPromoted = dynamic(
   }
 );
 
-// Skeleton component cho loading
+// Skeleton
 const ProductCardSkeleton = () => (
   <div className="animate-pulse h-full">
     <div className="bg-gray-200 rounded-lg aspect-square mb-3"></div>
@@ -36,17 +36,14 @@ const CountdownTimer = () => {
       setTime(prev => {
         let { hours, minutes, seconds } = prev;
         
-        if (seconds > 0) {
-          seconds--;
-        } else {
+        if (seconds > 0) seconds--;
+        else {
           seconds = 59;
-          if (minutes > 0) {
-            minutes--;
-          } else {
+          if (minutes > 0) minutes--;
+          else {
             minutes = 59;
-            if (hours > 0) {
-              hours--;
-            } else {
+            if (hours > 0) hours--;
+            else {
               hours = 2;
               minutes = 59;
               seconds = 45;
@@ -81,13 +78,12 @@ const CountdownTimer = () => {
 };
 
 export default function FlashDeals() {
-  const [page] = useState(1);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
   
   const { data: productsResponse, isLoading } = usePromotedProducts({ 
-    page, 
+    page: 1, 
     limit: 12 
   });
 
@@ -95,110 +91,73 @@ export default function FlashDeals() {
     return ((productsResponse?.data as Product[]) || []).filter((p) => p.isPublished);
   }, [productsResponse]);
 
-  // Mobile: luôn hiện 2 card, Desktop: responsive
-  const [itemsPerSlide, setItemsPerSlide] = useState(2); // Mặc định 2 cho mobile
+  // Responsive items per slide
+  const [itemsPerSlide, setItemsPerSlide] = useState(2);
   
-  // Tính toán responsive items per slide - ƯU TIÊN MOBILE 2 CARD
   const calculateItemsPerSlide = useCallback(() => {
     if (typeof window === 'undefined') return 2;
-    
     const width = window.innerWidth;
-    if (width < 480) return 2; // Mobile: luôn 2 card
-    if (width < 640) return 2; // Small mobile: 2 card
-    if (width < 768) return 3; // Tablet nhỏ: 3 card
-    if (width < 1024) return 4; // Tablet lớn: 4 card
-    return 5; // Desktop: 5 card
+    if (width < 480) return 2;
+    if (width < 640) return 2;
+    if (width < 768) return 3;
+    if (width < 1024) return 4;
+    return 5;
   }, []);
 
   useEffect(() => {
-    const handleResize = () => {
-      setItemsPerSlide(calculateItemsPerSlide());
-    };
-
+    const handleResize = () => setItemsPerSlide(calculateItemsPerSlide());
     handleResize();
-    
-    const debouncedResize = () => {
-      clearTimeout((window as any).resizeTimer);
-      (window as any).resizeTimer = setTimeout(handleResize, 150);
-    };
-
-    window.addEventListener('resize', debouncedResize);
-    return () => {
-      window.removeEventListener('resize', debouncedResize);
-      clearTimeout((window as any).resizeTimer);
-    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [calculateItemsPerSlide]);
 
-  // Auto play slider
+  // Tính tổng số slide - không fill thừa
+  const totalSlides = Math.ceil(products.length / itemsPerSlide);
+
+  // Auto play
   useEffect(() => {
-    if (!isAutoPlaying || products.length === 0) return;
+    if (!isAutoPlaying || totalSlides <= 1 || products.length === 0) return;
 
     autoPlayRef.current = setInterval(() => {
       setCurrentIndex(prev => (prev + 1) % totalSlides);
     }, 5000);
 
     return () => {
-      if (autoPlayRef.current) {
-        clearInterval(autoPlayRef.current);
-      }
+      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
     };
-  }, [isAutoPlaying, products.length, itemsPerSlide]);
+  }, [isAutoPlaying, totalSlides, products.length]);
 
-  const totalSlides = Math.ceil(products.length / itemsPerSlide);
-  const startIndex = currentIndex * itemsPerSlide;
-  const endIndex = Math.min(startIndex + itemsPerSlide, products.length);
-  
-  // Sản phẩm hiển thị hiện tại
-  const currentProducts = products.slice(startIndex, endIndex);
-  
-  // Đảm bảo luôn có đủ items (fill với empty items nếu cần)
-  const displayProducts = [...currentProducts];
-  while (displayProducts.length < itemsPerSlide && products.length > 0) {
-    const fillIndex = (startIndex + displayProducts.length) % products.length;
-    displayProducts.push(products[fillIndex]);
-  }
-
-  const nextSlide = useCallback(() => {
+  const nextSlide = () => {
     if (totalSlides <= 1) return;
     setIsAutoPlaying(false);
     setCurrentIndex(prev => (prev + 1) % totalSlides);
     setTimeout(() => setIsAutoPlaying(true), 3000);
-  }, [totalSlides]);
+  };
 
-  const prevSlide = useCallback(() => {
+  const prevSlide = () => {
     if (totalSlides <= 1) return;
     setIsAutoPlaying(false);
     setCurrentIndex(prev => (prev - 1 + totalSlides) % totalSlides);
     setTimeout(() => setIsAutoPlaying(true), 3000);
-  }, [totalSlides]);
+  };
 
-  // Touch/swipe support
+  // Touch swipe
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const minSwipeDistance = 30; // Giảm khoảng cách swipe cho mobile
+  const minSwipeDistance = 30;
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
+  const onTouchStart = (e: React.TouchEvent) => setTouchStart(e.targetTouches[0].clientX);
+  const onTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
-    
     const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe) {
-      nextSlide();
-    } else if (isRightSwipe) {
-      prevSlide();
-    }
+    if (distance > minSwipeDistance) nextSlide();
+    else if (distance < -minSwipeDistance) prevSlide();
   };
+
+  // Lấy sản phẩm hiện tại - KHÔNG FILL THỪA
+  const startIndex = currentIndex * itemsPerSlide;
+  const currentProducts = products.slice(startIndex, startIndex + itemsPerSlide);
 
   if (isLoading) {
     return (
@@ -251,7 +210,6 @@ export default function FlashDeals() {
           <Link 
             href="/san-pham" 
             className="text-xs font-semibold text-gray-500 hover:text-black transition-colors duration-200 group flex items-center gap-1"
-            prefetch={true}
           >
             <span className="hidden sm:inline">Xem tất cả</span>
             <span className="sm:hidden">Tất cả</span>
@@ -259,128 +217,43 @@ export default function FlashDeals() {
           </Link>
         </div>
 
-        {/* Slider Content */}
+        {/* Slider */}
         <div className="relative">
-          {/* Navigation Buttons - chỉ hiện trên desktop */}
+          {/* Navigation Buttons - desktop only */}
           {totalSlides > 1 && (
             <>
               <button 
                 onClick={prevSlide}
                 className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 md:w-10 md:h-10 bg-white/90 backdrop-blur-sm shadow-lg border border-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-black hover:text-white transition-all duration-300 hover:scale-110 hidden md:flex"
-                aria-label="Previous slide"
               >
-                <ChevronLeft size={16} className="md:size-20" />
+                <ChevronLeft size={20} />
               </button>
               <button 
                 onClick={nextSlide}
                 className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 md:w-10 md:h-10 bg-white/90 backdrop-blur-sm shadow-lg border border-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-black hover:text-white transition-all duration-300 hover:scale-110 hidden md:flex"
-                aria-label="Next slide"
               >
-                <ChevronRight size={16} className="md:size-20" />
+                <ChevronRight size={20} />
               </button>
             </>
           )}
 
-          {/* Product Grid - Luôn grid-cols-2 cho mobile */}
-          <div className={`grid ${itemsPerSlide === 2 ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'} gap-3`}>
-            {displayProducts.map((product, index) => (
-              <div 
-                key={`${product.id}-${currentIndex}-${index}`}
-                className="h-full animate-fade-in-up"
-              >
+          {/* Product Grid */}
+          <div className={`grid grid-cols-2 ${itemsPerSlide > 2 ? 'md:grid-cols-3 lg:grid-cols-5' : ''} gap-3`}>
+            {currentProducts.map((product, idx) => (
+              <div key={`${product.id}-${currentIndex}-${idx}`} className="h-full">
                 <Suspense fallback={<ProductCardSkeleton />}>
-                  <LazyProductCardPromoted 
-                    product={product} 
-                    index={index}
-                  />
+                  <LazyProductCardPromoted product={product} index={idx} />
                 </Suspense>
               </div>
             ))}
           </div>
-
-          {/* Progress bar cho auto play */}
-          {isAutoPlaying && totalSlides > 1 && (
-            <div className="absolute -bottom-2 left-0 right-0 h-1 bg-gray-100 overflow-hidden rounded-full">
-              <div 
-                className="h-full bg-red-600 transition-all duration-5000 ease-linear"
-                style={{ 
-                  animation: 'progress 5s linear forwards',
-                  animationPlayState: 'running'
-                }}
-              />
-            </div>
-          )}
-
-          {/* Indicators - responsive */}
-          {/* {totalSlides > 1 && (
-            <div className="flex items-center justify-center gap-1.5 mt-4">
-              {Array.from({ length: totalSlides }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    setIsAutoPlaying(false);
-                    setCurrentIndex(i);
-                    setTimeout(() => setIsAutoPlaying(true), 3000);
-                  }}
-                  className={`
-                    transition-all duration-300 rounded-full focus:outline-none
-                    ${i === currentIndex 
-                      ? "w-6 h-1.5 bg-red-600" 
-                      : "w-1.5 h-1.5 bg-gray-200 hover:bg-gray-300"
-                    }
-                  `}
-                  aria-label={`Flash deal page ${i + 1}`}
-                  aria-current={i === currentIndex ? 'page' : undefined}
-                />
-              ))}
-            </div>
-          )} */}
         </div>
 
-        {/* Mobile touch hint - chỉ hiện trên mobile */}
+        {/* Mobile hint */}
         <div className="mt-3 text-center text-xs text-gray-400 md:hidden">
           Kéo sang trái/phải để xem thêm
         </div>
       </div>
-
-      <style jsx global>{`
-        @keyframes progress {
-          from {
-            width: 0%;
-          }
-          to {
-            width: 100%;
-          }
-        }
-
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .animate-fade-in-up {
-          animation: fadeInUp 0.3s ease-out;
-        }
-
-        /* Mobile specific styles */
-        @media (max-width: 480px) {
-          .container {
-            padding-left: 1rem;
-            padding-right: 1rem;
-          }
-          
-          /* Ensure 2 cards fit perfectly on mobile */
-          .grid-cols-2 > * {
-            min-width: calc(50% - 0.375rem);
-          }
-        }
-      `}</style>
     </section>
   );
 }
