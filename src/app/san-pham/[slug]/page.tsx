@@ -97,7 +97,6 @@ const MobileBreadcrumb = ({
 
   return (
     <div className="lg:hidden flex items-center justify-between bg-white px-4 py-3 border-b">
-      {/* Back button */}
       <button
         onClick={() => window.history.back()}
         className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
@@ -106,7 +105,6 @@ const MobileBreadcrumb = ({
         <span className="text-sm font-medium">Quay lại</span>
       </button>
 
-      {/* Breadcrumb dropdown */}
       <Dropdown
         menu={{ items }}
         trigger={['click']}
@@ -126,14 +124,7 @@ const MobileBreadcrumb = ({
   );
 };
 
-// Fix Breadcrumb items type
-type BreadcrumbItem = {
-  title: React.ReactNode;
-  href?: string;
-  onClick?: () => void;
-};
-
-// Compact Breadcrumb for desktop
+// Desktop Breadcrumb
 const DesktopBreadcrumb = ({ categoryName, productName, categoryId }: { 
   categoryName?: string; 
   productName: string;
@@ -143,18 +134,15 @@ const DesktopBreadcrumb = ({ categoryName, productName, categoryId }: {
     <nav className="hidden lg:block bg-white border-b">
       <div className="max-w-7xl mx-auto sm:px-6 lg:px-0 py-3">
         <div className="flex items-center text-sm">
-          {/* Trang chủ */}
           <Link href="/" className="text-gray-500 hover:text-blue-600 transition-colors">
             Trang chủ
           </Link>
           <ChevronRight className="w-4 h-4 text-gray-400 mx-2" />
           
-          {/* Sản phẩm */}
           <Link href="/san-pham" className="text-gray-500 hover:text-blue-600 transition-colors">
             Sản phẩm
           </Link>
           
-          {/* Danh mục (nếu có) */}
           {categoryName && categoryId && (
             <>
               <ChevronRight className="w-4 h-4 text-gray-400 mx-2" />
@@ -167,7 +155,6 @@ const DesktopBreadcrumb = ({ categoryName, productName, categoryId }: {
             </>
           )}
           
-          {/* Tên sản phẩm */}
           <ChevronRight className="w-4 h-4 text-gray-400 mx-2" />
           <span className="text-gray-900 font-medium truncate max-w-[200px]">
             {productName}
@@ -201,7 +188,7 @@ const ProductDetailSkeleton = () => (
   </div>
 );
 
-// Helper component for Attribute Selection - Simple Style
+// Attribute Selection Component
 const AttributeSelection = ({ 
   attr, 
   variants, 
@@ -215,25 +202,21 @@ const AttributeSelection = ({
   selectedAttributes: Record<string, number>;
   onSelect: (attrId: string, valueId: number) => void;
 }) => {
-  // Calculate available values for this attribute based on current selection
   const availableValues = useMemo(() => {
     if (!variants || !allAttributeValues?.data) return [];
     
-    // Filter variants based on current selection
     const filteredVariants = variants.filter(variant => {
       return Object.entries(selectedAttributes).every(([selectedAttrId, selectedValueId]) => {
         return variant.attrValues?.[selectedAttrId] === selectedValueId;
       });
     });
     
-    // Get unique attribute values from filtered variants
     const valueIds = new Set<number>();
     filteredVariants.forEach(variant => {
       const valueId = variant.attrValues?.[attr.id.toString()];
       if (valueId) valueIds.add(valueId);
     });
     
-    // Get attribute value objects
     return allAttributeValues.data.filter((av: any) => 
       av.attributeId === attr.id && valueIds.has(av.id)
     );
@@ -272,6 +255,7 @@ const AttributeSelection = ({
     </div>
   );
 };
+
 // Mobile sticky header
 const MobileStickyHeader = ({ 
   productName, 
@@ -347,6 +331,7 @@ export default function ProductDetailPage() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, number>>({});
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [quantity, setQuantity] = useState(1); // Thêm state quantity
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [mainImage, setMainImage] = useState<string | null>(null);
 
@@ -355,7 +340,7 @@ export default function ProductDetailPage() {
     data: product, 
     isLoading: loadingProduct, 
     isError 
-  } = useProductBySlug({ slug: slug as string});
+  } = useProductBySlug({ slug: slug as string });
 
   const productId = product?.id;
   
@@ -375,13 +360,11 @@ export default function ProductDetailPage() {
     [allAttributes]
   );
 
-  // Get attribute value name from ID
   const getAttributeValueName = useCallback((valueId: number) => {
     const attrValue = allAttributeValues?.data?.find((av: any) => av.id === valueId);
     return attrValue?.value || `Giá trị ${valueId}`;
   }, [allAttributeValues]);
 
-  // Filter attributes that have variants
   const availableAttributes = useMemo(() => {
     if (!variants || !allAttributes) return [];
     
@@ -419,6 +402,11 @@ export default function ProductDetailPage() {
     setSelectedVariant(matched ?? null);
   }, [selectedAttributes, variants, product]);
 
+  // Reset quantity khi đổi sản phẩm hoặc variant
+  useEffect(() => {
+    setQuantity(1);
+  }, [productId, selectedVariant]);
+
   // Calculate main image
   const calculatedMainImage = useMemo(() => {
     if (selectedVariant?.thumb) {
@@ -427,7 +415,6 @@ export default function ProductDetailPage() {
     return getImageUrl(product?.thumb ?? null);
   }, [selectedVariant, product]);
 
-  // Initialize main image when product or variant changes
   useEffect(() => {
     setMainImage(calculatedMainImage);
   }, [calculatedMainImage]);
@@ -468,7 +455,6 @@ export default function ProductDetailPage() {
     return Math.round((product.totalRatings / product.totalReviews) * 10) / 10;
   }, [product]);
 
-  // Promotion info
   const promo = product?.promotionProducts?.[0];
   const giftProduct = promo?.giftProduct;
 
@@ -485,16 +471,16 @@ export default function ProductDetailPage() {
     setIsAdding(true);
 
     addToCart(
-      { productVariantId: selectedVariant.id, quantity: 1 },
+      { productVariantId: selectedVariant.id, quantity },
       {
         onOptimisticSuccess: () => {
-          message.success("Đã thêm vào giỏ hàng!");
+          message.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
           setTimeout(() => setIsAdding(false), 300);
         },
         onError: () => setIsAdding(false),
       }
     );
-  }, [selectedVariant, product, isAuthenticated, isAdding, addToCart]);
+  }, [selectedVariant, product, isAuthenticated, isAdding, addToCart, quantity]);
 
   const handleBuyNow = useCallback(() => {
     if (!selectedVariant || !product || !isAuthenticated) {
@@ -503,15 +489,15 @@ export default function ProductDetailPage() {
     }
 
     addToCart(
-      { productVariantId: selectedVariant.id, quantity: 1 },
+      { productVariantId: selectedVariant.id, quantity },
       {
         onOptimisticSuccess: () => {
-          message.success("Đã thêm vào giỏ!");
+          message.success(`Đã thêm ${quantity} sản phẩm vào giỏ!`);
           router.push("/dat-hang");
         },
       }
     );
-  }, [selectedVariant, product, isAuthenticated, addToCart, router]);
+  }, [selectedVariant, product, isAuthenticated, addToCart, router, quantity]);
 
   const handleShare = useCallback(() => {
     if (navigator.share) {
@@ -533,7 +519,6 @@ export default function ProductDetailPage() {
     }));
   }, []);
 
-  // Thêm hàm xử lý khi click thumbnail
   const handleThumbnailClick = useCallback((imageUrl: string) => {
     setMainImage(imageUrl);
   }, []);
@@ -542,13 +527,11 @@ export default function ProductDetailPage() {
   useEffect(() => {
     setSelectedAttributes({});
     setSelectedVariant(null);
-    // Reset main image khi product thay đổi
     if (product?.thumb) {
       setMainImage(getImageUrl(product.thumb));
     }
   }, [productId, product]);
 
-  // Loading and error states
   if (loadingProduct) {
     return <ProductDetailSkeleton />;
   }
@@ -575,14 +558,12 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Breadcrumb */}
       <MobileBreadcrumb 
         categoryName={categoryName}
         productName={product.name}
         categoryId={product.categoryId ?? undefined}
       />
 
-      {/* Desktop Breadcrumb */}
       <DesktopBreadcrumb 
         categoryName={categoryName}
         productName={product.name}
@@ -591,7 +572,7 @@ export default function ProductDetailPage() {
 
       <div className="max-w-7xl mx-auto sm:px-6 lg:px-0 py-4 lg:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
-          {/* Product Images - Mobile Optimized */}
+          {/* Product Images */}
           <div className="space-y-4">
             <div className="bg-white rounded-xl lg:rounded-2xl p-3 lg:p-4 shadow-sm border">
               <Suspense fallback={
@@ -608,7 +589,6 @@ export default function ProductDetailPage() {
               </Suspense>
             </div>
             
-            {/* Mobile quick actions */}
             <div className="lg:hidden flex items-center justify-between bg-white rounded-xl p-3 shadow-sm border">
               <div className="flex items-center gap-2">
                 <button 
@@ -636,9 +616,9 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Product Info - Mobile Optimized */}
+          {/* Product Info */}
           <div className="space-y-4 lg:space-y-6">
-            {/* Mobile: Product name and rating at top */}
+            {/* Mobile name + rating */}
             <div className="lg:hidden space-y-3">
               <Title level={2} className="!text-xl !font-bold !text-gray-900 !mb-0">
                 {product.name}
@@ -666,7 +646,6 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Category & Brand - Mobile Compact */}
             <div className="flex items-center gap-2 flex-wrap">
               {brandName && (
                 <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
@@ -683,12 +662,10 @@ export default function ProductDetailPage() {
               </span>
             </div>
 
-            {/* Desktop: Product Name */}
             <Title level={1} className="hidden lg:block !text-3xl !font-bold !text-gray-900 !mb-2">
               {product.name}
             </Title>
 
-            {/* Desktop: Rating */}
             <div className="hidden lg:flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="flex items-center">
@@ -711,7 +688,6 @@ export default function ProductDetailPage() {
               </span>
             </div>
 
-            {/* Price Section - Mobile Optimized */}
             <div className="bg-gray-50 rounded-xl lg:rounded-2xl space-y-2">
               <div className="flex items-baseline gap-3 lg:gap-4">
                 {discountInfo && (
@@ -738,7 +714,6 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Gift Promotion - Mobile Compact */}
             {giftProduct && (
               <div className="border border-emerald-200 bg-emerald-50 rounded-xl lg:rounded-2xl p-3 lg:p-5">
                 <div className="flex items-center gap-2 lg:gap-3 mb-2 lg:mb-3">
@@ -773,9 +748,9 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            {/* Available Attributes Selection - Mobile Optimized */}
+            {/* Attribute Selection + Reset Button */}
             {availableAttributes.length > 0 && (
-              <div className="space-y-4 lg:space-y-6">
+              <div className="space-y-6">
                 {availableAttributes.map((attr: any) => (
                   <AttributeSelection
                     key={attr.id}
@@ -786,81 +761,134 @@ export default function ProductDetailPage() {
                     onSelect={handleAttributeSelect}
                   />
                 ))}
+
+                {/* Nút Chọn lại */}
+                {Object.keys(selectedAttributes).length > 0 && (
+                  <div className="pt-4 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        setSelectedAttributes({});
+                        setSelectedVariant(null);
+                      }}
+                      className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors"
+                    >
+                      <RotateCcw size={16} />
+                      <span>Chọn lại thuộc tính</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Action Buttons - Mobile Optimized */}
+            {/* Quantity + Action Buttons */}
             <div className="lg:space-y-4 pt-4">
-  {/* Desktop buttons */}
-  <div className="hidden lg:grid grid-cols-1 sm:grid-cols-2 gap-4">
-    {/* Thêm vào giỏ - Desktop */}
-    <Button
-      type="primary"
-      size="large"
-      onClick={handleAddToCart}
-      disabled={!selectedVariant || isAdding}
-      loading={isAdding}
-      className="!h-14 !rounded-xl !font-semibold !text-base !bg-gradient-to-r !from-blue-600 !to-blue-700 hover:!from-blue-700 hover:!to-blue-800 !border-0 shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
-    >
-      {isAdding ? (
-        <>
-          <span className="flex items-center justify-center">
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-          </span>
-          <span className="text-white font-semibold">Đang thêm...</span>
-        </>
-      ) : (
-        <span className="text-white font-semibold">Thêm vào giỏ</span>
-      )}
-    </Button>
-    
-    {/* Mua ngay - Desktop */}
-    <Button
-      size="large"
-      onClick={handleBuyNow}
-      disabled={!selectedVariant}
-      className="!h-14 !rounded-xl !font-semibold !text-base !bg-gradient-to-r !from-orange-500 !to-red-500 hover:!from-orange-600 hover:!to-red-600 !text-white !border-0 shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
-    >
-      Mua ngay
-    </Button>
-  </div>
-  
-  {/* Mobile buttons */}
-  <div className="lg:hidden grid grid-cols-2 gap-3">
-    {/* Thêm vào giỏ - Mobile */}
-    <Button
-      type="primary"
-      onClick={handleAddToCart}
-      disabled={!selectedVariant || isAdding}
-      loading={isAdding}
-      className="!h-12 !rounded-lg !font-medium flex items-center justify-center gap-2"
-    >
-      {isAdding ? (
-        <>
-          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-sm">Đang thêm...</span>
-        </>
-      ) : (
-        <>
-          <span className="text-sm">Thêm vào giỏ</span>
-        </>
-      )}
-    </Button>
-    
-    {/* Mua ngay - Mobile */}
-    <Button
-      onClick={handleBuyNow}
-      disabled={!selectedVariant}
-      className="!h-12 !rounded-lg !font-medium !bg-gradient-to-r !from-orange-500 !to-red-500 !text-white !border-0 flex items-center justify-center gap-2"
-    >
-      <Zap size={18} />
-      <span className="text-sm">Mua ngay</span>
-    </Button>
-  </div>
-  
-</div>
+              {/* Quantity Selector */}
+              {selectedVariant && (
+                <div className="flex items-center justify-between bg-gray-50 rounded-xl">
+                  <span className="text-sm font-medium text-gray-700">Số lượng</span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                      className="w-9 h-9 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
+                      disabled={quantity <= 1}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                      </svg>
+                    </button>
+                    
+                    <span className="w-12 text-center font-semibold text-gray-900">
+                      {quantity}
+                    </span>
+                    
+                    <button
+                      onClick={() => setQuantity(prev => prev + 1)}
+                      className="w-9 h-9 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
 
-            {/* Service Features - Mobile Compact */}
+              {/* Desktop buttons */}
+              <div className="hidden lg:grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button
+                  type="primary"
+                  size="large"
+                  onClick={handleAddToCart}
+                  disabled={!selectedVariant || isAdding}
+                  loading={isAdding}
+                  className="!h-14 !rounded-xl !font-semibold !text-base !bg-gradient-to-r !from-blue-600 !to-blue-700 hover:!from-blue-700 hover:!to-blue-800 !border-0 shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3"
+                >
+                  {isAdding ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-white font-semibold">Đang thêm...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-white font-semibold">Thêm vào giỏ</span>
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  size="large"
+                  onClick={handleBuyNow}
+                  disabled={!selectedVariant}
+                  className="!h-14 !rounded-xl !font-semibold !text-base !bg-gradient-to-r !from-orange-500 !to-red-500 hover:!from-orange-600 hover:!to-red-600 !text-white !border-0 shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3"
+                >
+                  <span>Mua ngay</span>
+                </Button>
+              </div>
+
+              {/* Mobile buttons */}
+              <div className="lg:hidden grid grid-cols-2 gap-3">
+                <Button
+                  type="primary"
+                  onClick={handleAddToCart}
+                  disabled={!selectedVariant || isAdding}
+                  loading={isAdding}
+                  className="!h-12 !rounded-lg !font-medium flex items-center justify-center gap-2"
+                >
+                  {isAdding ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-sm">Đang thêm...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm">Thêm</span>
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  onClick={handleBuyNow}
+                  disabled={!selectedVariant}
+                  className="!h-12 !rounded-lg !font-medium !bg-gradient-to-r !from-orange-500 !to-red-500 !text-white !border-0 flex items-center justify-center gap-2"
+                >
+                  <span className="text-sm">Mua ngay</span>
+                </Button>
+              </div>
+
+              {/* Thông báo khi chưa chọn đủ */}
+              {!selectedVariant && Object.keys(selectedAttributes).length > 0 && (
+                <div className="text-center py-3">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <span className="text-yellow-600 text-lg">⚠️</span>
+                    <span className="text-yellow-700 text-sm font-medium">
+                      Vui lòng chọn đầy đủ thuộc tính
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Service Features */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4 pt-4 lg:pt-6 border-t">
               <div className="text-center p-2 lg:p-3">
                 <div className="inline-flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 bg-blue-100 rounded-lg mb-1 lg:mb-2">
@@ -892,7 +920,6 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Desktop wishlist and share */}
             <div className="hidden lg:flex items-center gap-3 pt-6">
               <button 
                 onClick={() => setIsWishlisted(!isWishlisted)}
@@ -916,7 +943,7 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        {/* Product Description - Mobile Tab View */}
+        {/* Description */}
         <div className="mt-6 lg:mt-12 bg-white rounded-xl lg:rounded-2xl shadow-sm border overflow-hidden">
           <Tabs
             defaultActiveKey="description"
@@ -925,11 +952,7 @@ export default function ProductDetailPage() {
             items={[
               {
                 key: "description",
-                label: (
-                  <span className="text-sm lg:text-base font-medium">
-                    Mô tả sản phẩm
-                  </span>
-                ),
+                label: <span className="text-sm lg:text-base font-medium">Mô tả sản phẩm</span>,
                 children: (
                   <div className="py-4 lg:py-6">
                     <div
@@ -958,7 +981,6 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Mobile Sticky Header */}
       <MobileStickyHeader
         productName={product.name}
         finalPrice={finalPrice}
@@ -968,7 +990,6 @@ export default function ProductDetailPage() {
         hasVariant={!!selectedVariant}
       />
 
-      {/* Login Modal */}
       <Modal
         open={isLoginModalOpen}
         onCancel={() => setIsLoginModalOpen(false)}
