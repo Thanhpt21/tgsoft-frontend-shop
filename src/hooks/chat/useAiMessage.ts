@@ -110,7 +110,7 @@ export const useAiMessage = ({
 
       // 🔧 Lấy sessionId từ localStorage thay vì dùng prop
     const actualSessionId = typeof window !== 'undefined' 
-    ? localStorage.getItem('sessionId') 
+    ? localStorage.getItem('guestSessionId') 
     : sessionId;
 
     const requestBody = {

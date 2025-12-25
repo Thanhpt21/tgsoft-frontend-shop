@@ -323,9 +323,9 @@ useEffect(() => {
         setHasAttemptedInitialLoad(false);
         
         // Xóa localStorage
-        localStorage.removeItem('guestSessionId');
-        localStorage.removeItem('guestConversationId');
-        localStorage.removeItem('localChatMessages');
+        // localStorage.removeItem('guestSessionId');
+        // localStorage.removeItem('guestConversationId');
+        // localStorage.removeItem('localChatMessages');
         
       }
     }
