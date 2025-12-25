@@ -2,7 +2,7 @@
 
 import { Table, Tag, Image, Space, Tooltip, Input, Button, Modal, message, Badge, Switch, Dropdown } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { EditOutlined, DeleteOutlined, PictureOutlined, MessageOutlined, UserOutlined, ShoppingOutlined, MessageFilled, DollarOutlined, TagOutlined } from '@ant-design/icons'
+import { EditOutlined, DeleteOutlined, PictureOutlined, MessageOutlined, UserOutlined, ShoppingOutlined, MessageFilled, DollarOutlined, TagOutlined, TeamOutlined } from '@ant-design/icons'
 import { useUsers } from '@/hooks/user/useUsers'
 import { useDeleteUser } from '@/hooks/user/useDeleteUser'
 import { useState, useEffect } from 'react'
@@ -10,6 +10,7 @@ import { UserCreateModal } from './UserCreateModal'
 import { UserUpdateModal } from './UserUpdateModal'
 import { UserChatModal } from './UserChatModal'
 import { AddRoleModal } from './AddRoleModal'
+import { LeadsModal } from './LeadsModal'
 import ioClient from 'socket.io-client'
 import { useAuth } from '@/context/AuthContext'
 
@@ -57,6 +58,7 @@ export default function UserTable() {
   const [openUpdate, setOpenUpdate] = useState(false)
   const [openChat, setOpenChat] = useState(false)
   const [openAddRole, setOpenAddRole] = useState(false)
+  const [openLeads, setOpenLeads] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserWithStats | null>(null)
   const [unreadCounts, setUnreadCounts] = useState<Record<number, number>>({})
   const { currentUser } = useAuth()
@@ -458,6 +460,13 @@ export default function UserTable() {
               unCheckedChildren="Tắt"
             />
           </div>
+          <Button 
+            type="default" 
+            icon={<TeamOutlined />}
+            onClick={() => setOpenLeads(true)}
+          >
+            Khách hàng AI Bot
+          </Button>
           <Button type="primary" onClick={() => setOpenCreate(true)}>
             Thêm mới
           </Button>
@@ -469,7 +478,7 @@ export default function UserTable() {
         dataSource={userData} 
         rowKey="id"
         loading={isLoading}
-        scroll={{ x: 1400 }} // Tăng scroll vì thêm columns mới
+        scroll={{ x: 1400 }}
         pagination={{
           total: data?.total,
           current: page,
@@ -511,6 +520,11 @@ export default function UserTable() {
         }}
         user={selectedUser}
         conversationId={selectedUser?.conversationId ?? null}
+      />
+
+      <LeadsModal
+        open={openLeads}
+        onClose={() => setOpenLeads(false)}
       />
     </div>
   )
