@@ -98,7 +98,7 @@ export default function TopCategories() {
   if (isLoading) {
     return (
       <section className="py-16 bg-gradient-to-b from-white to-gray-50/30">
-        <div className="container mx-auto px-4 max-w-7xl">
+        <div className="container mx-auto px-4 md:px-0 max-w-7xl">
           <div className="flex flex-col items-center mb-12">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center mb-4">
               <Grid3X3 className="text-blue-600" size={24} />
@@ -123,7 +123,7 @@ export default function TopCategories() {
 
   return (
     <section className="py-16 bg-gradient-to-b from-white to-gray-50/30">
-      <div className="container mx-auto px-4 max-w-7xl">
+      <div className="container mx-auto px-4 md:px-6 lg:px-0 max-w-7xl">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}

@@ -282,15 +282,7 @@ export default function RatingComponent({ productId }: RatingComponentProps) {
               </span>
             </div>
             
-            {/* Sort Options */}
-            <div className="flex gap-2">
-              <Button size="small" className="text-gray-600 hover:text-blue-600">
-                Mới nhất
-              </Button>
-              <Button size="small" className="text-gray-600 hover:text-blue-600">
-                Hữu ích nhất
-              </Button>
-            </div>
+          
           </div>
 
           {/* Reviews List */}

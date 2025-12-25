@@ -174,8 +174,8 @@ function BrandList() {
   if (isError || (!isLoading && (!brands || brands.length === 0))) {
     return (
       <section className="py-12 md:py-16 bg-gradient-to-b from-white to-gray-50">
-        <div className="max-w-[1400px] mx-auto px-4">
-          <div className="text-center py-8 md:py-12">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0">
+          <div className="text-center py-4 md:py-8">
             <div className="w-16 h-16 md:w-24 md:h-24 mx-auto mb-4 md:mb-6 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
               <Award className="text-gray-400 w-8 h-8 md:w-12 md:h-12" />
             </div>
@@ -193,7 +193,7 @@ function BrandList() {
 
   return (
     <section className="py-12 md:py-20 bg-gradient-to-b from-white via-blue-50/30 to-white">
-      <div className="max-w-[1400px] mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}

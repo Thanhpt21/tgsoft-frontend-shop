@@ -141,7 +141,7 @@ const DesktopBreadcrumb = ({ categoryName, productName, categoryId }: {
 }) => {
   return (
     <nav className="hidden lg:block bg-white border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div className="max-w-7xl mx-auto sm:px-6 lg:px-0 py-3">
         <div className="flex items-center text-sm">
           {/* Trang chủ */}
           <Link href="/" className="text-gray-500 hover:text-blue-600 transition-colors">
@@ -182,11 +182,11 @@ const DesktopBreadcrumb = ({ categoryName, productName, categoryId }: {
 const ProductDetailSkeleton = () => (
   <div className="min-h-screen bg-gray-50">
     <div className="bg-white shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div className="max-w-7xl mx-auto sm:px-6 lg:px-0 py-3">
         <Skeleton active paragraph={false} className="!w-64" />
       </div>
     </div>
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
         <Skeleton.Image active className="!w-full !h-[500px] rounded-2xl" />
         <div className="space-y-6">
@@ -201,7 +201,7 @@ const ProductDetailSkeleton = () => (
   </div>
 );
 
-// Helper component for Attribute Selection
+// Helper component for Attribute Selection - Simple Style
 const AttributeSelection = ({ 
   attr, 
   variants, 
@@ -239,33 +239,39 @@ const AttributeSelection = ({
     );
   }, [variants, allAttributeValues, selectedAttributes, attr.id]);
 
+  const currentSelection = selectedAttributes[attr.id.toString()];
+
   if (availableValues.length === 0) return null;
 
   return (
     <div className="space-y-3">
-      <label className="font-semibold text-gray-900">
+      <label className="text-sm font-medium text-gray-700">
         {attr.name}
       </label>
       <div className="flex flex-wrap gap-2">
-        {availableValues.map((av: any) => (
-          <button
-            key={av.id}
-            onClick={() => {
-              onSelect(attr.id.toString(), av.id);
-            }}
-            className={`
-              px-4 py-2.5 rounded-lg border-2 transition-all duration-200
-              border-gray-300 hover:border-blue-500 hover:bg-blue-50 text-gray-700
-            `}
-          >
-            <span>{av.value}</span>
-          </button>
-        ))}
+        {availableValues.map((av: any) => {
+          const isSelected = currentSelection === av.id;
+          return (
+            <button
+              key={av.id}
+              onClick={() => onSelect(attr.id.toString(), av.id)}
+              className={`
+                px-4 py-2 rounded-lg border transition-all duration-200
+                text-sm font-medium
+                ${isSelected 
+                  ? 'border-blue-500 bg-blue-500 text-white shadow-md' 
+                  : 'border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50'
+                }
+              `}
+            >
+              {av.value}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 };
-
 // Mobile sticky header
 const MobileStickyHeader = ({ 
   productName, 
@@ -583,7 +589,7 @@ export default function ProductDetailPage() {
         categoryId={product.categoryId ?? undefined}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
+      <div className="max-w-7xl mx-auto sm:px-6 lg:px-0 py-4 lg:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
           {/* Product Images - Mobile Optimized */}
           <div className="space-y-4">
@@ -767,79 +773,19 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            {/* Selected Attributes Display - Mobile Compact */}
-            {Object.keys(selectedAttributes).length > 0 && (
-              <div className="bg-blue-50 rounded-xl p-3 lg:p-4 border border-blue-200">
-                <div className="flex items-center gap-2 mb-2 lg:mb-3">
-                  <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
-                  <span className="font-medium text-blue-800 text-sm lg:text-base">Đã chọn</span>
-                </div>
-                <div className="space-y-2 lg:space-y-3">
-                  {Object.entries(selectedAttributes).map(([attrId, valueId]) => {
-                    const attributeName = attributeMap[parseInt(attrId)] || `Thuộc tính ${attrId}`;
-                    const valueName = getAttributeValueName(valueId);
-                    
-                    return (
-                      <div key={attrId} className="flex items-center justify-between bg-white rounded-lg p-2 lg:p-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs lg:text-sm text-gray-600 truncate">{attributeName}</div>
-                          <div className="font-medium text-gray-900 text-sm truncate">{valueName}</div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            const newAttrs = { ...selectedAttributes };
-                            delete newAttrs[attrId];
-                            setSelectedAttributes(newAttrs);
-                          }}
-                          className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1 ml-2"
-                        >
-                          <RotateCcw className="w-3 h-3 lg:w-4 lg:h-4" />
-                          Đổi
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* Available Attributes Selection - Mobile Optimized */}
             {availableAttributes.length > 0 && (
               <div className="space-y-4 lg:space-y-6">
-                {availableAttributes.map((attr: any) => {
-                  // Skip if attribute already selected
-                  if (selectedAttributes[attr.id.toString()]) return null;
-                  
-                  return (
-                    <AttributeSelection
-                      key={attr.id}
-                      attr={attr}
-                      variants={variants || []}
-                      allAttributeValues={allAttributeValues}
-                      selectedAttributes={selectedAttributes}
-                      onSelect={handleAttributeSelect}
-                    />
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Selected Variant Info - Mobile Compact */}
-            {selectedVariant && (
-              <div className="bg-green-50 rounded-xl p-3 lg:p-4 border border-green-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" />
-                  <span className="font-medium text-green-800 text-sm lg:text-base">Biến thể đã chọn</span>
-                  <span className="ml-auto text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded">
-                    Còn hàng
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="space-y-1">
-                    <div className="text-gray-600 text-xs">Mã SKU</div>
-                    <div className="font-medium text-sm truncate">{selectedVariant.sku}</div>
-                  </div>
-                </div>
+                {availableAttributes.map((attr: any) => (
+                  <AttributeSelection
+                    key={attr.id}
+                    attr={attr}
+                    variants={variants || []}
+                    allAttributeValues={allAttributeValues}
+                    selectedAttributes={selectedAttributes}
+                    onSelect={handleAttributeSelect}
+                  />
+                ))}
               </div>
             )}
 
@@ -861,12 +807,10 @@ export default function ProductDetailPage() {
           <span className="flex items-center justify-center">
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
           </span>
-          Đang thêm...
+          <span className="text-white font-semibold">Đang thêm...</span>
         </>
       ) : (
-        <>
-          Thêm vào giỏ
-        </>
+        <span className="text-white font-semibold">Thêm vào giỏ</span>
       )}
     </Button>
     
@@ -914,17 +858,6 @@ export default function ProductDetailPage() {
     </Button>
   </div>
   
-  {/* Warning message */}
-  {!selectedVariant && Object.keys(selectedAttributes).length > 0 && (
-    <div className="text-center py-2 lg:py-3">
-      <div className="inline-flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <span className="text-yellow-600 text-lg">⚠️</span>
-        <span className="text-yellow-700 text-xs lg:text-sm font-medium">
-          Biến thể này hiện không có sẵn
-        </span>
-      </div>
-    </div>
-  )}
 </div>
 
             {/* Service Features - Mobile Compact */}

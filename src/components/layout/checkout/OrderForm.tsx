@@ -451,7 +451,7 @@ const OrderForm: React.FC = () => {
   // Nếu đang loading chính
   if (!mounted || isCartLoading) {
     return (
-      <div className="min-h-screen py-8 md:py-12">
+      <div className="min-h-screen py-4 md:py-8">
         <div className="container mx-auto max-w-7xl px-2 md:px-4">
           <Skeleton active paragraph={{ rows: 1 }} className="mb-8" />
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -512,10 +512,10 @@ const OrderForm: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen py-8 md:py-12">
+    <div className="min-h-screen py-4 md:py-8">
       <div className="container mx-auto max-w-7xl px-2 md:px-4">
         {/* Breadcrumb */}
-        <div className="mb-8 flex items-center gap-2 text-gray-600 px-2 md:px-0">
+        <div className="py-3 flex items-center gap-2 text-gray-600 md:px-0">
           <Link href="/gio-hang" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
             <ShoppingCartOutlined />
             <span>Giỏ hàng</span>
@@ -543,9 +543,6 @@ const OrderForm: React.FC = () => {
             {/* Shipping Address */}
             <Card className="!rounded-3xl !border-2 shadow-lg">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl flex items-center justify-center">
-                  <EnvironmentOutlined className="text-white text-lg" />
-                </div>
                 <Title level={5} className="!mb-0">Địa chỉ giao hàng</Title>
               </div>
               <ShippingAddressSelection
@@ -557,9 +554,6 @@ const OrderForm: React.FC = () => {
             {/* Warehouse Selection */}
             <Card className="!rounded-3xl !border-2 shadow-lg">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
-                  <ShopOutlined className="text-white text-lg" />
-                </div>
                 <Title level={5} className="!mb-0">Chọn kho giao hàng</Title>
               </div>
               {isWarehousesLoading ? (
@@ -598,9 +592,6 @@ const OrderForm: React.FC = () => {
             {/* Shipping Method */}
             <Card className="!rounded-3xl !border-2 shadow-lg">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-500 rounded-xl flex items-center justify-center">
-                  <TruckOutlined className="text-white text-lg" />
-                </div>
                 <Title level={5} className="!mb-0">Phương thức vận chuyển</Title>
               </div>
               <ShippingMethodSelection
@@ -621,9 +612,6 @@ const OrderForm: React.FC = () => {
             {/* Payment Method */}
             <Card className="!rounded-3xl !border-2 shadow-lg">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
-                  <CreditCardOutlined className="text-white text-lg" />
-                </div>
                 <Title level={5} className="!mb-0">Phương thức thanh toán</Title>
               </div>
               <PaymentMethodSelection onMethodSelected={setPaymentMethod} />

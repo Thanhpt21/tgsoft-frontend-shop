@@ -215,7 +215,7 @@ export default function ProductList() {
   if (isLoading) {
     return (
       <section className="py-16 bg-gradient-to-b from-white to-gray-50/30">
-        <div className="max-w-[1400px] mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0">
           <div className="flex flex-col items-center mb-10 text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -247,7 +247,7 @@ export default function ProductList() {
   if (!filteredProducts || filteredProducts.length === 0) {
     return (
       <section className="py-16 bg-gradient-to-b from-white to-gray-50/30">
-        <div className="max-w-[1400px] mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -270,7 +270,7 @@ export default function ProductList() {
 
   return (
     <section className="py-16 bg-gradient-to-b from-white to-gray-50/30">
-      <div className="max-w-[1400px] mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

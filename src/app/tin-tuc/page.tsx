@@ -162,9 +162,9 @@ export default function NewsPage() {
   // ✅ Loading state
   if (isLoading && !blogs) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <div className="min-h-screen">
         <BreadcrumbSkeleton />
-        <div className="max-w-[1400px] mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0 py-8">
           <div className="mb-8">
             <div className="h-8 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg w-64 mb-4"></div>
             <div className="flex flex-wrap gap-4">
@@ -186,8 +186,8 @@ export default function NewsPage() {
   // ✅ Error state
   if (isError) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-        <div className="max-w-[1400px] mx-auto px-4 py-8">
+      <div className="min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0 py-8">
           <Breadcrumb />
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
             <div className="w-24 h-24 bg-gradient-to-br from-red-100 to-red-50 rounded-full flex items-center justify-center mb-6">
@@ -213,97 +213,13 @@ export default function NewsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen">
       {/* Breadcrumb */}
       <Breadcrumb />
 
-      <div className="max-w-[1400px] mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
-            Tin tức & Blog
-          </h1>
-          <p className="text-gray-600">
-            Cập nhật những thông tin mới nhất về sản phẩm, xu hướng và kiến thức hữu ích
-          </p>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0 py-8">
 
-        {/* Active Filters */}
-        {isFilterActive && (
-          <div className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 font-medium text-blue-700">
-                <FilterOutlined />
-                <span>Bộ lọc đang áp dụng:</span>
-              </div>
-              
-              {urlParams.search && (
-                <FilterBadge 
-                  label={`Tìm kiếm: "${urlParams.search}"`}
-                  onRemove={() => {
-                    setLocalSearch('');
-                    updateUrlParams({ search: '', page: 1 });
-                  }}
-                />
-              )}
-              
-              <Button
-                type="link"
-                size="small"
-                onClick={resetFilters}
-                className="!text-gray-500 hover:!text-red-600 ml-auto"
-                icon={<ReloadOutlined />}
-              >
-                Xóa tất cả
-              </Button>
-            </div>
-          </div>
-        )}
 
-        {/* Filters and Search Bar */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 mb-8 shadow-sm">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search Input */}
-            <div className="flex-1">
-              <Input
-                placeholder="Tìm kiếm tin tức..."
-                prefix={<SearchOutlined className="text-gray-400" />}
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
-                size="large"
-                className="rounded-lg"
-                allowClear
-              />
-            </div>
-
-            {/* Sort Options */}
-            <Select
-              value={sortBy}
-              onChange={(value) => {
-                setSortBy(value);
-                updateUrlParams({ sortBy: value });
-              }}
-              options={[
-                { label: 'Mới nhất', value: 'newest' },
-                { label: 'Cũ nhất', value: 'oldest' },
-                { label: 'Xem nhiều nhất', value: 'popular' },
-              ]}
-              className="min-w-[180px]"
-              size="large"
-            />
-
-            {/* Mobile Filter Button */}
-            <Button
-              type="primary"
-              icon={<FilterOutlined />}
-              onClick={() => setShowMobileFilters(true)}
-              className="md:hidden !bg-gradient-to-r !from-blue-600 !to-purple-600 !border-0"
-              size="large"
-            >
-              Lọc
-            </Button>
-          </div>
-        </div>
 
 
         {/* Blog Grid */}
@@ -462,8 +378,8 @@ export default function NewsPage() {
 
 // ✅ Breadcrumb Component
 const Breadcrumb = () => (
-  <div className="border-b border-gray-200">
-    <div className="max-w-[1400px] mx-auto px-4 py-4">
+  <div className="">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0 py-3">
       <div className="flex items-center gap-2 text-sm">
         <Link
           href="/"
@@ -480,8 +396,8 @@ const Breadcrumb = () => (
 
 // ✅ Breadcrumb Skeleton
 const BreadcrumbSkeleton = () => (
-  <div className="border-b border-gray-200">
-    <div className="max-w-[1400px] mx-auto px-4 py-4">
+  <div className="">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0 py-3">
       <div className="flex items-center gap-2 text-sm">
         <div className="h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-16"></div>
         <div className="h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-4"></div>

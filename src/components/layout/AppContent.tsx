@@ -39,7 +39,7 @@ export default function AppContent({ children }: AppContentProps) {
         
         <main className="flex-grow">
           {/* Container cố định width cho tất cả các trang trừ admin và trang chủ */}
-          <div className={isAdminPage || isHomePage ? 'w-full' : 'max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 w-full'}>
+          <div className={isAdminPage || isHomePage ? 'w-full' : 'max-w-7xl mx-auto px-4 md:px-6 lg:px-0 w-full'}>
             {children}
           </div>
         </main>

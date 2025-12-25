@@ -157,7 +157,7 @@ const ProductBreadcrumb = ({
   // Desktop Breadcrumb (full)
   const DesktopBreadcrumb = () => (
     <nav className="hidden lg:block bg-white border-b">
-      <div className="max-w-[1400px] mx-auto px-4 py-3">
+      <div className="max-w-7xl mx-auto py-3">
         <div className="flex items-center gap-2 text-sm text-gray-500">
           {/* Home */}
           <Link
@@ -625,10 +625,10 @@ export default function ProductsPage() {
   // Loading state
   if (isProductsLoading && currentPage === 1) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white w-full">
+      <div className="min-h-screen w-full">
         {/* Skeleton Breadcrumb */}
         <div className="hidden lg:block bg-white border-b">
-          <div className="max-w-[1400px] mx-auto px-4 py-3">
+          <div className="max-w-7xl mx-auto py-3">
             <div className="flex items-center gap-2">
               <div className="h-4 w-24 bg-gradient-to-r from-gray-200 to-gray-300 rounded animate-pulse"></div>
               <div className="h-4 w-4 text-gray-400">›</div>
@@ -637,7 +637,7 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        <div className="max-w-[1400px] mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto py-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Filters skeleton */}
             <div className="hidden lg:block lg:col-span-3">
@@ -690,7 +690,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white w-full">
+    <div className="min-h-screen w-full">
       {/* Light Loading Overlay */}
       {showLightLoading && (
         <div className="fixed inset-0 z-[9999] pointer-events-none">
@@ -712,7 +712,7 @@ export default function ProductsPage() {
       />
 
       {/* Main Content */}
-      <div className="max-w-[1400px] mx-auto px-4 py-4 lg:py-8">
+      <div className="max-w-7xl mx-auto py-4 lg:py-8">
         {/* Active Filters Bar */}
         {(selectedCategoryId || selectedBrandId || showFeatured || showPromoted || getCurrentParams().search || currentPage > 1) && (
           <div className="mb-6 lg:mb-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">

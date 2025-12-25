@@ -361,7 +361,7 @@ const ShoppingCart = () => {
     return (
       <div className="min-h-screen py-12">
         <div className="container mx-auto px-4 max-w-6xl">
-          <div className="mb-8 flex items-center gap-2 text-gray-600">
+          <div className="my-2 flex items-center gap-2 text-gray-600">
             <Link href="/" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
               <HomeOutlined />
               <span>Trang chủ</span>
@@ -392,10 +392,10 @@ const ShoppingCart = () => {
   }
 
   return (
-    <div className="min-h-screen py-8 md:py-12">
+    <div className="min-h-screen py-4 md:py-8">
       <div className="container mx-auto max-w-7xl md:px-4">
         {/* Breadcrumb */}
-        <div className="mb-8 flex items-center gap-2 text-gray-600">
+        <div className="my-2 flex items-center gap-2 text-gray-600">
           <Link href="/" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
             <HomeOutlined />
             <span>Trang chủ</span>

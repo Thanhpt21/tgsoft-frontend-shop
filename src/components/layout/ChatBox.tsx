@@ -1547,7 +1547,7 @@ return (
 
           {/* Empty state với design hiện đại */}
           {messages.length === 0 && !isTyping.admin && !isTyping.ai && (
-            <div className="text-center py-8 md:py-12 px-4">
+            <div className="text-center py-4 md:py-8 px-4">
               <div className="relative inline-block mb-4">
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center text-4xl mb-2">
                   {currentUser ? '👋' : '🤖'}

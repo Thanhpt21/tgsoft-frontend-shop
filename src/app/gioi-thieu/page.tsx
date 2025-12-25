@@ -149,7 +149,7 @@ export default function AboutUsPage() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-white">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <Text className="text-gray-600">Đang tải trang giới thiệu...</Text>
@@ -159,14 +159,16 @@ export default function AboutUsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen">
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-[1400px] mx-auto px-4 py-3">
+      <div className="">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0 py-3">
           <div className="flex items-center gap-2 text-sm">
-            <a href="/" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
+            <span>
+              <a href="/" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
               Trang chủ
             </a>
+            </span>
             <span className="text-gray-400">/</span>
             <span className="text-gray-600 font-medium">Giới thiệu</span>
           </div>
@@ -176,7 +178,7 @@ export default function AboutUsPage() {
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5" />
-        <div className="max-w-[1400px] mx-auto px-4 py-12 md:py-20">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0 py-12 md:py-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -217,7 +219,7 @@ export default function AboutUsPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-[1400px] mx-auto px-4 pb-20">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0 py-3">
         {/* Story Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
           <motion.div

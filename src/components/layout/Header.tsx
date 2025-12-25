@@ -63,7 +63,7 @@ const MarqueeBanner = () => {
 
   return (
     <div className="relative bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0">
         <div className="flex items-center justify-center py-2">
           <div className="flex items-center space-x-8 overflow-hidden">
             {/* Static Left Icon */}
@@ -286,25 +286,7 @@ const SearchBar = () => {
         </button>
       </form>
 
-      {(isFocused || searchValue) && displayCategories.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden z-50 animate-fadeIn">
-          <div className="p-4">
-            <div className="text-xs font-medium text-gray-500 mb-2">Gợi ý tìm kiếm</div>
-            <div className="flex flex-wrap gap-2">
-              {displayCategories.map((category: any) => (
-                <Link
-                  key={category.id}
-                  href={getCategoryHref(category.id)}
-                  onClick={() => setIsFocused(false)}
-                  className="px-3 py-1.5 text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-gray-200 hover:border-blue-200"
-                >
-                  {category.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 };
@@ -409,7 +391,7 @@ const Header = ({ config }: HeaderProps) => {
       <header className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled ? "bg-white shadow-md" : "bg-white"
       }`}>
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link href="/" className="flex items-center flex-shrink-0 hover:opacity-80 transition-opacity">

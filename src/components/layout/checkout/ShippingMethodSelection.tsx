@@ -148,7 +148,6 @@ const ShippingMethodSelection: React.FC<ShippingMethodSelectionProps> = ({
 
   return (
     <div>
-      <Title level={4}>Phương thức giao hàng</Title>
 
       {/* Chọn Giao hàng tiết kiệm */}
     

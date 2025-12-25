@@ -64,7 +64,7 @@ export default function ContactPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-16 md:py-24">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0 py-16 md:py-20">
           <div className="flex flex-col gap-4">
             <div className="h-8 bg-gray-200 rounded w-64 mx-auto"></div>
             <div className="h-4 bg-gray-200 rounded w-48 mx-auto"></div>
@@ -85,8 +85,8 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Breadcrumb */}
-      <div className="border-b border-gray-200">
-        <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-4">
+      <div className="">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-0 py-3">
           <div className="flex items-center gap-2 text-sm">
             <a href="/" className="text-blue-600 hover:text-blue-700 font-medium">
               Trang chủ
@@ -98,7 +98,7 @@ export default function ContactPage() {
       </div>
 
       {/* Main container */}
-      <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-16 md:py-24">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0 py-16 md:py-20">
         {/* Header Section */}
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">

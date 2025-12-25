@@ -64,10 +64,10 @@ const AccountPage = () => {
   }
 
   return (
-    <div className="min-h-screen py-8 md:py-12 w-full">
+    <div className="min-h-screen py-4 md:py-8 w-full">
       <div className="container mx-auto max-w-7xl px-2 md:px-4">
         {/* Breadcrumb */}
-        <div className="mb-8 flex items-center gap-2 text-gray-600 px-2 md:px-0">
+        <div className="py-3 flex items-center gap-2 text-gray-600 md:px-0">
           <Link href="/" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
             <HomeOutlined />
             <span>Trang chủ</span>

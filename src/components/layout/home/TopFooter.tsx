@@ -158,8 +158,8 @@ export default function HeroSection() {
   const banner = banners[currentBanner];
 
   return (
-    <section className="py-8 md:py-12">
-      <div className="max-w-[1400px] mx-auto px-4">
+    <section className="py-4 md:py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-0">
         <div 
           className="relative w-full rounded-3xl overflow-hidden h-[400px] md:h-[500px] lg:h-[600px] shadow-2xl"
           onMouseEnter={() => setIsHovered(true)}
