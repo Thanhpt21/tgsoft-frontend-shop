@@ -38,58 +38,42 @@ export const VariantCreateModal = ({ open, onClose, refetch, productId }: Varian
     return `BR${timestamp}${randomStr}`
   }, [])
 
-  // Hàm generate SKU ngắn gọn (5 ký tự)
-  const generateShortSKU = useCallback(() => {
-    // Lấy 5 ký tự random từ a-z0-9
+  // Hàm generate SKU ngẫu nhiên 5-10 ký tự với 3 số cuối timestamp
+  const generateRandomSKU = useCallback(() => {
+    // Lấy 3 số cuối timestamp
+    const timestampSuffix = Date.now().toString().slice(-3)
+    
+    // Ký tự cho phần random (chữ in hoa + số)
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    let result = ''
-    for (let i = 0; i < 5; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length))
+    
+    // Độ dài random từ 2-7 ký tự để tổng 5-10 ký tự (vì đã có 3 số timestamp)
+    const randomLength = Math.floor(Math.random() * 6) + 2 // 2-7 ký tự
+    
+    // Tạo phần random
+    let randomPart = ''
+    for (let i = 0; i < randomLength; i++) {
+      randomPart += chars.charAt(Math.floor(Math.random() * chars.length))
     }
-    return result
+    
+    // Kết hợp: randomPart + 3 số timestamp
+    const sku = (randomPart + timestampSuffix).toUpperCase()
+    
+    // Đảm bảo tổng độ dài từ 5-10 ký tự
+    return sku.substring(0, 10) // Cắt nếu vượt quá 10 ký tự
   }, [])
-
-  // Hàm generate SKU từ các attribute đã chọn (tối đa 5 ký tự)
-  const generateSKUFromAttributes = useCallback(() => {
-    if (!productAttributes.length) return generateShortSKU()
-    
-    // Tạo SKU từ chữ cái đầu của attribute và value
-    const skuParts = productAttributes.map(pa => {
-      const attrId = pa.attributeId
-      const valueId = selectedAttrValues[attrId]
-      if (!valueId) return ''
-      
-      const attr = attributesInfo[attrId]
-      const value = attributeValuesMap[attrId]?.find(v => v.id === valueId)
-      if (!attr || !value) return ''
-      
-      // Lấy chữ cái đầu của attribute và value (VD: Color Red -> CR)
-      const attrChar = attr.name.charAt(0).toUpperCase()
-      const valueChar = value.value.charAt(0).toUpperCase()
-      return `${attrChar}${valueChar}`
-    }).filter(Boolean)
-    
-    if (skuParts.length > 0) {
-      // Ghép lại và cắt tối đa 5 ký tự
-      const combined = skuParts.join('')
-      return combined.substring(0, 5).toUpperCase()
-    }
-    
-    return generateShortSKU()
-  }, [productAttributes, selectedAttrValues, attributesInfo, attributeValuesMap, generateShortSKU])
 
   // Tự động tạo barcode và SKU khi mở modal
   useEffect(() => {
     if (open) {
       const newBarcode = generateBarcode()
-      const newSKU = generateSKUFromAttributes()
+      const newSKU = generateRandomSKU()
       
       form.setFieldsValue({
         barcode: newBarcode,
         sku: newSKU
       })
     }
-  }, [open, form, generateBarcode, generateSKUFromAttributes])
+  }, [open, form, generateBarcode, generateRandomSKU])
 
   // Lấy thông tin attribute và giá trị của chúng
   useEffect(() => {
@@ -120,14 +104,6 @@ export const VariantCreateModal = ({ open, onClose, refetch, productId }: Varian
 
     fetchAttributesAndValues()
   }, [open, productAttributes])
-
-  // Khi attribute value thay đổi, cập nhật SKU
-  useEffect(() => {
-    if (Object.keys(selectedAttrValues).length > 0) {
-      const newSKU = generateSKUFromAttributes()
-      form.setFieldsValue({ sku: newSKU })
-    }
-  }, [selectedAttrValues, form, generateSKUFromAttributes])
 
   // Gửi form
   const onFinish = async (values: any) => {
@@ -185,9 +161,9 @@ export const VariantCreateModal = ({ open, onClose, refetch, productId }: Varian
     message.success('Đã tạo barcode mới')
   }
 
-  // Nút generate SKU mới (ngắn gọn)
+  // Nút generate SKU mới (ngẫu nhiên)
   const handleRegenerateSKU = () => {
-    const newSKU = generateSKUFromAttributes()
+    const newSKU = generateRandomSKU()
     form.setFieldsValue({ sku: newSKU })
     message.success('Đã tạo SKU mới')
   }
@@ -211,21 +187,22 @@ export const VariantCreateModal = ({ open, onClose, refetch, productId }: Varian
                 <div className="flex items-center justify-between">
                   <span>SKU</span>
                   <span className="text-xs text-gray-500">
-                    5 ký tự
+                    5-10 ký tự
                   </span>
                 </div>
               }
               name="sku"
               rules={[
                 { required: true, message: 'Vui lòng nhập SKU' },
-                { max: 5, message: 'SKU phải có đúng 5 ký tự' },
+                { min: 5, message: 'SKU phải có ít nhất 5 ký tự' },
+                { max: 10, message: 'SKU tối đa 10 ký tự' },
                 { pattern: /^[A-Z0-9]+$/, message: 'SKU chỉ chứa chữ in hoa và số' }
               ]}
-              extra="SKU tự động tạo 5 ký tự ngắn gọn"
+              extra="SKU tự động tạo ngẫu nhiên 5-10 ký tự (bao gồm 3 số cuối timestamp)"
             >
               <Input 
-                placeholder="VD: XSBLK"
-                maxLength={5}
+                placeholder="VD: XSBLK123"
+                maxLength={10}
                 style={{ textTransform: 'uppercase' }}
                 suffix={
                   <ReloadOutlined 
