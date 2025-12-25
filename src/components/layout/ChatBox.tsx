@@ -261,11 +261,6 @@ const renderMessageWithLinks = (message: string) => {
   // 4. Xử lý line breaks
   processed = processed.replace(/\n/g, '<br/>');
   
-  // DEBUG: In ra để kiểm tra
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Input message:', message);
-    console.log('Output processed:', processed);
-  }
 
   return (
     <div 
@@ -1606,21 +1601,6 @@ return (
                     <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-teal-50 border-l border-b border-teal-100 rounded-tr-full"></div>
                   )}
                   
-                  {!isUser && (
-                    <div className="text-xs font-semibold mb-1 text-teal-700 flex items-center gap-1">
-                      {msg.senderType === 'ADMIN' ? (
-                        <>
-                          <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                          <span>Hỗ trợ viên</span>
-                        </>
-                      ) : msg.senderType === 'BOT' ? (
-                        <>
-                          <span className="w-2 h-2 bg-teal-500 rounded-full"></span>
-                          <span>Hỗ trợ viên</span>
-                        </>
-                      ) : null}
-                    </div>
-                  )}
                   
                   <div className="whitespace-pre-wrap break-words text-sm md:text-sm leading-relaxed relative z-10">
                     {renderMessageWithLinks(msg.message)}
@@ -1660,14 +1640,7 @@ return (
             <div className="flex justify-start animate-in fade-in duration-300">
               <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl px-4 py-3 max-w-[85%] md:max-w-[75%]">
                 <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 flex items-center justify-center text-white text-xs">
-                      AI
-                    </div>
-                    <div className="absolute -inset-2 bg-emerald-400/20 rounded-full blur-sm"></div>
-                  </div>
                   <div className="flex-1">
-                    <span className="text-sm font-medium text-emerald-700">Đang suy nghĩ</span>
                     <div className="flex gap-1 mt-1">
                       <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
                       <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '200ms' }}></div>

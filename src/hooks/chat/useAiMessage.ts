@@ -108,10 +108,21 @@ export const useAiMessage = ({
       throw new Error('Token API không được cấu hình');
     }
 
+      // 🔧 Lấy sessionId từ localStorage thay vì dùng prop
+    const actualSessionId = typeof window !== 'undefined' 
+    ? localStorage.getItem('sessionId') 
+    : sessionId;
+
     const requestBody = {
       bot_id: BOT_ID,
-      message: userMessage
+      message: userMessage,
+      session_id: actualSessionId
     };
+
+      // 🔍 Console log để debug
+    console.log('=== AI REQUEST DEBUG ===');
+    console.log('📤 Request Body:', requestBody);
+    console.log('========================');
 
     try {
       const response = await fetch(`${AIBAN_API_URL}/chat`, {
@@ -130,6 +141,10 @@ export const useAiMessage = ({
       }
 
       const data = await response.json();
+
+        
+    // 🔍 Console log response data
+      console.log('✅ AI Response Data:', data);
 
       if (!data.response) {
         return 'Xin lỗi, tôi không thể trả lời ngay lúc này.';
@@ -173,7 +188,7 @@ export const useAiMessage = ({
     const aiPendingMessage: ChatMessage = {
       id: tempId,
       senderType: 'BOT',
-      message: 'Đang suy nghĩ...',
+      message: '...',
       conversationId: isGuestMode ? null : currentConvId || undefined,
       sessionId,
       createdAt: new Date().toISOString(),
@@ -202,7 +217,7 @@ export const useAiMessage = ({
         )
       );
 
-      if (!isGuestMode && currentConvId && aiResponse && aiResponse !== 'Đang suy nghĩ...') {
+      if (!isGuestMode && currentConvId && aiResponse && aiResponse !== '...') {
         saveBotMessage.mutate({ 
           conversationId: Number(currentConvId),
           message: aiResponse,
