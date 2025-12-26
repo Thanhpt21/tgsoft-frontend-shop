@@ -30,76 +30,9 @@ export const useAiMessage = ({
   const AIBAN_API_URL = 'https://api.aiban.vn/api/v1';
   const BOT_ID = 5;
   const [isAiProcessing, setIsAiProcessing] = useState(false);
-  const [chatHistory, setChatHistory] = useState<any[]>([]);
 
   /**
-   * 📜 Lấy lịch sử chat từ API aiban.vn
-   */
-  const fetchChatHistory = useCallback(async () => {
-    try {
-      const response = await fetch(`${AIBAN_API_URL}/chat/history?bot_id=${BOT_ID}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Lỗi lấy lịch sử: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.data && Array.isArray(data.data)) {
-        setChatHistory(data.data);
-        return data.data;
-      }
-
-      return [];
-    } catch (error) {
-      return [];
-    }
-  }, []);
-
-  /**
-   * 🔄 Chuyển đổi lịch sử từ API sang ChatMessage format
-   */
-  const convertHistoryToChatMessages = useCallback((history: any[]): ChatMessage[] => {
-    const messages: ChatMessage[] = [];
-
-    history.forEach((item) => {
-      if (item.user_message) {
-        messages.push({
-          id: `user-${item.id}`,
-          senderType: 'GUEST',
-          message: item.user_message,
-          conversationId: conversationId || undefined,
-          sessionId: item.session_id,
-          createdAt: item.created_at,
-          status: 'sent'
-        });
-      }
-
-      if (item.ai_response) {
-        messages.push({
-          id: `ai-${item.id}`,
-          senderType: 'BOT',
-          message: item.ai_response,
-          conversationId: conversationId || undefined,
-          sessionId: item.session_id,
-          createdAt: item.created_at,
-          status: 'sent'
-        });
-      }
-    });
-
-    return messages.sort((a, b) => 
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
-  }, [conversationId]);
-
-  /**
-   * 🤖 Gọi API AI của aiban.vn
+   * 🤖 Gọi API AI của aiban.vn để lấy phản hồi ngay lập tức
    */
   const callAibanApi = useCallback(async (userMessage: string) => {
     const token = process.env.NEXT_PUBLIC_AI_PUBLIC_TOKEN;
@@ -108,21 +41,17 @@ export const useAiMessage = ({
       throw new Error('Token API không được cấu hình');
     }
 
-      // 🔧 Lấy sessionId từ localStorage thay vì dùng prop
+    // Lấy sessionId từ localStorage (dành cho guest) hoặc từ prop
     const actualSessionId = typeof window !== 'undefined' 
-    ? localStorage.getItem('guestSessionId') 
-    : sessionId;
+      ? localStorage.getItem('guestSessionId') || sessionId 
+      : sessionId;
 
     const requestBody = {
       bot_id: BOT_ID,
       message: userMessage,
-      session_id: actualSessionId
+      session_id: actualSessionId, // Có thể null nếu chưa có session
     };
 
-      // 🔍 Console log để debug
-    console.log('=== AI REQUEST DEBUG ===');
-    console.log('📤 Request Body:', requestBody);
-    console.log('========================');
 
     try {
       const response = await fetch(`${AIBAN_API_URL}/chat`, {
@@ -130,7 +59,7 @@ export const useAiMessage = ({
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
+          'Accept': 'application/json',
         },
         body: JSON.stringify(requestBody),
       });
@@ -142,148 +71,133 @@ export const useAiMessage = ({
 
       const data = await response.json();
 
-        
-    // 🔍 Console log response data
-      console.log('✅ AI Response Data:', data);
 
       if (!data.response) {
-        return 'Xin lỗi, tôi không thể trả lời ngay lúc này.';
+        return 'Xin lỗi, tôi không thể trả lời ngay lúc này. Vui lòng thử lại sau.';
       }
 
       return data.response;
-
     } catch (error: any) {
+      console.error('❌ AI API Error:', error);
       throw error;
     }
-  }, []);
+  }, [sessionId]);
 
   /**
-   * 💬 Gửi tin nhắn AI
+   * 💬 Gửi tin nhắn AI (chỉ xử lý phản hồi cho tin nhắn hiện tại)
    */
-  const sendAiMessage = useCallback(async (
-    msg: string, 
-    targetConversationId?: number | null, 
-    currentMessages?: ChatMessage[]
-  ) => {
-    if (isAiProcessing) {
-      return;
-    }
-
-    let currentConvId = targetConversationId !== undefined ? targetConversationId : conversationId;
-    
-    if (!currentConvId && !isGuest) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      currentConvId = conversationId;
-      if (!currentConvId) {
+  const sendAiMessage = useCallback(
+    async (
+      msg: string,
+      targetConversationId?: number | null,
+      currentMessages?: ChatMessage[]
+    ) => {
+      if (isAiProcessing) {
         return;
       }
-    }
-    
-    const isGuestMode = isGuest;
-    const tempId = isGuestMode ? `ai-local-${Date.now()}` : `ai-temp-${Date.now()}`;
 
-    setIsAiProcessing(true);
-    setIsTyping(prev => ({ ...prev, ai: true }));
+      let currentConvId = targetConversationId ?? conversationId;
 
-    const aiPendingMessage: ChatMessage = {
-      id: tempId,
-      senderType: 'BOT',
-      message: '...',
-      conversationId: isGuestMode ? null : currentConvId || undefined,
+      // Nếu là user đã login nhưng chưa có conversationId → đợi một chút backend tạo
+      if (!currentConvId && !isGuest) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        currentConvId = conversationId;
+        if (!currentConvId) {
+          console.warn('Không có conversationId để lưu bot message');
+          // Vẫn tiếp tục trả lời AI dù chưa có convId
+        }
+      }
+
+      const isGuestMode = isGuest;
+      const tempId = `ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Bắt đầu typing + thêm placeholder "..."
+      setIsAiProcessing(true);
+      setIsTyping(prev => ({ ...prev, ai: true }));
+
+      const aiPendingMessage: ChatMessage = {
+        id: tempId,
+        senderType: 'BOT',
+        message: '...',
+        conversationId: isGuestMode ? null : currentConvId || undefined,
+        sessionId,
+        createdAt: new Date().toISOString(),
+        tempId,
+        status: isGuestMode ? 'local' : 'sending',
+      };
+
+      addMessage(aiPendingMessage);
+
+      // Delay nhỏ để UI mượt
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      try {
+        const aiResponse = await callAibanApi(msg);
+
+        // Cập nhật tin nhắn AI với nội dung thật
+        setMessages(prev =>
+          prev.map(message =>
+            message.tempId === tempId
+              ? {
+                  ...message,
+                  id: isGuestMode ? `ai-local-${Date.now()}` : `ai-${Date.now()}`,
+                  message: aiResponse,
+                  tempId: undefined,
+                  status: isGuestMode ? 'local' : 'sent',
+                }
+              : message
+          )
+        );
+
+        // Nếu là user đăng nhập → lưu tin nhắn bot vào DB
+        if (!isGuestMode && currentConvId && aiResponse) {
+          saveBotMessage.mutate({
+            conversationId: Number(currentConvId),
+            message: aiResponse,
+            sessionId: sessionId || null,
+          });
+        }
+      } catch (err: any) {
+        let errorMessage = 'Xin lỗi, có lỗi xảy ra khi xử lý yêu cầu của bạn.';
+
+        if (err.message.includes('401')) {
+          errorMessage = 'Lỗi xác thực API. Vui lòng thử lại sau.';
+        } else if (err.message.includes('network') || err.message.includes('timeout')) {
+          errorMessage = 'Lỗi kết nối mạng. Vui lòng kiểm tra lại kết nối.';
+        }
+
+        setMessages(prev =>
+          prev.map(message =>
+            message.tempId === tempId
+              ? {
+                  ...message,
+                  message: errorMessage,
+                  tempId: undefined,
+                  status: isGuestMode ? 'local' : 'failed',
+                }
+              : message
+          )
+        );
+      } finally {
+        setIsAiProcessing(false);
+        setIsTyping(prev => ({ ...prev, ai: false }));
+      }
+    },
+    [
+      isAiProcessing,
+      conversationId,
+      isGuest,
       sessionId,
-      createdAt: new Date().toISOString(),
-      tempId,
-      status: isGuestMode ? 'local' : 'sending'
-    };
-    
-    addMessage(aiPendingMessage);
-
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    try {
-      const aiResponse = await callAibanApi(msg);
-
-      setMessages(prev => 
-        prev.map(message => 
-          message.tempId === tempId 
-            ? {
-                ...message,
-                id: isGuestMode ? `ai-local-${Date.now()}` : `ai-${Date.now()}`,
-                message: aiResponse,
-                tempId: undefined,
-                status: isGuestMode ? 'local' : 'sent'
-              }
-            : message
-        )
-      );
-
-      if (!isGuestMode && currentConvId && aiResponse && aiResponse !== '...') {
-        saveBotMessage.mutate({ 
-          conversationId: Number(currentConvId),
-          message: aiResponse,
-          sessionId: sessionId || null
-        });
-      }
-
-      await fetchChatHistory();
-
-    } catch (err: any) {
-      let errorMessage = 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại sau.';
-      
-      if (err.message.includes('401')) {
-        errorMessage = 'Không có quyền truy cập API. Vui lòng kiểm tra cấu hình.';
-      } else if (err.message.includes('timeout') || err.message.includes('network')) {
-        errorMessage = 'Kết nối mạng có vấn đề. Vui lòng thử lại.';
-      }
-
-      setMessages(prev => 
-        prev.map(message => 
-          message.tempId === tempId 
-            ? {
-                ...message,
-                message: errorMessage,
-                tempId: undefined,
-                status: isGuestMode ? 'local' as const : 'failed' as const
-              }
-            : message
-        )
-      );
-    } finally {
-      setIsAiProcessing(false);
-      setIsTyping(prev => ({ ...prev, ai: false }));
-    }
-  }, [
-    isAiProcessing,
-    conversationId,
-    isGuest,
-    sessionId,
-    addMessage,
-    setMessages,
-    saveBotMessage,
-    setIsTyping,
-    callAibanApi,
-    fetchChatHistory
-  ]);
-
-  /**
-   * 🔄 Load lịch sử chat vào messages
-   */
-  const loadHistoryIntoMessages = useCallback(async () => {
-    const history = await fetchChatHistory();
-    if (history.length > 0) {
-      const messages = convertHistoryToChatMessages(history);
-      setMessages(messages);
-      return messages;
-    }
-    return [];
-  }, [fetchChatHistory, convertHistoryToChatMessages, setMessages]);
+      addMessage,
+      setMessages,
+      saveBotMessage,
+      setIsTyping,
+      callAibanApi,
+    ]
+  );
 
   return {
     sendAiMessage,
     isAiProcessing,
-    chatHistory,
-    fetchChatHistory,
-    loadHistoryIntoMessages,
-    convertHistoryToChatMessages
   };
 };

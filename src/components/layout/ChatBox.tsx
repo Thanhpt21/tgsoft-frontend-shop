@@ -12,6 +12,7 @@ import { useAllProducts } from '@/hooks/product/useAllProducts';
 import { Product } from '@/types/product.type';
 import { useAiMessage } from '@/hooks/chat/useAiMessage';
 import { useUserChatStatus } from '@/hooks/user/useUserChatStatus';
+import Image from 'next/image';
 
 // ==================== TYPES ====================
 
@@ -1462,14 +1463,6 @@ return (
         </div>
 
         <span className="hidden md:inline ml-2 font-medium tracking-wide">Chat</span>
-
-        {isGuest && (
-          <span className="absolute -top-1 -right-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-full min-w-[18px] h-5 flex items-center justify-center px-1.5 shadow-lg">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </span>
-        )}
       </button>
 
       {!isGuest && !isConnected && (
@@ -1492,28 +1485,25 @@ return (
         }}
       >
         {/* Header với gradient xanh hiện đại */}
-        <div className="flex justify-between items-center bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 text-white px-4 py-3 safe-area-top-padding">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <div className="text-xl">💬</div>
+       <div className="flex justify-between items-center bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 text-white px-4 py-3 safe-area-top-padding">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="relative">
+                <div className="w-12 h-12 rounded-full overflow-hidden border-4 border-white/30 shadow-lg">
+                  <Image
+                    src="/image/telesale.jpg"
+                    alt="Phương Ly"
+                    width={48}
+                    height={48}
+                    priority
+                    className="object-cover w-full h-full"
+                  />
+                </div>
                 <div className="absolute -inset-2 bg-white/10 rounded-full blur-sm"></div>
               </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-lg text-white truncate">Phương Ly</h3>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-lg text-white truncate">Trò chuyện trực tiếp</h3>
-              <p className="text-xs flex items-center gap-1 truncate">
-                {isGuest ? (
-                  <span className="text-amber-200 truncate">Đăng nhập để lưu lịch sử chat</span>
-                ) : (
-                  <>
-                    <span className={`flex-shrink-0 w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-300' : 'bg-rose-400'} animate-pulse`}></span>
-                    <span className="truncate">{status.text}</span>
-                  </>
-                )}
-              </p>
-            </div>
-          </div>
           
           <button 
             onClick={() => setIsChatOpen(false)} 
@@ -1543,12 +1533,6 @@ return (
           {/* Empty state với design hiện đại */}
           {messages.length === 0 && !isTyping.admin && !isTyping.ai && (
             <div className="text-center py-4 md:py-8 px-4">
-              <div className="relative inline-block mb-4">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center text-4xl mb-2">
-                  {currentUser ? '👋' : '🤖'}
-                </div>
-                <div className="absolute -inset-3 bg-gradient-to-r from-teal-200/30 to-emerald-200/30 rounded-full blur-xl"></div>
-              </div>
               <p className="text-lg font-semibold text-teal-900 mb-2">
                 {currentUser ? 'Xin chào!' : 'Chào bạn! 👋'}
               </p>
@@ -1567,15 +1551,18 @@ return (
             </div>
           )}
 
-          {/* Messages list với bubble design hiện đại */}
+          {/* Messages list + AI Typing Bubble tích hợp */}
           {messages.map((msg, index) => {
             const isNewMessage = index >= messages.length - 3;
             const messageDelay = Math.min((messages.length - 1 - index) * 0.1, 0.3);
             const isUser = ['USER', 'GUEST'].includes(msg.senderType);
-            
+
+            // Đặc biệt: Nếu đây là tin nhắn placeholder của AI (message là '...' và đang typing)
+            const isAiTypingPlaceholder = msg.senderType === 'BOT' && msg.message === '...' && isTyping.ai;
+
             return (
-              <div 
-                key={msg.id} 
+              <div
+                key={msg.id}
                 className={`flex ${isUser ? 'justify-end' : 'justify-start'} ${
                   isNewMessage ? 'animate-in fade-in slide-in-from-bottom-2' : ''
                 }`}
@@ -1587,8 +1574,8 @@ return (
               >
                 <div className={`
                   relative max-w-[85%] md:max-w-[75%] break-words rounded-2xl px-4 py-3
-                  ${isUser 
-                    ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-br-none' 
+                  ${isUser
+                    ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-br-none'
                     : 'bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-100 text-teal-900 rounded-bl-none'
                   }
                   ${isNewMessage ? 'transform transition-transform duration-300 active:scale-[0.98]' : ''}
@@ -1600,15 +1587,24 @@ return (
                   ) : (
                     <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-teal-50 border-l border-b border-teal-100 rounded-tr-full"></div>
                   )}
-                  
-                  
-                  <div className="whitespace-pre-wrap break-words text-sm md:text-sm leading-relaxed relative z-10">
-                    {renderMessageWithLinks(msg.message)}
+
+                  <div className="whitespace-pre-wrap break-words text-sm md:text-base leading-relaxed relative z-10">
+                    {/* Nếu là placeholder typing → hiển thị dots nhảy */}
+                    {isAiTypingPlaceholder ? (
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-teal-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                        <span className="w-2 h-2 bg-teal-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                        <span className="w-2 h-2 bg-teal-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                      </div>
+                    ) : (
+                      renderMessageWithLinks(msg.message)
+                    )}
                   </div>
-                  
+
+                  {/* Thời gian + trạng thái gửi */}
                   <div className={`text-xs mt-2 flex items-center gap-2 ${isUser ? 'text-teal-100/80' : 'text-teal-600/70'}`}>
                     <span>{formatTime(msg.createdAt)}</span>
-                    {msg.status === 'sending' && (
+                    {msg.status === 'sending' && !isAiTypingPlaceholder && (
                       <span className="flex items-center gap-1">
                         <span className="w-1.5 h-1.5 bg-current rounded-full opacity-60 animate-pulse"></span>
                         <span className="text-xs">Đang gửi...</span>
@@ -1636,21 +1632,7 @@ return (
             </div>
           )}
 
-          {isTyping.ai && (
-            <div className="flex justify-start animate-in fade-in duration-300">
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl px-4 py-3 max-w-[85%] md:max-w-[75%]">
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <div className="flex gap-1 mt-1">
-                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '200ms' }}></div>
-                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '400ms' }}></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+        
 
           <div ref={messagesEndRef} />
         </div>
