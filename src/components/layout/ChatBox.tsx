@@ -67,6 +67,7 @@ export default function ChatBox() {
   const [socket, setSocket] = useState<SocketType | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [input, setInput] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousLengthRef = useRef(0);
@@ -1024,6 +1025,18 @@ const handleLoadMore = useCallback(() => {
 
   // ==================== FALLBACK MESSAGE DISPLAY ====================
 
+    // Auto focus vào input khi mở chat box
+  useEffect(() => {
+    if (isChatOpen && inputRef.current) {
+      // Delay nhỏ để đảm bảo DOM đã render xong (đặc biệt trên mobile)
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isChatOpen]);
+
   useEffect(() => {
     // Fallback: Nếu socket không kết nối được nhưng có messages trong database, vẫn hiển thị
     if (currentUser?.id && !isGuest && messages.length === 0 && dbConversationIds.length > 0) {
@@ -1192,6 +1205,8 @@ useEffect(() => {
     }
   );
 
+
+
   // Thêm delay để đảm bảo DOM đã render
   setTimeout(() => {
     if (topSentinelRef.current) {
@@ -1304,10 +1319,10 @@ useEffect(() => {
     // THÊM: Kiểm tra trạng thái AI processing
     if (isAiProcessing) {
       return {
-        text: 'AI đang trả lời...',
+        text: 'Đang trả lời...',
         color: 'text-orange-600',
         inputDisabled: true,
-        placeholder: 'Vui lòng đợi AI trả lời...'
+        placeholder: 'Vui lòng đợi trả lời...'
       };
     }
 
@@ -1316,7 +1331,7 @@ useEffect(() => {
         text: 'Chế độ khách - Tin nhắn tạm thời',
         color: 'text-yellow-600',
         inputDisabled: false,
-        placeholder: 'Nhập tin nhắn (lưu tạm thời)...'
+        placeholder: 'Nhập tin nhắn'
       };
     }
     
@@ -1642,6 +1657,7 @@ return (
           <div className="flex gap-3">
             <div className="flex-1 relative">
               <input
+                ref={inputRef}
                 type="text"
                 placeholder={status.placeholder}
                 value={input}
@@ -1672,13 +1688,7 @@ return (
             </button>
           </div>
           
-          {/* Status message */}
-          {isAiProcessing && (
-            <div className="mt-3 flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-              <span className="text-xs font-medium text-emerald-600">Đang xử lý câu hỏi...</span>
-            </div>
-          )}
+         
           
           {/* Scroll to bottom button */}
           {showScrollToBottom && (
