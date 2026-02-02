@@ -55,7 +55,7 @@ const useChat = () => {
 // ==================== CHATBOX COMPONENT ====================
 
 export default function ChatBox() {
-  
+
   const TENANT_ID = Number(process.env.NEXT_PUBLIC_TENANT_ID)
   const queryClientRef = useRef(useQueryClient());
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -68,7 +68,7 @@ export default function ChatBox() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [input, setInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousLengthRef = useRef(0);
   const isUserAtBottom = useRef(true);
@@ -108,21 +108,21 @@ export default function ChatBox() {
   const [isGuest, setIsGuest] = useState(false);
   const { data: products = [], isLoading: isLoadingProducts } = useAllProducts()
   const saveBotMessage = useSaveBotMessage();
-  const { 
-    data: aiConfig, 
-    isLoading, 
+  const {
+    data: aiConfig,
+    isLoading,
     error,
-    isError 
+    isError
   } = useTenantAIConfig(tenantId)
 
   const { data: userChatStatus, isLoading: isLoadingChatStatus } = useUserChatStatus(
-    currentUser?.id || 0, isChatOpen 
+    currentUser?.id || 0, isChatOpen
   );
 
   // Kiểm tra nếu chat bị tắt - CHỈ ÁP DỤNG CHO USER ĐÃ LOGIN
   const isChatDisabled = currentUser?.id && // Chỉ user đã login
-                        userChatStatus?.data && 
-                        !userChatStatus.data.chatEnabled;
+    userChatStatus?.data &&
+    !userChatStatus.data.chatEnabled;
   // KHÁCH (guest) LUÔN ĐƯỢC BẬT CHAT
   const computedIsGuest = !currentUser?.id;
 
@@ -163,9 +163,9 @@ export default function ChatBox() {
 
   const findProductsByKeyword = useCallback((keyword: string) => {
     if (!products.length) return [];
-    
+
     const lowerKeyword = keyword.toLowerCase().trim();
-    
+
     const keywordMappings: { [key: string]: string[] } = {
       'áo': ['áo', 'thun', 'sơ mi', 'áo nam', 'áo nữ'],
       'quần': ['quần', 'jeans', 'tây', 'short'],
@@ -187,8 +187,8 @@ export default function ChatBox() {
       const productDesc = product.description?.toLowerCase() || '';
       const seoKeywords = product.seoKeywords?.toLowerCase() || '';
 
-      const matches = searchKeywords.some(searchWord => 
-        productName.includes(searchWord) || 
+      const matches = searchKeywords.some(searchWord =>
+        productName.includes(searchWord) ||
         productDesc.includes(searchWord) ||
         seoKeywords.includes(searchWord)
       );
@@ -197,89 +197,89 @@ export default function ChatBox() {
     }).slice(0, 4);
   }, [products]);
 
-const renderMessageWithLinks = (message: string) => {
-  if (!message) return message;
+  const renderMessageWithLinks = (message: string) => {
+    if (!message) return message;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                  (typeof window !== 'undefined' ? window.location.origin : 'https://demo.aiban.vn');
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+      (typeof window !== 'undefined' ? window.location.origin : 'https://demo.aiban.vn');
 
-  let processed = message;
-  
-  // 1. XỬ LÝ URL TRỰC TIẾP TRƯỚC
-  const directUrlPattern = /(https?:\/\/[^\s<>"]+)/gi;
-  
-  processed = processed.replace(directUrlPattern, (match, url) => {
-    // Kiểm tra không phải là phần của thẻ HTML đã xử lý
-    if (!processed.includes(`href="${url}"`)) {
-      return `<a href="${url}" class="text-white-600 hover:text-white-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${url}</a>`;
-    }
-    return match;
-  });
-  
-  // 2. XỬ LÝ SLUG TRONG BACKTICKS - QUAN TRỌNG: KHÔNG GIỚI HẠN ĐỘ DÀI
-  // Pattern: Bắt đầu bằng `, kết thúc bằng `, bên trong là ký tự chữ-số và dấu gạch ngang
-  const backtickSlugPattern = /`([^`]+)`/gi;
-  
-  processed = processed.replace(backtickSlugPattern, (match, content) => {
-    const cleanContent = content.trim();
-    
-    // KIỂM TRA XEM CÓ PHẢI SLUG KHÔNG:
-    // 1. Có chứa dấu gạch ngang
-    // 2. Chỉ chứa chữ, số, dấu gạch ngang
-    // 3. Không chứa khoảng trắng
-    const slugRegex = /^[a-z0-9\-]+$/i;
-    
-    if (slugRegex.test(cleanContent) && cleanContent.includes('-')) {
-      // ĐÂY LÀ SLUG - GIỮ NGUYÊN TOÀN BỘ, KHÔNG CẮT BỚT
-      const url = `${baseUrl}/san-pham/${cleanContent}`;
-      return `<a href="${url}" class="text-white-600 hover:text-white-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${cleanContent}</a>`;
-    }
-    
-    // Nếu không phải slug, giữ nguyên backticks
-    return match;
-  });
-  
-  // 3. XỬ LÝ MARKDOWN LINK: [text](slug)
-  const markdownLinkPattern = /\[([^\]]+)\]\(([^)]+)\)/gi;
-  
-  processed = processed.replace(markdownLinkPattern, (match, text, slug) => {
-    const cleanSlug = slug.trim();
-    
-    // Kiểm tra nếu là URL đầy đủ
-    if (cleanSlug.startsWith('http')) {
-      return `<a href="${cleanSlug}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${text}</a>`;
-    }
-    
-    // Kiểm tra nếu là slug
-    const slugRegex = /^[a-z0-9\-]+$/i;
-    if (slugRegex.test(cleanSlug) && cleanSlug.includes('-')) {
-      const url = `${baseUrl}/san-pham/${cleanSlug}`;
-      return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${text}</a>`;
-    }
-    
-    return match;
-  });
-  
-  // 4. Xử lý line breaks
-  processed = processed.replace(/\n/g, '<br/>');
-  
+    let processed = message;
 
-  return (
-    <div 
-      className="whitespace-pre-wrap break-words text-sm md:text-sm leading-relaxed"
-      dangerouslySetInnerHTML={{ __html: processed }}
-    />
-  );
-};
+    // 1. XỬ LÝ URL TRỰC TIẾP TRƯỚC
+    const directUrlPattern = /(https?:\/\/[^\s<>"]+)/gi;
+
+    processed = processed.replace(directUrlPattern, (match, url) => {
+      // Kiểm tra không phải là phần của thẻ HTML đã xử lý
+      if (!processed.includes(`href="${url}"`)) {
+        return `<a href="${url}" class="text-white-600 hover:text-white-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${url}</a>`;
+      }
+      return match;
+    });
+
+    // 2. XỬ LÝ SLUG TRONG BACKTICKS - QUAN TRỌNG: KHÔNG GIỚI HẠN ĐỘ DÀI
+    // Pattern: Bắt đầu bằng `, kết thúc bằng `, bên trong là ký tự chữ-số và dấu gạch ngang
+    const backtickSlugPattern = /`([^`]+)`/gi;
+
+    processed = processed.replace(backtickSlugPattern, (match, content) => {
+      const cleanContent = content.trim();
+
+      // KIỂM TRA XEM CÓ PHẢI SLUG KHÔNG:
+      // 1. Có chứa dấu gạch ngang
+      // 2. Chỉ chứa chữ, số, dấu gạch ngang
+      // 3. Không chứa khoảng trắng
+      const slugRegex = /^[a-z0-9\-]+$/i;
+
+      if (slugRegex.test(cleanContent) && cleanContent.includes('-')) {
+        // ĐÂY LÀ SLUG - GIỮ NGUYÊN TOÀN BỘ, KHÔNG CẮT BỚT
+        const url = `${baseUrl}/san-pham/${cleanContent}`;
+        return `<a href="${url}" class="text-white-600 hover:text-white-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${cleanContent}</a>`;
+      }
+
+      // Nếu không phải slug, giữ nguyên backticks
+      return match;
+    });
+
+    // 3. XỬ LÝ MARKDOWN LINK: [text](slug)
+    const markdownLinkPattern = /\[([^\]]+)\]\(([^)]+)\)/gi;
+
+    processed = processed.replace(markdownLinkPattern, (match, text, slug) => {
+      const cleanSlug = slug.trim();
+
+      // Kiểm tra nếu là URL đầy đủ
+      if (cleanSlug.startsWith('http')) {
+        return `<a href="${cleanSlug}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${text}</a>`;
+      }
+
+      // Kiểm tra nếu là slug
+      const slugRegex = /^[a-z0-9\-]+$/i;
+      if (slugRegex.test(cleanSlug) && cleanSlug.includes('-')) {
+        const url = `${baseUrl}/san-pham/${cleanSlug}`;
+        return `<a href="${url}" class="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer">${text}</a>`;
+      }
+
+      return match;
+    });
+
+    // 4. Xử lý line breaks
+    processed = processed.replace(/\n/g, '<br/>');
+
+
+    return (
+      <div
+        className="whitespace-pre-wrap break-words text-sm md:text-sm leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: processed }}
+      />
+    );
+  };
 
 
   // ==================== AUTH & SESSION MANAGEMENT ====================
 
-useEffect(() => {
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const isUserAuthenticated = currentUser && currentUser.id;
-      
-      
+
+
       if (!isUserAuthenticated) {
         // Guest mode
         let guestSessionId = localStorage.getItem('guestSessionId');
@@ -287,14 +287,14 @@ useEffect(() => {
           guestSessionId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           localStorage.setItem('guestSessionId', guestSessionId);
         }
-        
+
         if (sessionId !== guestSessionId) {
           setSessionId(guestSessionId);
         }
         if (!isGuest) {
           setIsGuest(true);
         }
-        
+
         // Load tin nhắn local
         const savedLocalMessages = localStorage.getItem('localChatMessages');
         if (savedLocalMessages) {
@@ -307,28 +307,28 @@ useEffect(() => {
             localMessagesRef.current = [];
           }
         }
-        
+
       } else {
-        
+
         if (isGuest) {
           setIsGuest(false);
         }
         if (sessionId) {
           setSessionId(null);
         }
-        
+
         // ✅ XÓA TẤT CẢ TIN NHẮN CŨ KHI LOGIN
         setMessages([]);
         localMessagesRef.current = [];
-        
+
         // ✅ RESET flag để có thể load messages mới
         setHasAttemptedInitialLoad(false);
-        
+
         // Xóa localStorage
         // localStorage.removeItem('guestSessionId');
         // localStorage.removeItem('guestConversationId');
         // localStorage.removeItem('localChatMessages');
-        
+
       }
     }
   }, [currentUser]);
@@ -337,34 +337,34 @@ useEffect(() => {
 
   const addMessage = useCallback((newMessage: ChatMessage) => {
     setMessages(prev => {
-      const exists = prev.some(msg => 
-        msg.id === newMessage.id || 
+      const exists = prev.some(msg =>
+        msg.id === newMessage.id ||
         (newMessage.tempId && msg.id === newMessage.tempId) ||
         (msg.tempId && msg.tempId === newMessage.tempId)
       );
-      
+
       if (exists) {
         return prev.map(msg => {
-          if (msg.id === newMessage.id || 
-              (newMessage.tempId && msg.id === newMessage.tempId) ||
-              (msg.tempId && msg.tempId === newMessage.tempId)) {
+          if (msg.id === newMessage.id ||
+            (newMessage.tempId && msg.id === newMessage.tempId) ||
+            (msg.tempId && msg.tempId === newMessage.tempId)) {
             return { ...newMessage, tempId: undefined };
           }
           return msg;
         });
       }
-      
+
       // Tin nhắn mới thêm vào cuối và sắp xếp theo thời gian
-    const updated = [...prev, newMessage].sort((a, b) => {
-      // Sắp xếp theo ID nếu có
-      if (a.id && b.id && typeof a.id === 'number' && typeof b.id === 'number') {
-        return a.id - b.id;
-      }
-      // Hoặc sắp xếp theo thời gian
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
-    
-    return updated;
+      const updated = [...prev, newMessage].sort((a, b) => {
+        // Sắp xếp theo ID nếu có
+        if (a.id && b.id && typeof a.id === 'number' && typeof b.id === 'number') {
+          return a.id - b.id;
+        }
+        // Hoặc sắp xếp theo thời gian
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
+
+      return updated;
 
     });
   }, []);
@@ -373,10 +373,10 @@ useEffect(() => {
     if (status === 'failed') {
       return;
     }
-    
-    setMessages(prev => 
-      prev.map(msg => 
-        msg.tempId === tempId 
+
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.tempId === tempId
           ? { ...msg, id: newId, tempId: undefined, status: 'sent' }
           : msg
       )
@@ -385,185 +385,185 @@ useEffect(() => {
 
   // ==================== LOAD MESSAGES ====================
 
-const loadMessages = useCallback(async (loadMore = false) => {
-  if (isGuest) {
-    return;
-  }
-  
-  const targetConversationId = conversationId || latestConversationId;
-  if (!targetConversationId) {
-    setHasAttemptedInitialLoad(true);
-    return;
-  }
-  
-  // Nếu đang load more, sử dụng isLoadingMoreRef
-  if (loadMore) {
-    if (isLoadingMoreRef.current || !pagination.hasMore) return;
-    
-    // Hiển thị spinner ngay lập tức
-    setShowLoadingSpinner(true);
-    setPagination(prev => ({ ...prev, isLoadingMore: true }));
-    isLoadingMoreRef.current = true;
-    
-    // Set timeout để spinner hiển thị đúng 3s (hoặc lâu hơn nếu API chậm)
-    if (spinnerTimeoutRef.current) {
-      clearTimeout(spinnerTimeoutRef.current);
+  const loadMessages = useCallback(async (loadMore = false) => {
+    if (isGuest) {
+      return;
     }
-    spinnerTimeoutRef.current = setTimeout(() => {
-      setShowLoadingSpinner(false);
-    }, 3000); // 🆕 Sửa từ 1500ms thành 3000ms (3 giây)
-    
-  } else {
-    if (isLoadingMessagesRef.current) return;
-    isLoadingMessagesRef.current = true;
-  }
-  
-  try {
-    const currentPage = loadMore ? pagination.page + 1 : 1;
-    const queryParams = new URLSearchParams({
-      conversationId: targetConversationId.toString(),
-      page: currentPage.toString(),
-      pageSize: pagination.pageSize.toString(),
-    });
 
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/chat/messages?${queryParams}`,
-      {
-        headers: { 'x-tenant-id': tenantId.toString() },
-        cache: 'no-cache',
-      }
-    );
-    
-    if (!res.ok) throw new Error('Failed to load messages');
-    const data = await res.json();
-    
-    const loadedMessages = Array.isArray(data.messages) ? data.messages : [];
+    const targetConversationId = conversationId || latestConversationId;
+    if (!targetConversationId) {
+      setHasAttemptedInitialLoad(true);
+      return;
+    }
 
+    // Nếu đang load more, sử dụng isLoadingMoreRef
     if (loadMore) {
-      // 🆕 THÊM: Delay 500ms để tạo hiệu ứng mượt mà
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Khi load more: thêm messages vào đầu
-      setMessages(prev => {
-        // Lọc bỏ tin nhắn trùng lặp
-        const newMessages = loadedMessages.filter(
-          (newMsg: any) => !prev.some(existingMsg => existingMsg.id === newMsg.id)
-        );
-        // Sắp xếp lại: cũ nhất → mới nhất
-        return [...newMessages, ...prev].sort((a, b) => a.id - b.id);
+      if (isLoadingMoreRef.current || !pagination.hasMore) return;
+
+      // Hiển thị spinner ngay lập tức
+      setShowLoadingSpinner(true);
+      setPagination(prev => ({ ...prev, isLoadingMore: true }));
+      isLoadingMoreRef.current = true;
+
+      // Set timeout để spinner hiển thị đúng 3s (hoặc lâu hơn nếu API chậm)
+      if (spinnerTimeoutRef.current) {
+        clearTimeout(spinnerTimeoutRef.current);
+      }
+      spinnerTimeoutRef.current = setTimeout(() => {
+        setShowLoadingSpinner(false);
+      }, 3000); // 🆕 Sửa từ 1500ms thành 3000ms (3 giây)
+
+    } else {
+      if (isLoadingMessagesRef.current) return;
+      isLoadingMessagesRef.current = true;
+    }
+
+    try {
+      const currentPage = loadMore ? pagination.page + 1 : 1;
+      const queryParams = new URLSearchParams({
+        conversationId: targetConversationId.toString(),
+        page: currentPage.toString(),
+        pageSize: pagination.pageSize.toString(),
       });
-      
-      // Cập nhật pagination state
-      setPagination(prev => ({
-        ...prev,
-        page: currentPage,
-        hasMore: data.pagination?.hasMore || false,
-        totalMessages: data.pagination?.total || prev.totalMessages,
-        isLoadingMore: false,
-      }));
-      
-      // Ẩn spinner sau khi load xong (nếu chưa hết 3s)
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/chat/messages?${queryParams}`,
+        {
+          headers: { 'x-tenant-id': tenantId.toString() },
+          cache: 'no-cache',
+        }
+      );
+
+      if (!res.ok) throw new Error('Failed to load messages');
+      const data = await res.json();
+
+      const loadedMessages = Array.isArray(data.messages) ? data.messages : [];
+
+      if (loadMore) {
+        // 🆕 THÊM: Delay 500ms để tạo hiệu ứng mượt mà
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Khi load more: thêm messages vào đầu
+        setMessages(prev => {
+          // Lọc bỏ tin nhắn trùng lặp
+          const newMessages = loadedMessages.filter(
+            (newMsg: any) => !prev.some(existingMsg => existingMsg.id === newMsg.id)
+          );
+          // Sắp xếp lại: cũ nhất → mới nhất
+          return [...newMessages, ...prev].sort((a, b) => a.id - b.id);
+        });
+
+        // Cập nhật pagination state
+        setPagination(prev => ({
+          ...prev,
+          page: currentPage,
+          hasMore: data.pagination?.hasMore || false,
+          totalMessages: data.pagination?.total || prev.totalMessages,
+          isLoadingMore: false,
+        }));
+
+        // Ẩn spinner sau khi load xong (nếu chưa hết 3s)
+        if (spinnerTimeoutRef.current) {
+          clearTimeout(spinnerTimeoutRef.current);
+        }
+        setShowLoadingSpinner(false);
+
+      } else {
+        // Load ban đầu: set messages mới
+        const sortedMessages = loadedMessages.sort((a: any, b: any) => a.id - b.id);
+        setMessages(sortedMessages);
+        setHasAttemptedInitialLoad(true);
+
+        // Cập nhật pagination state
+        setPagination({
+          page: 1,
+          pageSize: pagination.pageSize,
+          hasMore: data.pagination?.hasMore || false,
+          totalMessages: data.pagination?.total || 0,
+          isLoadingMore: false,
+        });
+      }
+
+    } catch (err) {
+      console.error('❌ Load messages failed:', err);
+      if (!loadMore) {
+        setHasAttemptedInitialLoad(true);
+      }
+      setPagination(prev => ({ ...prev, isLoadingMore: false }));
+
+      // Ẩn spinner khi có lỗi
       if (spinnerTimeoutRef.current) {
         clearTimeout(spinnerTimeoutRef.current);
       }
       setShowLoadingSpinner(false);
-      
-    } else {
-      // Load ban đầu: set messages mới
-      const sortedMessages = loadedMessages.sort((a: any, b: any) => a.id - b.id);
-      setMessages(sortedMessages);
-      setHasAttemptedInitialLoad(true);
-      
-      // Cập nhật pagination state
-      setPagination({
-        page: 1,
-        pageSize: pagination.pageSize,
-        hasMore: data.pagination?.hasMore || false,
-        totalMessages: data.pagination?.total || 0,
-        isLoadingMore: false,
-      });
-    }
-    
-  } catch (err) {
-    console.error('❌ Load messages failed:', err);
-    if (!loadMore) {
-      setHasAttemptedInitialLoad(true);
-    }
-    setPagination(prev => ({ ...prev, isLoadingMore: false }));
-    
-    // Ẩn spinner khi có lỗi
-    if (spinnerTimeoutRef.current) {
-      clearTimeout(spinnerTimeoutRef.current);
-    }
-    setShowLoadingSpinner(false);
-    
-  } finally {
-    if (loadMore) {
-      isLoadingMoreRef.current = false;
-    } else {
-      isLoadingMessagesRef.current = false;
-    }
-  }
-}, [conversationId, latestConversationId, tenantId, isGuest, pagination.page, pagination.pageSize, pagination.hasMore]);
 
-// Cleanup spinner timeout
-useEffect(() => {
-  return () => {
-    if (spinnerTimeoutRef.current) {
-      clearTimeout(spinnerTimeoutRef.current);
-    }
-  };
-}, []);
-
-// Setup Intersection Observer cho infinite scroll
-useEffect(() => {
-  if (!topSentinelRef.current || !pagination.hasMore || pagination.isLoadingMore) {
-    return;
-  }
-
-  const observer = new IntersectionObserver(
-    (entries) => {
-      const entry = entries[0];
-      // Khi top sentinel xuất hiện và có thể load more
-      if (entry.isIntersecting && pagination.hasMore && !pagination.isLoadingMore) {
-        loadMessages(true);
+    } finally {
+      if (loadMore) {
+        isLoadingMoreRef.current = false;
+      } else {
+        isLoadingMessagesRef.current = false;
       }
-    },
-    { 
-      root: chatContainerRef.current,
-      rootMargin: '50px', // Trigger sớm hơn 50px
-      threshold: 0.1,
     }
-  );
+  }, [conversationId, latestConversationId, tenantId, isGuest, pagination.page, pagination.pageSize, pagination.hasMore]);
 
-  observer.observe(topSentinelRef.current);
-  scrollObserverRef.current = observer;
+  // Cleanup spinner timeout
+  useEffect(() => {
+    return () => {
+      if (spinnerTimeoutRef.current) {
+        clearTimeout(spinnerTimeoutRef.current);
+      }
+    };
+  }, []);
 
-  return () => {
-    if (scrollObserverRef.current) {
-      scrollObserverRef.current.disconnect();
+  // Setup Intersection Observer cho infinite scroll
+  useEffect(() => {
+    if (!topSentinelRef.current || !pagination.hasMore || pagination.isLoadingMore) {
+      return;
     }
-  };
-}, [pagination.hasMore, pagination.isLoadingMore, loadMessages]);
 
-// Thêm hàm load more khi scroll
-const handleLoadMore = useCallback(() => {
-  if (pagination.hasMore && !pagination.isLoadingMore) {
-    loadMessages(true);
-  }
-}, [pagination.hasMore, pagination.isLoadingMore, loadMessages]);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        // Khi top sentinel xuất hiện và có thể load more
+        if (entry.isIntersecting && pagination.hasMore && !pagination.isLoadingMore) {
+          loadMessages(true);
+        }
+      },
+      {
+        root: chatContainerRef.current,
+        rootMargin: '50px', // Trigger sớm hơn 50px
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(topSentinelRef.current);
+    scrollObserverRef.current = observer;
+
+    return () => {
+      if (scrollObserverRef.current) {
+        scrollObserverRef.current.disconnect();
+      }
+    };
+  }, [pagination.hasMore, pagination.isLoadingMore, loadMessages]);
+
+  // Thêm hàm load more khi scroll
+  const handleLoadMore = useCallback(() => {
+    if (pagination.hasMore && !pagination.isLoadingMore) {
+      loadMessages(true);
+    }
+  }, [pagination.hasMore, pagination.isLoadingMore, loadMessages]);
 
   // ==================== AUTO LOAD MESSAGES WHEN CONVERSATION AVAILABLE ====================
 
   useEffect(() => {
     // Tự động load messages khi có conversationId và user đã login
     if (currentUser?.id && !isGuest && conversationId && !hasAttemptedInitialLoad) {
-      
+
       // Đợi một chút để đảm bảo socket đã kết nối
       const timer = setTimeout(() => {
         loadMessages();
       }, 500);
-      
+
       return () => clearTimeout(timer);
     }
   }, [currentUser?.id, isGuest, conversationId, loadMessages, hasAttemptedInitialLoad]);
@@ -571,7 +571,7 @@ const handleLoadMore = useCallback(() => {
   // Lưu tin nhắn local vào localStorage
   const saveLocalMessages = useCallback((messages: ChatMessage[]) => {
     if (typeof window === 'undefined') return;
-    
+
     // Chỉ lưu tin nhắn có status 'local'
     const localMessages = messages.filter(msg => msg.status === 'local');
     localStorage.setItem('localChatMessages', JSON.stringify(localMessages));
@@ -581,14 +581,14 @@ const handleLoadMore = useCallback(() => {
   // Chuyển đổi tin nhắn local thành tin nhắn thật khi login
   const migrateLocalMessagesToServer = useCallback(async () => {
     if (!currentUser?.id || !conversationId || localMessagesRef.current.length === 0) return;
-    
-    
+
+
     for (const localMsg of localMessagesRef.current) {
       if (localMsg.senderType === 'GUEST' || localMsg.senderType === 'USER') {
         // Gửi lại tin nhắn user qua socket
         if (socket?.connected) {
           const tempId = `migrate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          
+
           socket.emit('send:message', {
             message: localMsg.message,
             tempId: tempId,
@@ -602,18 +602,18 @@ const handleLoadMore = useCallback(() => {
         }
       } else if (localMsg.senderType === 'BOT' || localMsg.senderType === 'AI') {
         // Lưu tin nhắn bot vào database
-        saveBotMessage.mutate({ 
+        saveBotMessage.mutate({
           conversationId: Number(conversationId),
-          message: localMsg.message, 
+          message: localMsg.message,
           sessionId: null
         });
       }
     }
-    
+
     // Xóa tin nhắn local sau khi migrate
     localStorage.removeItem('localChatMessages');
     localMessagesRef.current = [];
-    
+
     // Reload messages từ server
     setTimeout(() => loadMessages(), 1000);
   }, [currentUser, conversationId, socket, tenantId, saveBotMessage, loadMessages]);
@@ -631,12 +631,12 @@ const handleLoadMore = useCallback(() => {
     if (dbConversationIds.length > 0) {
       const existingConvId = dbConversationIds[0];
       setConversationId(existingConvId);
-      
+
       // Join conversation và load messages
       if (socket?.connected) {
         socket.emit('join:conversation', existingConvId);
       }
-      
+
       // Load messages sau khi set conversationId
       setTimeout(() => loadMessages(), 300);
     } else {
@@ -670,12 +670,12 @@ const handleLoadMore = useCallback(() => {
 
   // ==================== SOCKET MANAGEMENT ====================
 
-  
+
 
   useEffect(() => {
     // QUAN TRỌNG: Chỉ kết nối socket khi có user thật
     const shouldConnectSocket = currentUser?.id && !isGuest;
-    
+
     if (!shouldConnectSocket) {
       setIsConnected(false);
       if (socket) {
@@ -686,20 +686,20 @@ const handleLoadMore = useCallback(() => {
     }
 
 
-    const socketInstance = getSocket({ 
+    const socketInstance = getSocket({
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
-    
+
     if (!socketInstance) {
       return;
     }
-    
+
     setSocket(socketInstance);
 
     const onConnect = () => {
       setIsConnected(true);
-      
+
       // QUAN TRỌNG: Load messages ngay sau khi kết nối
       if (conversationId) {
         loadMessages();
@@ -730,7 +730,7 @@ const handleLoadMore = useCallback(() => {
       if (id && id !== conversationId) {
         setConversationId(id);
         localStorage.setItem('conversationId', id.toString());
-        
+
         if (socketInstance.connected) {
           socketInstance.emit('join:conversation', id);
         }
@@ -742,11 +742,11 @@ const handleLoadMore = useCallback(() => {
       if (newConversationId) {
         setConversationId(newConversationId);
         localStorage.setItem('conversationId', newConversationId.toString());
-        
+
         if (socketInstance.connected) {
           socketInstance.emit('join:conversation', newConversationId);
         }
-        
+
         setTimeout(() => loadMessages(), 300);
       }
     };
@@ -756,30 +756,30 @@ const handleLoadMore = useCallback(() => {
         pendingMessagesRef.current.delete(msg.tempId);
         updateMessageStatus(msg.tempId, msg.id, 'sent');
 
-          setTimeout(() => {
-            if (isUserAtBottom.current) {
-              scrollToBottom('smooth');
-            }
-          }, 150);
+        setTimeout(() => {
+          if (isUserAtBottom.current) {
+            scrollToBottom('smooth');
+          }
+        }, 150);
 
         let shouldTriggerAI = false;
         try {
           await queryClientRef.current.refetchQueries({
             queryKey: ['chat', 'ai-enabled', TENANT_ID],
           });
-          
+
           const freshAiStatus = queryClientRef.current.getQueryData<boolean>(['chat', 'ai-enabled', TENANT_ID]);
           // 🔥 FIX: Explicit check for undefined
-          shouldTriggerAI = (freshAiStatus !== undefined ? freshAiStatus : false) && 
-                          ['USER', 'GUEST'].includes(msg.senderType);
-          
+          shouldTriggerAI = (freshAiStatus !== undefined ? freshAiStatus : false) &&
+            ['USER', 'GUEST'].includes(msg.senderType);
+
         } catch (error) {
           // 🔥 FIX: Explicit check for undefined
-          shouldTriggerAI = (aiChatEnabled !== undefined ? aiChatEnabled : false) && 
-                          ['USER', 'GUEST'].includes(msg.senderType);
+          shouldTriggerAI = (aiChatEnabled !== undefined ? aiChatEnabled : false) &&
+            ['USER', 'GUEST'].includes(msg.senderType);
           console.warn('❌ Refetch AI status failed, using cached:', aiChatEnabled);
         }
-        
+
         if (shouldTriggerAI) {
           setTimeout(() => {
             sendAiMessageRef.current?.(msg.message, msg.conversationId);
@@ -787,11 +787,11 @@ const handleLoadMore = useCallback(() => {
         }
       } else {
         addMessage(msg);
-          setTimeout(() => {
-            if (isUserAtBottom.current) {
-              scrollToBottom('smooth');
-            }
-          }, 100);
+        setTimeout(() => {
+          if (isUserAtBottom.current) {
+            scrollToBottom('smooth');
+          }
+        }, 100);
       }
     };
 
@@ -799,9 +799,9 @@ const handleLoadMore = useCallback(() => {
     const onMessageConfirmed = (data: { tempId: string; messageId: string | number }) => {
       if (pendingMessagesRef.current.has(data.tempId)) {
         pendingMessagesRef.current.delete(data.tempId);
-        setMessages(prev => 
-          prev.map(msg => 
-            msg.tempId === data.tempId 
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.tempId === data.tempId
               ? { ...msg, id: data.messageId, tempId: undefined, status: 'sent' }
               : msg
           )
@@ -812,9 +812,9 @@ const handleLoadMore = useCallback(() => {
     const onMessageFailed = (data: { tempId: string; error?: string }) => {
       if (pendingMessagesRef.current.has(data.tempId)) {
         pendingMessagesRef.current.delete(data.tempId);
-        setMessages(prev => 
-          prev.map(msg => 
-            msg.tempId === data.tempId 
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.tempId === data.tempId
               ? { ...msg, status: 'failed' as const }
               : msg
           )
@@ -860,7 +860,7 @@ const handleLoadMore = useCallback(() => {
 
   // ==================== SEND MESSAGE ====================
 
-  const sendMessage = useCallback(async  (message: string, metadata?: any) => {
+  const sendMessage = useCallback(async (message: string, metadata?: any) => {
     // THÊM: Kiểm tra nếu AI đang xử lý thì không cho gửi
     if (isAiProcessing) {
       return;
@@ -869,21 +869,21 @@ const handleLoadMore = useCallback(() => {
     if (!message.trim()) {
       return;
     }
-     let latestAiEnabled = aiChatEnabled;
+    let latestAiEnabled = aiChatEnabled;
     try {
-    const result = await queryClientRef.current.refetchQueries({
-      queryKey: ['chat', 'ai-enabled', TENANT_ID],
-    });
-    
-    // Lấy data mới nhất từ cache sau khi refetch
-    const freshData = queryClientRef.current.getQueryData<boolean>(['chat', 'ai-enabled', TENANT_ID]);
-    if (freshData !== undefined) {
-      latestAiEnabled = freshData;
+      const result = await queryClientRef.current.refetchQueries({
+        queryKey: ['chat', 'ai-enabled', TENANT_ID],
+      });
+
+      // Lấy data mới nhất từ cache sau khi refetch
+      const freshData = queryClientRef.current.getQueryData<boolean>(['chat', 'ai-enabled', TENANT_ID]);
+      if (freshData !== undefined) {
+        latestAiEnabled = freshData;
+      }
+
+    } catch (error) {
+      console.warn('Failed to refetch AI status, using cached:', aiChatEnabled);
     }
-  
-  } catch (error) {
-    console.warn('Failed to refetch AI status, using cached:', aiChatEnabled);
-  }
 
     const tempId = `temp-${Date.now()}`;
     const senderType = currentUser && currentUser.id ? 'USER' : 'GUEST';
@@ -897,7 +897,7 @@ const handleLoadMore = useCallback(() => {
 
     // Nếu là GUEST -> chỉ lưu local
     if (isGuest) {
-      
+
       const userMsg: ChatMessage = {
         id: tempId,
         senderType: 'GUEST',
@@ -916,7 +916,7 @@ const handleLoadMore = useCallback(() => {
       };
 
       addMessage(userMsg);
-      
+
       // Lưu vào localStorage
       const updatedMessages = [...messages.filter(msg => msg.id !== tempId), userMsg];
       saveLocalMessages(updatedMessages);
@@ -924,14 +924,14 @@ const handleLoadMore = useCallback(() => {
       setTimeout(() => {
         scrollToBottom('smooth');
       }, 100);
-      
+
       // Gọi AI response nếu enabled
       if (latestAiEnabled) {
         setTimeout(() => {
           sendAiMessageRef.current?.(message.trim(), null);
         }, 300);
       }
-      
+
       setInput('');
       return;
     }
@@ -943,7 +943,7 @@ const handleLoadMore = useCallback(() => {
 
     // QUAN TRỌNG: Nếu chưa có conversationId, backend sẽ tự động tạo
     const effectiveConversationId = conversationId || latestConversationId;
-    
+
 
     const userMsg: ChatMessage = {
       id: tempId,
@@ -972,8 +972,8 @@ const handleLoadMore = useCallback(() => {
     }, 100);
 
     const payload: any = {
-      message: message.trim(), 
-      tempId, 
+      message: message.trim(),
+      tempId,
       metadata: userMsg.metadata,
       senderType: 'USER',
       senderId,
@@ -988,20 +988,20 @@ const handleLoadMore = useCallback(() => {
     }
 
     socket.emit('send:message', payload);
-    
+
     // Fallback: Nếu backend không confirm sau 15s
     const timeoutId = setTimeout(() => {
       if (pendingMessagesRef.current.has(tempId)) {
         console.warn('⏳ No confirmation from backend after 15s, marking as sent anyway');
         pendingMessagesRef.current.delete(tempId);
-        setMessages(prev => 
-          prev.map(msg => 
-            msg.tempId === tempId 
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.tempId === tempId
               ? { ...msg, status: 'sent', tempId: undefined }
               : msg
           )
         );
-        
+
         // Trigger AI response với conversationId hiện tại
         if (aiChatEnabled) {
           setTimeout(() => {
@@ -1011,7 +1011,7 @@ const handleLoadMore = useCallback(() => {
         }
       }
     }, 15000);
-    
+
     // Clear timeout khi message được confirm
     const messageConfirmCheckInterval = setInterval(() => {
       if (!pendingMessagesRef.current.has(tempId)) {
@@ -1019,13 +1019,13 @@ const handleLoadMore = useCallback(() => {
         clearInterval(messageConfirmCheckInterval);
       }
     }, 100);
-    
+
     setInput('');
   }, [socket, conversationId, latestConversationId, aiChatEnabled, currentUser, addMessage, isGuest, sessionId, messages, saveLocalMessages, tenantId, isAiProcessing]); // THÊM isAiProcessing vào dependencies
 
   // ==================== FALLBACK MESSAGE DISPLAY ====================
 
-    // Auto focus vào input khi mở chat box
+  // Auto focus vào input khi mở chat box
   useEffect(() => {
     if (isChatOpen && inputRef.current) {
       // Delay nhỏ để đảm bảo DOM đã render xong (đặc biệt trên mobile)
@@ -1040,7 +1040,7 @@ const handleLoadMore = useCallback(() => {
   useEffect(() => {
     // Fallback: Nếu socket không kết nối được nhưng có messages trong database, vẫn hiển thị
     if (currentUser?.id && !isGuest && messages.length === 0 && dbConversationIds.length > 0) {
-      
+
       const loadMessagesDirectly = async () => {
         try {
           const conversationIdToLoad = conversationId || dbConversationIds[0];
@@ -1051,12 +1051,12 @@ const handleLoadMore = useCallback(() => {
               cache: 'no-cache'
             }
           );
-          
+
           if (res.ok) {
             const data = await res.json();
             const loadedMessages = Array.isArray(data.messages) ? data.messages : [];
             if (loadedMessages.length > 0) {
-              setMessages(loadedMessages.sort((a: any, b: any) => 
+              setMessages(loadedMessages.sort((a: any, b: any) =>
                 new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
               ));
             }
@@ -1072,7 +1072,7 @@ const handleLoadMore = useCallback(() => {
           loadMessagesDirectly();
         }
       }, 3000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [currentUser?.id, isGuest, messages.length, dbConversationIds, conversationId, isConnected, tenantId]);
@@ -1090,15 +1090,15 @@ const handleLoadMore = useCallback(() => {
   // ==================== SCROLL MANAGEMENT ====================
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    messagesEndRef.current?.scrollIntoView({ 
+    messagesEndRef.current?.scrollIntoView({
       behavior,
       block: 'end',
       inline: 'nearest'
     });
   }, []);
 
-  
-    // 🔥 THÊM: Scroll khi AI bắt đầu typing
+
+  // 🔥 THÊM: Scroll khi AI bắt đầu typing
   useEffect(() => {
     if (isTyping.ai && isUserAtBottom.current) {
       setTimeout(() => {
@@ -1119,111 +1119,111 @@ const handleLoadMore = useCallback(() => {
 
   // auto-scroll khi có tin nhắn mới
   useEffect(() => {
-  // Chỉ scroll khi:
-  // 1. Có tin nhắn mới
-  // 2. User đang ở gần bottom
-  // 3. Chat window đang mở
-  if (isChatOpen && isUserAtBottom.current) {
-    // Thêm delay nhỏ để đảm bảo DOM đã update
-    setTimeout(() => {
-      scrollToBottom('smooth');
-    }, 100);
-  }
-}, [messages, isTyping, isChatOpen, scrollToBottom]);
-// Thêm ref cho timeout - SỬA KIỂU
-type TimeoutId = ReturnType<typeof setTimeout>;
-const loadMoreTimeoutRef = useRef<TimeoutId | null>(null);
+    // Chỉ scroll khi:
+    // 1. Có tin nhắn mới
+    // 2. User đang ở gần bottom
+    // 3. Chat window đang mở
+    if (isChatOpen && isUserAtBottom.current) {
+      // Thêm delay nhỏ để đảm bảo DOM đã update
+      setTimeout(() => {
+        scrollToBottom('smooth');
+      }, 100);
+    }
+  }, [messages, isTyping, isChatOpen, scrollToBottom]);
+  // Thêm ref cho timeout - SỬA KIỂU
+  type TimeoutId = ReturnType<typeof setTimeout>;
+  const loadMoreTimeoutRef = useRef<TimeoutId | null>(null);
 
-useEffect(() => {
-  const container = chatContainerRef.current;
-  if (!container) return;
-
-  // Cập nhật handleScroll
-  const handleScroll = () => {
+  useEffect(() => {
     const container = chatContainerRef.current;
     if (!container) return;
-    
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    
-    // Kiểm tra nếu ở gần bottom
-    const scrollThreshold = 100;
-    const atBottom = scrollHeight - scrollTop - clientHeight <= scrollThreshold;
-    isUserAtBottom.current = atBottom;
-    
-    // Hiển thị nút scroll to bottom khi không ở bottom
-    setShowScrollToBottom(!atBottom && scrollHeight > clientHeight * 1.5);
-    
-   // Load more khi scroll lên gần top (cách top 150px)
-  const nearTop = scrollTop < 150;
-    if (nearTop && pagination.hasMore && !pagination.isLoadingMore && !isGuest && conversationId) {
-      // Debounce để tránh gọi nhiều lần
+
+    // Cập nhật handleScroll
+    const handleScroll = () => {
+      const container = chatContainerRef.current;
+      if (!container) return;
+
+      const { scrollTop, scrollHeight, clientHeight } = container;
+
+      // Kiểm tra nếu ở gần bottom
+      const scrollThreshold = 100;
+      const atBottom = scrollHeight - scrollTop - clientHeight <= scrollThreshold;
+      isUserAtBottom.current = atBottom;
+
+      // Hiển thị nút scroll to bottom khi không ở bottom
+      setShowScrollToBottom(!atBottom && scrollHeight > clientHeight * 1.5);
+
+      // Load more khi scroll lên gần top (cách top 150px)
+      const nearTop = scrollTop < 150;
+      if (nearTop && pagination.hasMore && !pagination.isLoadingMore && !isGuest && conversationId) {
+        // Debounce để tránh gọi nhiều lần
+        if (loadMoreTimeoutRef.current) {
+          clearTimeout(loadMoreTimeoutRef.current);
+        }
+        loadMoreTimeoutRef.current = setTimeout(() => {
+          loadMessages(true);
+        }, 500);
+      }
+
+      // Auto-scroll khi có tin nhắn mới và user đang ở bottom
+      if (atBottom && messages.length > previousLengthRef.current) {
+        setTimeout(() => scrollToBottom('smooth'), 100);
+      }
+
+      previousLengthRef.current = messages.length;
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      // Cleanup timeout khi unmount
       if (loadMoreTimeoutRef.current) {
         clearTimeout(loadMoreTimeoutRef.current);
       }
-      loadMoreTimeoutRef.current = setTimeout(() => {
-        loadMessages(true);
-      }, 500);
-    }
-    
-    // Auto-scroll khi có tin nhắn mới và user đang ở bottom
-    if (atBottom && messages.length > previousLengthRef.current) {
-      setTimeout(() => scrollToBottom('smooth'), 100);
-    }
-    
-    previousLengthRef.current = messages.length;
-  };
-
-  container.addEventListener('scroll', handleScroll, { passive: true });
-  
-  return () => {
-    container.removeEventListener('scroll', handleScroll);
-    // Cleanup timeout khi unmount
-    if (loadMoreTimeoutRef.current) {
-      clearTimeout(loadMoreTimeoutRef.current);
-    }
-  };
-}, [messages.length, scrollToBottom, pagination.hasMore, pagination.isLoadingMore, isGuest, conversationId, loadMessages]); // Thêm dependencies
+    };
+  }, [messages.length, scrollToBottom, pagination.hasMore, pagination.isLoadingMore, isGuest, conversationId, loadMessages]); // Thêm dependencies
 
   // Setup Intersection Observer cho infinite scroll
-useEffect(() => {
-  if (!chatContainerRef.current || !topSentinelRef.current) {
-    return;
-  }
+  useEffect(() => {
+    if (!chatContainerRef.current || !topSentinelRef.current) {
+      return;
+    }
 
-  const observer = new IntersectionObserver(
-    (entries) => {
-      const entry = entries[0];
-      // Khi top sentinel xuất hiện và có thể load more
-      if (entry.isIntersecting && pagination.hasMore && !pagination.isLoadingMore) {
-        loadMessages(true);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        // Khi top sentinel xuất hiện và có thể load more
+        if (entry.isIntersecting && pagination.hasMore && !pagination.isLoadingMore) {
+          loadMessages(true);
+        }
+      },
+      {
+        root: chatContainerRef.current,
+        rootMargin: '50px',
+        threshold: 0.1,
       }
-    },
-    { 
-      root: chatContainerRef.current,
-      rootMargin: '50px',
-      threshold: 0.1,
-    }
-  );
+    );
 
 
 
-  // Thêm delay để đảm bảo DOM đã render
-  setTimeout(() => {
-    if (topSentinelRef.current) {
-      observer.observe(topSentinelRef.current);
-      scrollObserverRef.current = observer;
-    }
-  }, 100);
+    // Thêm delay để đảm bảo DOM đã render
+    setTimeout(() => {
+      if (topSentinelRef.current) {
+        observer.observe(topSentinelRef.current);
+        scrollObserverRef.current = observer;
+      }
+    }, 100);
 
-  return () => {
-    if (scrollObserverRef.current) {
-      scrollObserverRef.current.disconnect();
-    }
-  };
-}, [pagination.hasMore, pagination.isLoadingMore, loadMessages, chatContainerRef.current, topSentinelRef.current]); // Thêm dependencies
+    return () => {
+      if (scrollObserverRef.current) {
+        scrollObserverRef.current.disconnect();
+      }
+    };
+  }, [pagination.hasMore, pagination.isLoadingMore, loadMessages, chatContainerRef.current, topSentinelRef.current]); // Thêm dependencies
 
   useEffect(() => {
-  // Reset pagination khi conversation thay đổi
+    // Reset pagination khi conversation thay đổi
     setPagination({
       page: 1,
       pageSize: 10,
@@ -1262,7 +1262,7 @@ useEffect(() => {
   useEffect(() => {
     if (!isChatOpen && messages.length > previousLengthRef.current) {
       const newMsgs = messages.slice(previousLengthRef.current);
-      const newAdminOrBot = newMsgs.filter(m => 
+      const newAdminOrBot = newMsgs.filter(m =>
         ['ADMIN', 'BOT'].includes(m.senderType) && m.status !== 'sending'
       ).length;
       setUnreadCount(prev => prev + newAdminOrBot);
@@ -1273,39 +1273,39 @@ useEffect(() => {
   // ==================== UI HELPERS ====================
 
   const getBubbleClass = useCallback((msg: ChatMessage) => {
-  const isOwn = ['USER', 'GUEST'].includes(msg.senderType);
-  const base = 'max-w-[75%] rounded-2xl px-4 py-2.5 shadow-md text-sm transition-all duration-200 message-bubble';
-  
-  // Thêm class pulse cho tin nhắn mới gửi
-  const isNew = msg.status === 'sending' || msg.status === 'local';
-  const pulseClass = isNew ? 'bubble-pulse' : '';
-  
-  if (msg.status === 'sending') {
-    return `${base} bg-gray-300 text-gray-600 opacity-80 rounded-br-none ${pulseClass}`;
-  }
-  
-  if (msg.status === 'local') {
-    return `${base} bg-indigo-500 text-white rounded-br-none opacity-90 ${pulseClass}`;
-  }
-  
-  if (isOwn) {
-    return `${base} bg-indigo-600 text-white rounded-br-none ${pulseClass}`;
-  }
-  
-  if (msg.senderType === 'ADMIN') {
-    return `${base} bg-green-500 text-white rounded-bl-none ${pulseClass}`;
-  }
-  
-  if (msg.senderType === 'BOT') {
-    return `${base} bg-green-500 text-white rounded-bl-none ${pulseClass}`;
-  }
-  
-  return `${base} bg-gray-200 text-gray-800 rounded-bl-none ${pulseClass}`;
-}, []);
+    const isOwn = ['USER', 'GUEST'].includes(msg.senderType);
+    const base = 'max-w-[75%] rounded-2xl px-4 py-2.5 shadow-md text-sm transition-all duration-200 message-bubble';
 
-  const formatTime = useCallback((date: string) => 
+    // Thêm class pulse cho tin nhắn mới gửi
+    const isNew = msg.status === 'sending' || msg.status === 'local';
+    const pulseClass = isNew ? 'bubble-pulse' : '';
+
+    if (msg.status === 'sending') {
+      return `${base} bg-gray-300 text-gray-600 opacity-80 rounded-br-none ${pulseClass}`;
+    }
+
+    if (msg.status === 'local') {
+      return `${base} bg-indigo-500 text-white rounded-br-none opacity-90 ${pulseClass}`;
+    }
+
+    if (isOwn) {
+      return `${base} bg-indigo-600 text-white rounded-br-none ${pulseClass}`;
+    }
+
+    if (msg.senderType === 'ADMIN') {
+      return `${base} bg-green-500 text-white rounded-bl-none ${pulseClass}`;
+    }
+
+    if (msg.senderType === 'BOT') {
+      return `${base} bg-green-500 text-white rounded-bl-none ${pulseClass}`;
+    }
+
+    return `${base} bg-gray-200 text-gray-800 rounded-bl-none ${pulseClass}`;
+  }, []);
+
+  const formatTime = useCallback((date: string) =>
     new Date(date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-  , []);
+    , []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -1334,16 +1334,16 @@ useEffect(() => {
         placeholder: 'Nhập tin nhắn'
       };
     }
-    
+
     if (!currentUser?.id) {
       return {
         text: 'Đang kiểm tra đăng nhập...',
-        color: 'text-gray-600', 
+        color: 'text-gray-600',
         inputDisabled: true,
         placeholder: 'Đang kiểm tra...'
       };
     }
-    
+
     if (!isConnected) {
       return {
         text: 'Đang kết nối...',
@@ -1352,7 +1352,7 @@ useEffect(() => {
         placeholder: 'Đang kết nối...'
       };
     }
-    
+
     // QUAN TRỌNG: Đã sửa ở đây - không còn bị kẹt ở "đang tải hội thoại"
     if (!conversationId && !hasAttemptedInitialLoad) {
       return {
@@ -1362,7 +1362,7 @@ useEffect(() => {
         placeholder: 'Nhập tin nhắn để bắt đầu hội thoại...'
       };
     }
-    
+
     // Nếu đã thử load và không có conversationId, vẫn cho phép nhập
     if (!conversationId && hasAttemptedInitialLoad) {
       return {
@@ -1372,7 +1372,7 @@ useEffect(() => {
         placeholder: 'Nhập tin nhắn để tạo hội thoại mới...'
       };
     }
-    
+
     return {
       text: `Đã kết nối`,
       color: 'text-green-600',
@@ -1405,108 +1405,108 @@ useEffect(() => {
   }
 
   // Thêm hàm render loading spinner
-const renderLoadingSpinner = () => {
-  if (!showLoadingSpinner) return null;
-  
-  return (
-    <div className="sticky top-0 z-20 bg-gradient-to-b from-white via-white/90 to-transparent pb-4">
-      <div className="flex flex-col items-center justify-center py-4">
-        {/* Animated spinner */}
-        {/* <div className="relative w-12 h-12 mb-2">
+  const renderLoadingSpinner = () => {
+    if (!showLoadingSpinner) return null;
+
+    return (
+      <div className="sticky top-0 z-20 bg-gradient-to-b from-white via-white/90 to-transparent pb-4">
+        <div className="flex flex-col items-center justify-center py-4">
+          {/* Animated spinner */}
+          {/* <div className="relative w-12 h-12 mb-2">
           <div className="absolute inset-0 rounded-full border-4 border-gray-200"></div>
           <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
           <div className="absolute inset-2 rounded-full border-4 border-blue-300 border-b-transparent animate-spin-reverse"></div>
         </div> */}
-        
-        {/* Text với animation */}
-        <div className="flex flex-col items-center gap-1">
-          <div className="text-sm font-medium text-blue-600 animate-pulse">
-            Đang tải tin nhắn cũ...
+
+          {/* Text với animation */}
+          <div className="flex flex-col items-center gap-1">
+            <div className="text-sm font-medium text-blue-600 animate-pulse">
+              Đang tải tin nhắn cũ...
+            </div>
           </div>
-        </div>
-        
-        {/* Progress dots animation */}
-        <div className="flex gap-1 mt-3">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-              style={{
-                animationDelay: `${i * 0.2}s`,
-                animationDuration: '1s'
-              }}
-            />
-          ))}
+
+          {/* Progress dots animation */}
+          <div className="flex gap-1 mt-3">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                style={{
+                  animationDelay: `${i * 0.2}s`,
+                  animationDuration: '1s'
+                }}
+              />
+            ))}
+          </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-return (
-  <ChatContext.Provider value={contextValue}>
-    {/* Floating Chat Button - Màu xanh hiện đại */}
-    <div className="fixed bottom-5 right-5 z-[9999]">
-      <button
-        onClick={() => setIsChatOpen(!isChatOpen)}
-        className="relative bg-gradient-to-r from-teal-500 to-emerald-500 text-white px-4 py-3 md:px-6 md:py-3 rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 font-medium touch-manipulation group"
-        style={{ WebkitTapHighlightColor: 'transparent' }}
-      >
-       <div className="relative">
-          {/* Icon chat đẹp hơn */}
-          <div className="relative z-10">
-            <svg 
-              className="w-6 h-6 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" 
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth="2" 
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              />
-            </svg>
+  return (
+    <ChatContext.Provider value={contextValue}>
+      {/* Floating Chat Button - Màu xanh hiện đại */}
+      <div className="fixed bottom-5 right-5 z-[9999]">
+        <button
+          onClick={() => setIsChatOpen(!isChatOpen)}
+          className="relative bg-gradient-to-r from-teal-500 to-emerald-500 text-white px-4 py-3 md:px-6 md:py-3 rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2 font-medium touch-manipulation group"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+        >
+          <div className="relative">
+            {/* Icon chat đẹp hơn */}
+            <div className="relative z-10">
+              <svg
+                className="w-6 h-6 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+            </div>
+
+            {/* Hiệu ứng glow khi hover */}
+            <div className="absolute -inset-3 bg-gradient-to-r from-teal-400/20 via-emerald-400/20 to-teal-400/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+
+            {/* Hiệu ứng pulse nhẹ */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-teal-400/10 to-emerald-400/10 animate-pulse"></div>
           </div>
-          
-          {/* Hiệu ứng glow khi hover */}
-          <div className="absolute -inset-3 bg-gradient-to-r from-teal-400/20 via-emerald-400/20 to-teal-400/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-          
-          {/* Hiệu ứng pulse nhẹ */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-teal-400/10 to-emerald-400/10 animate-pulse"></div>
-        </div>
 
-        <span className="hidden md:inline ml-2 font-medium tracking-wide">Chat</span>
-      </button>
+          <span className="hidden md:inline ml-2 font-medium tracking-wide">Chat</span>
+        </button>
 
-      {!isGuest && !isConnected && (
-        <span className="absolute top-0 right-0 w-3 h-3 bg-rose-500 rounded-full animate-pulse border border-white"></span>
-      )}
+        {!isGuest && !isConnected && (
+          <span className="absolute top-0 right-0 w-3 h-3 bg-rose-500 rounded-full animate-pulse border border-white"></span>
+        )}
 
-      {unreadCount > 0 && (
-        <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 shadow-md animate-bounce">
-          {unreadCount > 99 ? '99+' : unreadCount}
-        </span>
-      )}
-    </div>
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 shadow-md animate-bounce">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </div>
 
-    {/* Chat Window - Màu xanh hiện đại */}
-    {isChatOpen && (
-      <div className="fixed inset-0 md:inset-auto md:bottom-24 md:right-5 md:w-96 md:h-[600px] w-full h-full bg-gradient-to-b from-teal-50/50 to-emerald-50/30 backdrop-blur-sm md:backdrop-blur-none md:bg-white md:rounded-2xl md:shadow-2xl flex flex-col overflow-hidden z-[9999] animate-in slide-in-from-bottom-full md:slide-in-from-bottom-5 duration-300 overscroll-contain border md:border-emerald-100"
-        style={{
-          WebkitOverflowScrolling: 'touch',
-          maxHeight: '-webkit-fill-available',
-        }}
-      >
-        {/* Header với gradient xanh hiện đại */}
-       <div className="flex justify-between items-center bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 text-white px-4 py-3 safe-area-top-padding">
+      {/* Chat Window - Màu xanh hiện đại */}
+      {isChatOpen && (
+        <div className="fixed inset-0 md:inset-auto md:bottom-24 md:right-5 md:w-96 md:h-[600px] w-full h-full bg-gradient-to-b from-teal-50/50 to-emerald-50/30 backdrop-blur-sm md:backdrop-blur-none md:bg-white md:rounded-2xl md:shadow-2xl flex flex-col overflow-hidden z-[9999] animate-in slide-in-from-bottom-full md:slide-in-from-bottom-5 duration-300 overscroll-contain border md:border-emerald-100"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            maxHeight: '-webkit-fill-available',
+          }}
+        >
+          {/* Header với gradient xanh hiện đại */}
+          <div className="flex justify-between items-center bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 text-white px-4 py-3 safe-area-top-padding">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="relative">
                 <div className="w-12 h-12 rounded-full overflow-hidden border-4 border-white/30 shadow-lg">
                   <Image
                     src="/image/telesale.jpg"
-                    alt="Phương Ly"
+                    alt="Thu Thủy"
                     width={48}
                     height={48}
                     priority
@@ -1516,202 +1516,201 @@ return (
                 <div className="absolute -inset-2 bg-white/10 rounded-full blur-sm"></div>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-lg text-white truncate">Phương Ly</h3>
+                <h3 className="font-bold text-lg text-white truncate">Thu Thủy</h3>
               </div>
             </div>
-          
-          <button 
-            onClick={() => setIsChatOpen(false)} 
-            className="flex-shrink-0 text-white hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center text-2xl transition-colors active:bg-white/30 touch-manipulation hover:rotate-90 transition-transform"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-            aria-label="Đóng chat"
+
+            <button
+              onClick={() => setIsChatOpen(false)}
+              className="flex-shrink-0 text-white hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center text-2xl transition-colors active:bg-white/30 touch-manipulation hover:rotate-90 transition-transform"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+              aria-label="Đóng chat"
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Messages container với nền xanh nhẹ */}
+          <div
+            ref={chatContainerRef}
+            className="flex-1 p-3 md:p-4 overflow-y-auto bg-gradient-to-b from-white via-teal-50/30 to-emerald-50/20 space-y-4 overscroll-contain"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              overflowAnchor: 'none',
+            }}
           >
-            ×
-          </button>
-        </div>
+            {/* Top Sentinel cho infinite scroll */}
+            <div ref={topSentinelRef} className="h-2" />
 
-        {/* Messages container với nền xanh nhẹ */}
-        <div 
-          ref={chatContainerRef}
-          className="flex-1 p-3 md:p-4 overflow-y-auto bg-gradient-to-b from-white via-teal-50/30 to-emerald-50/20 space-y-4 overscroll-contain"
-          style={{
-            WebkitOverflowScrolling: 'touch',
-            overflowAnchor: 'none',
-          }}
-        >
-          {/* Top Sentinel cho infinite scroll */}
-          <div ref={topSentinelRef} className="h-2" />
+            {/* Loading Spinner */}
+            {renderLoadingSpinner()}
 
-          {/* Loading Spinner */}
-          {renderLoadingSpinner()}
+            {/* Empty state với design hiện đại */}
+            {messages.length === 0 && !isTyping.admin && !isTyping.ai && (
+              <div className="text-center py-4 md:py-8 px-4">
+                <p className="text-lg font-semibold text-teal-900 mb-2">
+                  {currentUser ? 'Xin chào!' : 'Chào bạn! 👋'}
+                </p>
+                <p className="text-sm text-teal-700/80 max-w-xs mx-auto mb-4">
+                  {currentUser
+                    ? 'Chúng tôi sẵn sàng hỗ trợ bạn'
+                    : 'Tôi là trợ lý, hãy bắt đầu trò chuyện!'
+                  }
+                </p>
+                {currentUser && !conversationId && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-full">
+                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                    <span className="text-xs font-medium text-emerald-700">Nhập tin nhắn đầu tiên</span>
+                  </div>
+                )}
+              </div>
+            )}
 
-          {/* Empty state với design hiện đại */}
-          {messages.length === 0 && !isTyping.admin && !isTyping.ai && (
-            <div className="text-center py-4 md:py-8 px-4">
-              <p className="text-lg font-semibold text-teal-900 mb-2">
-                {currentUser ? 'Xin chào!' : 'Chào bạn! 👋'}
-              </p>
-              <p className="text-sm text-teal-700/80 max-w-xs mx-auto mb-4">
-                {currentUser 
-                  ? 'Chúng tôi sẵn sàng hỗ trợ bạn' 
-                  : 'Tôi là trợ lý, hãy bắt đầu trò chuyện!'
-                }
-              </p>
-              {currentUser && !conversationId && (
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-full">
-                  <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                  <span className="text-xs font-medium text-emerald-700">Nhập tin nhắn đầu tiên</span>
-                </div>
-              )}
-            </div>
-          )}
+            {/* Messages list + AI Typing Bubble tích hợp */}
+            {messages.map((msg, index) => {
+              const isNewMessage = index >= messages.length - 3;
+              const messageDelay = Math.min((messages.length - 1 - index) * 0.1, 0.3);
+              const isUser = ['USER', 'GUEST'].includes(msg.senderType);
 
-          {/* Messages list + AI Typing Bubble tích hợp */}
-          {messages.map((msg, index) => {
-            const isNewMessage = index >= messages.length - 3;
-            const messageDelay = Math.min((messages.length - 1 - index) * 0.1, 0.3);
-            const isUser = ['USER', 'GUEST'].includes(msg.senderType);
+              // Đặc biệt: Nếu đây là tin nhắn placeholder của AI (message là '...' và đang typing)
+              const isAiTypingPlaceholder = msg.senderType === 'BOT' && msg.message === '...' && isTyping.ai;
 
-            // Đặc biệt: Nếu đây là tin nhắn placeholder của AI (message là '...' và đang typing)
-            const isAiTypingPlaceholder = msg.senderType === 'BOT' && msg.message === '...' && isTyping.ai;
-
-            return (
-              <div
-                key={msg.id}
-                className={`flex ${isUser ? 'justify-end' : 'justify-start'} ${
-                  isNewMessage ? 'animate-in fade-in slide-in-from-bottom-2' : ''
-                }`}
-                style={{
-                  animationDuration: isNewMessage ? '0.4s' : '0.2s',
-                  animationDelay: isNewMessage ? `${messageDelay}s` : '0s',
-                  animationFillMode: 'both'
-                }}
-              >
-                <div className={`
+              return (
+                <div
+                  key={msg.id}
+                  className={`flex ${isUser ? 'justify-end' : 'justify-start'} ${isNewMessage ? 'animate-in fade-in slide-in-from-bottom-2' : ''
+                    }`}
+                  style={{
+                    animationDuration: isNewMessage ? '0.4s' : '0.2s',
+                    animationDelay: isNewMessage ? `${messageDelay}s` : '0s',
+                    animationFillMode: 'both'
+                  }}
+                >
+                  <div className={`
                   relative max-w-[85%] md:max-w-[75%] break-words rounded-2xl px-4 py-3
                   ${isUser
-                    ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-br-none'
-                    : 'bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-100 text-teal-900 rounded-bl-none'
-                  }
+                      ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-br-none'
+                      : 'bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-100 text-teal-900 rounded-bl-none'
+                    }
                   ${isNewMessage ? 'transform transition-transform duration-300 active:scale-[0.98]' : ''}
                   shadow-sm hover:shadow-md transition-shadow
                 `}>
-                  {/* Decorative corner */}
-                  {isUser ? (
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-teal-500 rounded-tl-full"></div>
-                  ) : (
-                    <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-teal-50 border-l border-b border-teal-100 rounded-tr-full"></div>
-                  )}
-
-                  <div className="whitespace-pre-wrap break-words text-sm md:text-base leading-relaxed relative z-10">
-                    {/* Nếu là placeholder typing → hiển thị dots nhảy */}
-                    {isAiTypingPlaceholder ? (
-                      <div className="flex items-center gap-1">
-                        <span className="w-2 h-2 bg-teal-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                        <span className="w-2 h-2 bg-teal-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                        <span className="w-2 h-2 bg-teal-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                      </div>
+                    {/* Decorative corner */}
+                    {isUser ? (
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-teal-500 rounded-tl-full"></div>
                     ) : (
-                      renderMessageWithLinks(msg.message)
+                      <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-teal-50 border-l border-b border-teal-100 rounded-tr-full"></div>
                     )}
-                  </div>
 
-                  {/* Thời gian + trạng thái gửi */}
-                  <div className={`text-xs mt-2 flex items-center gap-2 ${isUser ? 'text-teal-100/80' : 'text-teal-600/70'}`}>
-                    <span>{formatTime(msg.createdAt)}</span>
-                    {msg.status === 'sending' && !isAiTypingPlaceholder && (
-                      <span className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 bg-current rounded-full opacity-60 animate-pulse"></span>
-                        <span className="text-xs">Đang gửi...</span>
-                      </span>
-                    )}
+                    <div className="whitespace-pre-wrap break-words text-sm md:text-base leading-relaxed relative z-10">
+                      {/* Nếu là placeholder typing → hiển thị dots nhảy */}
+                      {isAiTypingPlaceholder ? (
+                        <div className="flex items-center gap-1">
+                          <span className="w-2 h-2 bg-teal-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                          <span className="w-2 h-2 bg-teal-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                          <span className="w-2 h-2 bg-teal-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                        </div>
+                      ) : (
+                        renderMessageWithLinks(msg.message)
+                      )}
+                    </div>
+
+                    {/* Thời gian + trạng thái gửi */}
+                    <div className={`text-xs mt-2 flex items-center gap-2 ${isUser ? 'text-teal-100/80' : 'text-teal-600/70'}`}>
+                      <span>{formatTime(msg.createdAt)}</span>
+                      {msg.status === 'sending' && !isAiTypingPlaceholder && (
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 bg-current rounded-full opacity-60 animate-pulse"></span>
+                          <span className="text-xs">Đang gửi...</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Typing Indicators với design đẹp */}
+            {isTyping.admin && (
+              <div className="flex justify-start animate-in fade-in duration-300">
+                <div className="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-100 rounded-2xl px-4 py-3 max-w-[85%] md:max-w-[75%]">
+                  <div className="flex items-center gap-3">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                    <span className="text-sm font-medium text-teal-700">Đang soạn tin nhắn...</span>
                   </div>
                 </div>
               </div>
-            );
-          })}
+            )}
 
-          {/* Typing Indicators với design đẹp */}
-          {isTyping.admin && (
-            <div className="flex justify-start animate-in fade-in duration-300">
-              <div className="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-100 rounded-2xl px-4 py-3 max-w-[85%] md:max-w-[75%]">
-                <div className="flex items-center gap-3">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                  </div>
-                  <span className="text-sm font-medium text-teal-700">Đang soạn tin nhắn...</span>
-                </div>
-              </div>
-            </div>
-          )}
 
-        
 
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Area với design hiện đại */}
-        <div className="p-3 md:p-4 border-t border-emerald-100 bg-gradient-to-r from-white to-teal-50/30 safe-area-padding-bottom">
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder={status.placeholder}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={status.inputDisabled}
-                className="w-full border border-teal-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 rounded-full px-4 py-3 md:py-3 text-base md:text-sm outline-none transition-all bg-white/80 backdrop-blur-sm text-teal-900 placeholder-teal-400 disabled:bg-teal-50 disabled:cursor-not-allowed shadow-inner"
-                style={{
-                  WebkitAppearance: 'none',
-                  fontSize: '16px',
-                }}
-              />
-              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-teal-500/0 via-teal-500/5 to-emerald-500/0 blur-sm opacity-0 hover:opacity-100 transition-opacity pointer-events-none"></div>
-            </div>
-            
-            <button
-              onClick={() => sendMessage(input)}
-              disabled={!input.trim() || status.inputDisabled}
-              className="relative bg-gradient-to-r from-teal-500 to-emerald-500 text-white px-5 md:px-6 py-3 md:py-3 rounded-full font-medium shadow-lg hover:shadow-xl transition-all flex items-center justify-center min-w-[52px] min-h-[52px] group disabled:from-teal-300 disabled:to-emerald-300 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
-              <div className="relative z-10">
-                <span className="md:hidden">📤</span>
-                <span className="hidden md:inline">Gửi</span>
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-r from-teal-600 to-emerald-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <div className="absolute -inset-2 bg-teal-500/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            </button>
+            <div ref={messagesEndRef} />
           </div>
-          
-         
-          
-          {/* Scroll to bottom button */}
-          {showScrollToBottom && (
-            <button
-              onClick={() => {
-                scrollToBottom('smooth');
-                setShowScrollToBottom(false);
-              }}
-              className="fixed md:absolute bottom-24 right-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all z-10 animate-bounce min-w-[44px] min-h-[44px] flex items-center justify-center hover:scale-110"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-              title="Cuộn xuống tin nhắn mới nhất"
-              aria-label="Cuộn xuống cuối"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
-            </button>
-          )}
-        </div>
-      </div>
-    )}
 
-    <style jsx global>{`
+          {/* Input Area với design hiện đại */}
+          <div className="p-3 md:p-4 border-t border-emerald-100 bg-gradient-to-r from-white to-teal-50/30 safe-area-padding-bottom">
+            <div className="flex gap-3">
+              <div className="flex-1 relative">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  placeholder={status.placeholder}
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={status.inputDisabled}
+                  className="w-full border border-teal-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 rounded-full px-4 py-3 md:py-3 text-base md:text-sm outline-none transition-all bg-white/80 backdrop-blur-sm text-teal-900 placeholder-teal-400 disabled:bg-teal-50 disabled:cursor-not-allowed shadow-inner"
+                  style={{
+                    WebkitAppearance: 'none',
+                    fontSize: '16px',
+                  }}
+                />
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-teal-500/0 via-teal-500/5 to-emerald-500/0 blur-sm opacity-0 hover:opacity-100 transition-opacity pointer-events-none"></div>
+              </div>
+
+              <button
+                onClick={() => sendMessage(input)}
+                disabled={!input.trim() || status.inputDisabled}
+                className="relative bg-gradient-to-r from-teal-500 to-emerald-500 text-white px-5 md:px-6 py-3 md:py-3 rounded-full font-medium shadow-lg hover:shadow-xl transition-all flex items-center justify-center min-w-[52px] min-h-[52px] group disabled:from-teal-300 disabled:to-emerald-300 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                <div className="relative z-10">
+                  <span className="md:hidden">📤</span>
+                  <span className="hidden md:inline">Gửi</span>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-teal-600 to-emerald-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="absolute -inset-2 bg-teal-500/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              </button>
+            </div>
+
+
+
+            {/* Scroll to bottom button */}
+            {showScrollToBottom && (
+              <button
+                onClick={() => {
+                  scrollToBottom('smooth');
+                  setShowScrollToBottom(false);
+                }}
+                className="fixed md:absolute bottom-24 right-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all z-10 animate-bounce min-w-[44px] min-h-[44px] flex items-center justify-center hover:scale-110"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+                title="Cuộn xuống tin nhắn mới nhất"
+                aria-label="Cuộn xuống cuối"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <style jsx global>{`
       /* Safe area handling cho iPhone */
       .safe-area-top-padding {
         padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
@@ -1808,7 +1807,7 @@ return (
         background: rgba(20, 184, 166, 0.7);
       }
     `}</style>
-  </ChatContext.Provider>
-);
-  
+    </ChatContext.Provider>
+  );
+
 }
